@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  create-release:
+    name: Build Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+
+      - name: Checkout source code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: Install dependencies for InteractionDUI
+        run: |
+          cd InteractionDUI/dui_source
+          npm install
+  
+      - name: Build Vue app for InteractionDUI
+        run: |
+          cd InteractionDUI/dui_source
+          npm run build
+
+      - name: Bundle files
+        run: |
+            mkdir -p ./temp/interactionMenu
+            mkdir -p ./temp/interactionDUI
+            mkdir -p ./temp/interactionRenderer
+            cp -r ./interactionDUI/dui ./temp/interactionDUI/
+            cp ./interactionDUI/fxmanifest.lua ./temp/interactionDUI
+            cp ./interactionDUI/core.client.lua ./temp/interactionDUI
+            cp -r ./interactionMenu ./temp
+            cp -r ./interactionRenderer ./temp
+
+      - name: Zip files
+        run: |
+            cd ./temp && zip -r ../interactionMenu.zip ./
+
+      - name: Create Release
+        uses: "marvinpinto/action-automatic-releases@v1.2.1"
+        id: auto_release
+        with:
+            repo_token: "${{ secrets.GITHUB_TOKEN }}"
+            title: ${{ env.RELEASE_VERSION }}
+            prerelease: false
+            files: Interaction.zip
+
+        env:
+            CI: false
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

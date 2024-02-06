@@ -1,0 +1,54 @@
+if not DEVMODE then return end
+-- #TODO: test zone performance
+-- local positions = {}
+
+-- local Zones = {}
+-- local function AddBoxZone(o)
+--     Zones[o.name] = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
+--         name = o.name,
+--         heading = o.heading,
+--         debugPoly = o.debugPoly,
+--         minZ = o.minZ,
+--         maxZ = o.maxZ,
+--     })
+--     return Zones[o.name]
+-- end
+
+-- for i = 1, 4, 1 do
+--     positions[#positions + 1] = vector4(-1969.85, 3186.56 + (i * 4), 32.81, 60.05)
+-- end
+
+-- -- isPointInside
+-- CreateThread(function()
+--     local zone = AddBoxZone {
+--         name = "onZoneTest",
+--         position = positions[1],
+--         heading = positions[1].w,
+--         debugPoly = true,
+--         width = 4.0,
+--         length = 10.0,
+--         minZ = positions[1].z - 1,
+--         maxZ = positions[1].z + 1
+--     }
+
+--     exports['interactionMenu']:Create {
+--         zone = {
+--             type = 'boxZone', -- entityZone/circleZone/polyZone/comboZone
+--             name = "onZoneTest",
+--             position = positions[1],
+--             heading = positions[1].w,
+--             width = 4.0,
+--             length = 10.0,
+--             minZ = positions[1].z - 1,
+--             maxZ = positions[1].z + 1
+--         },
+--         position = vector4(-1966.16, 3188.47, 32.81, 58.8),
+--         options = {
+--             {
+--                 picture = {
+--                     url = 'http://127.0.0.1:8080/00235-990749447.png'
+--                 }
+--             }
+--         }
+--     }
+-- end)

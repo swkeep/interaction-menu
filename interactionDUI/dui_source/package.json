@@ -1,0 +1,21 @@
+{
+  "name": "keep_interact_dui",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host --config vite.config.prod.js",
+    "build": "vite build --emptyOutDir --config vite.config.prod.js",
+    "watch": "vite build --watch --emptyOutDir --config vite.config.dev.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.3.12"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@vitejs/plugin-vue": "^4.5.2",
+    "sass": "^1.69.5",
+    "vite": "^5.0.10"
+  }
+}

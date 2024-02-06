@@ -1,0 +1,356 @@
+$max-width: 20em;
+
+:root {
+    --primary-color: rgba(226, 145, 38, 1);
+    --primary-color-glow: rgba(226, 145, 38, 0.5);
+    --primary-color-background: rgba(143, 92, 24, 0.3);
+    --primary-color-border: rgba(226, 145, 38, 0.7);
+    --text-color: white;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+}
+
+// yeah that's dark mode xd
+.dark {
+    .menu-container {
+        background-color: rgba(0, 0, 0, 0.6);
+    }
+
+    .indicator {
+        background-color: rgba(0, 0, 0, 0.6);
+    }
+}
+
+.dev-element {
+    margin-right: 1rem;
+    min-width: 14rem;
+    background-color: #fcfcfd31;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+
+    button {
+        align-items: center;
+        appearance: none;
+        background-color: #FCFCFD;
+        border-radius: 4px;
+        border-width: 0;
+        box-shadow: rgba(45, 35, 66, 0.2) 0 2px 4px, rgba(45, 35, 66, 0.15) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+        box-sizing: border-box;
+        color: #36395A;
+        cursor: pointer;
+        display: inline-flex;
+        font-family: "JetBrains Mono", monospace;
+        height: 48px;
+        justify-content: center;
+        line-height: 1;
+        list-style: none;
+        overflow: hidden;
+        padding-left: 16px;
+        padding-right: 16px;
+        position: relative;
+        text-align: left;
+        text-decoration: none;
+        transition: box-shadow .15s, transform .15s;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+        white-space: nowrap;
+        will-change: box-shadow, transform;
+        font-size: 18px;
+    }
+
+    button:focus {
+        box-shadow: #D6D6E7 0 0 0 1.5px inset, rgba(45, 35, 66, 0.4) 0 2px 4px, rgba(45, 35, 66, 0.3) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+    }
+
+    button:hover {
+        box-shadow: rgba(45, 35, 66, 0.3) 0 4px 8px, rgba(45, 35, 66, 0.2) 0 7px 13px -3px, #D6D6E7 0 -3px 0 inset;
+        transform: translateY(-2px);
+    }
+
+    button:active {
+        box-shadow: #D6D6E7 0 3px 7px inset;
+        transform: translateY(2px);
+    }
+}
+
+.intract-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    flex-wrap: wrap;
+    overflow: hidden;
+
+    &.dev {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+}
+
+.indicator {
+    min-width: 5rem;
+    height: 5rem;
+    border: 4px solid var(--primary-color-border);
+    border-radius: 1rem;
+    color: var(--text-color);
+    font-size: 2.5rem;
+    background-color: var(--primary-color-background);
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    flex-wrap: wrap;
+    transition: background-color 0.5s ease;
+
+    .text {
+        padding: 1rem;
+    }
+
+    &.glow {
+        box-shadow: 0 10px 10px var(--primary-color-glow), 0 0 30px var(--primary-color-glow);
+    }
+}
+
+.menu-container {
+    width: fit-content;
+    max-width: $max-width;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    font-size: 2rem;
+    margin-left: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 1em;
+    transition: background-color 0.5s ease;
+
+    &.glow {
+        box-shadow: 0 0px 20px 4px var(--primary-color-glow);
+    }
+
+    div {
+        max-height: 100vh;
+    }
+}
+
+// radio style from https://codepen.io/havardob/pen/dyYXBBr by Håvard Brynjulfsen
+.menu-wrapper {
+    display: flex;
+    position: relative;
+    overflow: hidden;
+    margin: 0.2em;
+    color: wheat;
+
+    &.no-margin {
+        margin: 0 !important;
+    }
+
+    input {
+        position: absolute;
+        appearance: none;
+
+        &:checked+.label {
+            background-color: var(--primary-color-background);
+
+            &:before {
+                box-shadow: inset 0 0 0 0.5em var(--primary-color);
+            }
+        }
+    }
+
+    .label {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        padding: 0.3em 0.7em 0.3em 0.3em;
+        border-radius: 99em;
+        transition: 0.25s ease;
+
+        .icon {
+            min-width: 1.2em;
+            text-align: center;
+            margin-right: 0.375em;
+        }
+
+        &:before {
+            display: flex;
+            flex-shrink: 0;
+            content: "";
+            background-color: transparent;
+            width: 1.5em;
+            height: 1.5em;
+            border-radius: 50%;
+            margin-right: 0.375em;
+            transition: 0.25s ease;
+            box-shadow: inset 0 0 0 0.1em var(--primary-color);
+        }
+    }
+}
+
+.label-update {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.3em 0.7em 0.3em 0.3em;
+    flex-direction: column;
+    gap: 1rem;
+
+    .icon {
+        min-width: 1.2em;
+        text-align: center;
+        margin-right: 0.375em;
+    }
+}
+
+.v-enter-from,
+.v-leave-to {
+    opacity: 0;
+    transform: translateX(-30px);
+}
+
+.v-enter-active,
+.v-leave-active {
+    transition: opacity 0.5s ease, transform 0.2s ease;
+}
+
+.v-enter-to {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.video-metadata {
+    position: absolute;
+    width: 100%;
+    height: 5.5rem;
+    bottom: 0;
+    left: .1rem;
+    right: .1rem;
+
+    &__label {
+        position: relative;
+        font-size: 2.5rem;
+        left: .5rem;
+    }
+
+    &__description {
+        position: relative;
+        left: .5rem;
+        font-size: 1.5rem;
+        color: rgba(245, 245, 220, 0.6);
+    }
+
+    &__timecycle {
+        position: absolute;
+        right: .5rem;
+        bottom: 1rem;
+        font-size: 1.5rem;
+        text-align: center;
+    }
+
+    .progress-container {
+        position: absolute;
+        bottom: 0.2rem;
+        left: 0.2rem;
+        width: 100%;
+
+        .progressbar {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+
+            .percent {
+                margin-left: 0.5rem;
+            }
+
+            .progress {
+                width: 0;
+                height: 0.5rem;
+                border-radius: 0rem 0rem .6rem .5rem;
+            }
+        }
+    }
+
+}
+
+.progressbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 30rem;
+
+    .percent {
+        margin-left: 0.5rem;
+    }
+
+    .progress {
+        width: 0;
+        height: 0.6rem;
+        border-radius: .5rem;
+        background: var(--primary-color);
+        transition: width 0.2s ease;
+
+        &.info {
+            background: rgb(47, 123, 223);
+        }
+
+        &.success {
+            background: rgb(0, 190, 0);
+        }
+
+        &.warning {
+            background: orange;
+        }
+
+        &.error {
+            background: rgb(255, 38, 0);
+        }
+    }
+}
+
+.picture-container {
+    img {
+
+        &.border-dashed {
+            border: #faebd712 5px dashed;
+        }
+
+        &.border-solid {
+            border: #faebd712 5px solid;
+        }
+    }
+}
+
+.video-container,
+.picture-container {
+    // need it for list animation
+    width: $max-width;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    user-select: none;
+    pointer-events: none;
+    gap: .5rem;
+    padding: .2rem;
+
+    video,
+    img {
+        width: 100%;
+        border-radius: 1rem;
+    }
+}
