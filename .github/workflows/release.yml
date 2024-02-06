@@ -26,12 +26,12 @@ jobs:
 
       - name: Install dependencies for InteractionDUI
         run: |
-          cd InteractionDUI/dui_source
+          cd interactionDUI/dui_source
           npm install
   
       - name: Build Vue app for InteractionDUI
         run: |
-          cd InteractionDUI/dui_source
+          cd interactionDUI/dui_source
           npm run build
 
       - name: Bundle files
