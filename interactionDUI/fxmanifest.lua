@@ -11,7 +11,11 @@
 fx_version 'cerulean'
 games { 'gta5' }
 
-author "Swkeep#7049"
+name 'interactionDUI'
+description 'Dui helper of interacion menu'
+version '1.0.0'
+author "swkeep"
+repository 'https://github.com/swkeep/interaction-menu'
 
 shared_scripts {}
 

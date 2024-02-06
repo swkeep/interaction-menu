@@ -11,18 +11,22 @@
 fx_version 'cerulean'
 games { 'gta5' }
 
-author "Swkeep#7049"
+name 'interactionMenu'
+description 'A standalone raycast-based interaction menu for FiveM'
+version '0.1.4'
+author "swkeep"
+repository 'https://github.com/swkeep/interaction-menu'
 
 shared_scripts {
      'config.shared.lua'
 }
 
 client_script {
-     '@PolyZone/client.lua',
-     '@PolyZone/BoxZone.lua',
-     '@PolyZone/EntityZone.lua',
-     '@PolyZone/CircleZone.lua',
-     '@PolyZone/ComboZone.lua',
+     -- '@PolyZone/client.lua',
+     -- '@PolyZone/BoxZone.lua',
+     -- '@PolyZone/EntityZone.lua',
+     -- '@PolyZone/CircleZone.lua',
+     -- '@PolyZone/ComboZone.lua',
 
      --
      'lua/frameworks/qb/client.lua',
@@ -33,7 +37,7 @@ client_script {
      'lua/client/interact.lua',
 
      -- examples / tests
-     'lua/examples/*.lua'
+     -- 'lua/examples/*.lua'
 }
 
 server_script {}
