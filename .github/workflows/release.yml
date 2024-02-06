@@ -56,7 +56,7 @@ jobs:
             repo_token: "${{ secrets.GITHUB_TOKEN }}"
             title: ${{ env.RELEASE_VERSION }}
             prerelease: false
-            files: Interaction.zip
+            files: interactionMenu.zip
 
         env:
             CI: false
