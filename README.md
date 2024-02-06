@@ -1,8 +1,12 @@
 # Interaction Menu
 
-![](https://img.shields.io/github/downloads/swkeep/keep-hunting/total?logo=github)
-![](https://img.shields.io/github/downloads/swkeep/keep-hunting/latest/total?logo=github)
-![](https://img.shields.io/github/v/release/swkeep/keep-hunting?logo=github)
+<center>
+
+![](https://img.shields.io/github/v/release/swkeep/interaction-menu?logo=github)
+![](https://img.shields.io/github/downloads/swkeep/interaction-menu/total?logo=github)
+![](https://img.shields.io/github/downloads/swkeep/interaction-menu/latest/total?logo=github)
+
+</center>
 
 A standalone raycast-based interaction menu for FiveM, designed to enhance your interaction with the environment on your FiveM server.
 
