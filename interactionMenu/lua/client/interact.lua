@@ -24,7 +24,8 @@ local SetScriptGfxDrawBehindPausemenu = SetScriptGfxDrawBehindPausemenu
 local IsControlJustReleased = IsControlJustReleased
 
 -- init
-local scaleform = {}
+local scaleform_initialized = false
+local scaleform
 local SpatialHashGrid = Util.SpatialHashGrid
 local grid = SpatialHashGrid:new(100)
 local visiblePoints = {}
@@ -44,9 +45,28 @@ Interact = {
 -- init
 CreateThread(function()
     Util.preloadSharedTextureDict()
-    scaleform = exports['interactionDUI']:Get()
-    scaleform.setPosition(vector3(0, 0, 0))
+
+    local timeout = 5000
+    local startTime = GetGameTimer()
+
+    repeat
+        scaleform_initialized = false
+        Wait(1000)
+    until GetResourceState('interactionDUI') == 'started' or (GetGameTimer() - startTime >= timeout)
+
+    if GetResourceState('interactionDUI') == 'started' then
+        scaleform_initialized = true
+
+        scaleform = exports['interactionDUI']:Get()
+        scaleform.setPosition(vector3(0, 0, 0))
+        scaleform.dettach()
+        scaleform.setStatus(false)
+    else
+        print('ResourceState:', GetResourceState('interactionDUI'))
+        error("interactionDUI resource did not start within the timeout period")
+    end
 end)
+
 
 function Interact:getSelectedIndex(menuData)
     local data = PersistentData.get(menuData.id)
@@ -82,6 +102,7 @@ end
 function Interact:setVisibility(id, value)
     -- #TODO: it should check we actually looking at the same menu and update it
     if not StateManager.get('id') then return end
+    if not scaleform then return end
     -- #TODO: add a better type check
     scaleform.send("interactionMenu:menu:setVisibility", { id = id, visibility = value })
 end
@@ -237,7 +258,19 @@ local function handleEntityInteraction(playerDistance, model, entity, hitPositio
     StateManager.set('hitPosition', hitPosition)
 end
 
+local function waitForScaleform()
+    local timeout = 7000
+    local startTime = GetGameTimer()
+
+    repeat
+        Wait(500)
+    until scaleform_initialized or (GetGameTimer() - startTime >= timeout)
+
+    return scaleform_initialized
+end
+
 CreateThread(function()
+    if not waitForScaleform() then return end
     -- We can bump it up to 1000 for better performance, but it looks better with 500/600 ms
     local interval = 600
     local pid = PlayerId()
@@ -483,6 +516,8 @@ local function RenderMenu()
 end
 
 CreateThread(function()
+    if not waitForScaleform() then return end
+
     while true do
         RenderMenu()
         Wait(500)
