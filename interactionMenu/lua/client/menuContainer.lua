@@ -820,7 +820,7 @@ function Container.syncData(scaleform, menuData, refreshUI, passThrough)
                     end
                 end
 
-                -- #FIX: this can be crash game if menu delete and ref is lost
+                -- #FIX: this can crash game if menu deleted
                 if option.flags.bind then
                     local value = menuOriginalData.interactions[optionIndex]
                     local sucess, res = pcall(value.func, passThrough)
@@ -833,9 +833,10 @@ function Container.syncData(scaleform, menuData, refreshUI, passThrough)
                 end
 
                 -- to hide option if its canInteract value has been changed
-                if not already_inserted and option.canInteract ~= nil and ((not option.canInteract) ~= option.hide) then
+                if not already_inserted and option.flags.hide ~= nil and option.flags.hide ~= option.flags.previous_hide then
                     already_inserted = true
-                    option.hide = not option.canInteract
+                    option.flags.previous_hide = option.flags.hide
+
                     table.insert(updatedElements, { menuId = menuId, option = option })
                 end
             end
@@ -904,24 +905,19 @@ function Container.loadingState(scaleform, menuData)
 end
 
 -- Helper functions for clarity and potential reuse
-local function setInteractProperty(menuRef, option, value)
+local function setHideProperty(menuRef, option, value)
     if option then
-        menuRef.options[option].canInteract = value
+        if not menuRef.options[option] then
+            warn("Option doesn't exists!")
+            return
+        end
+        menuRef.options[option].flags.hide = value
     else
-        menuRef.canInteract = value
+        menuRef.flags.hide = value
     end
 end
 
 local function setLabelProperty(menuRef, option, value)
-    if not option then
-        return
-    end
-
-    if not menuRef.options[option] then
-        warn("Option doesn't exists!")
-        return
-    end
-
     if not menuRef.options[option].flags.dynamic then
         warn('Updating a static option. Set it as dynamic to update its value.')
         return
@@ -930,26 +926,33 @@ local function setLabelProperty(menuRef, option, value)
     menuRef.options[option].label = value
 end
 
+local function setProgressProperty(menuRef, option, value)
+    if not menuRef.options[option].flags.dynamic then
+        warn("Updating a static option. Set it as dynamic to update its value.")
+        return
+    end
+
+    menuRef.options[option].progress.value = value
+end
+
 local function setMenuProperty(t)
     local menuId = t.menuId
     local menuRef = Container.get(menuId)
 
     -- Handle specific property types
-    if t.type == 'canInteract' then
-        setInteractProperty(menuRef, t.option, t.value)
-    elseif t.type == 'label' then
-        setLabelProperty(menuRef, t.option, t.value)
-    elseif t.type == 'progress' then
+    if t.type == 'hide' then
+        setHideProperty(menuRef, t.option, t.value)
+    elseif t.option then
         if not menuRef.options[t.option] then
             warn("Option doesn't exists!")
             return
         end
 
-        if not menuRef.options[t.option].flags.dynamic then
-            warn('Updating a static option. Set it as dynamic to update its value.')
-            return
+        if t.type == 'label' then
+            setLabelProperty(menuRef, t.option, t.value)
+        elseif t.type == 'progress' then
+            setProgressProperty(menuRef, t.option, t.value)
         end
-        menuRef.options[t.option].progress.value = t.value
     else
         warn('Invalid property type: ' .. tostring(t.type))
     end

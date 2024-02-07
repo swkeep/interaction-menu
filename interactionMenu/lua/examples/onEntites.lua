@@ -571,12 +571,12 @@ CreateThread(function()
     local p2 = vector4(-1996.67, 3155.48, 31.81, 95.07)
     local ent2 = Util.spawnObject(`prop_watercooler`, p2, false)
 
-    exports['interactionMenu']:Create {
+    local id_test = exports['interactionMenu']:Create {
         entity = ent2,
         offset = vec3(0, 0, 1),
         static = true,
         glow = true,
-        suppressGlobals = true,
+        -- suppressGlobals = true,
         extra = {
             onSeen = function()
                 print('onSeen')
@@ -590,6 +590,10 @@ CreateThread(function()
         },
         options = {
             {
+                label = "Up",
+                icon = "fas fa-heartbeat",
+            },
+            {
                 label = "Health",
                 icon = "fas fa-heartbeat",
                 progress = {
@@ -597,9 +601,28 @@ CreateThread(function()
                     value = 50,
                     percent = true
                 }
-            }
+            },
+            {
+                label = "Down",
+                icon = "fas fa-heartbeat",
+            },
         }
     }
+
+    CreateThread(function()
+        local toggle = false
+        while true do
+            Wait(2000)
+
+            toggle = not toggle
+            exports['interactionMenu']:set {
+                menuId = id_test,
+                option = 2,
+                type = 'hide',
+                value = toggle
+            }
+        end
+    end)
 
     p2 = vector4(-1997.14, 3165.09, 31.81, 283.79)
     local we = Util.spawnObject(`prop_dumpster_3a`, p2, false)
