@@ -7,7 +7,7 @@
 --                             | |
 --                             |_|
 -- https://github.com/swkeep
-DEVMODE = true
+DEVMODE = false
 
 -- cache
 local glm = require 'glm'
@@ -240,8 +240,8 @@ end
 
 --- Updates the position of an item within the grid
 ---@param item Item "item ref"
-function SpatialHashGrid:update(item)
-    local newX, newY = item.x, item.y
+function SpatialHashGrid:update(item, pos)
+    local newX, newY = pos.x, pos.y
 
     -- Remove from old cell
     local oldCellX, oldCellY = math_floor(item.x / self.cellSize), math_floor(item.y / self.cellSize)

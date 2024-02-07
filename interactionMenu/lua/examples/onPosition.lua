@@ -134,7 +134,7 @@ CreateThread(function()
         end
     end
 
-    exports['interactionMenu']:Create {
+    local id = exports['interactionMenu']:Create {
         type = 'position',
         position = vec3(controlPoint.x, controlPoint.y, controlPoint.z),
         maxDistance = 2.0,
@@ -185,4 +185,12 @@ CreateThread(function()
             },
         }
     }
+
+    SetTimeout(6000, function()
+        exports['interactionMenu']:set {
+            menuId = id,
+            type = 'position',
+            value = vector4(-1981.69, 3188.51, 32.81, 111.91)
+        }
+    end)
 end)

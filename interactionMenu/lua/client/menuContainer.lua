@@ -941,6 +941,21 @@ local function setProgressProperty(menuRef, option, value)
     menuRef.options[option].progress.value = value
 end
 
+local function setMenuPosition(menuRef, nPos)
+    if not menuRef.position then
+        warn("Menu is not position-based and its position cannot be updated")
+        return
+    end
+
+    if type(nPos) ~= "vector3" and type(nPos) ~= "vector4" then
+        warn("Position value must be a vector3 or vector4")
+        return
+    end
+
+    nPos = vec2(nPos.x, nPos.y)
+    grid:update(menuRef.position, nPos)
+end
+
 local function setMenuProperty(t)
     local menuId = t.menuId
     local menuRef = Container.get(menuId)
@@ -948,6 +963,8 @@ local function setMenuProperty(t)
     -- Handle specific property types
     if t.type == 'hide' then
         setHideProperty(menuRef, t.option, t.value)
+    elseif t.type == 'position' then
+        setMenuPosition(menuRef, t.value)
     elseif t.option then
         if not menuRef.options[t.option] then
             warn("Option doesn't exists!")
@@ -959,6 +976,7 @@ local function setMenuProperty(t)
         elseif t.type == 'progress' then
             setProgressProperty(menuRef, t.option, t.value)
         end
+    elseif t.type then
     else
         warn('Invalid property type: ' .. tostring(t.type))
     end
