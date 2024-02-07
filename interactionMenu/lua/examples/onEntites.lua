@@ -659,4 +659,28 @@ CreateThread(function()
             }
         }
     }
+
+    local ped_position = vector4(-1998.62, 3171.92, 31.81, 271.44)
+    Util.spawnPed(GetHashKey('cs_brad'), ped_position)
+
+    exports['interactionMenu']:Create {
+        entity = ent,
+        offset = vec3(0, 0, 0),
+        static = true,
+        options = {
+            {
+                label = 'Cook',
+                action = {
+                    type = 'sync',
+                    func = function(data)
+
+                    end
+                }
+            }
+        }
+    }
+
+
+    ped_position = vector4(-1998.86, 3173.44, 31.81, 271.76)
+    Util.spawnPed(GetHashKey('a_m_y_business_02'), ped_position)
 end)

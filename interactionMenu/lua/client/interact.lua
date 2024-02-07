@@ -314,14 +314,26 @@ local function METADATA(t)
     metadata.entityDetail = {
         handle = t.entity,
         networked = NetworkGetEntityIsNetworked(t.entity) == 1,
-        type = EntityTypes[GetEntityType(t.entity)],
         model = t.model,
         position = GetEntityCoords(t.entity),
         rotation = GetEntityRotation(t.entity),
     }
 
+    metadata.entityDetail.typeInt = GetEntityType(t.entity)
+    metadata.entityDetail.type = EntityTypes[metadata.entityDetail.typeInt]
+
     if metadata.entityDetail.networked then
         metadata.entityDetail.netId = NetworkGetNetworkIdFromEntity(t.entity)
+    end
+
+    local isPlayer = metadata.entityDetail.typeInt == 1 and IsPedAPlayer(t.entity)
+
+    if isPlayer then
+        metadata.player = {
+            playerPedId = t.entity,
+            playerIndex = NetworkGetPlayerIndexFromPed(t.entity),
+        }
+        metadata.player.serverId = GetPlayerServerId(metadata.player.playerIndex)
     end
 
     return metadata

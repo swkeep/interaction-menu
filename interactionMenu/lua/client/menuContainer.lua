@@ -49,6 +49,7 @@ Container = {
             entities = {},
             objects = {},
             peds = {},
+            players = {},
             vehicles = {}
         }
     }
@@ -349,6 +350,7 @@ function Container.createGlobal(t)
         Container.indexes.globals['bones'][instance.bone] = Container.indexes.globals['bones'][instance.bone] or {}
         table.insert(Container.indexes.globals['bones'][instance.bone], id)
     end
+
     return id
 end
 
@@ -398,21 +400,28 @@ end
 
 local function mergeGlobals(combinedIds, entity, model, closestBoneName)
     local entityType = GetEntityType(entity)
+    local isPlayer = entityType == 1 and IsPedAPlayer(entity)
+
     if not entityType or entityType == 0 then return {} end
+    local globals = Container.indexes.globals
     -- add globals on entities
-    if next(Container.indexes.globals.entities) then
-        Util.table_merge(combinedIds, Container.indexes.globals.entities or {})
+    if next(globals.entities) then
+        Util.table_merge(combinedIds, globals.entities or {})
     end
 
     -- add globals on, peds vehicles and objects
-    local res = next(Container.indexes.globals[set[entityType]])
+    local res = next(globals[set[entityType]])
     if res then
-        Util.table_merge(combinedIds, Container.indexes.globals[set[entityType]] or {})
+        Util.table_merge(combinedIds, globals[set[entityType]] or {})
+    end
+
+    if isPlayer and globals['players'] and next(globals['players']) then
+        Util.table_merge(combinedIds, globals['players'] or {})
     end
 
     -- add globals on bones
     if closestBoneName then
-        Util.table_merge(combinedIds, Container.indexes.globals.bones[closestBoneName] or {})
+        Util.table_merge(combinedIds, globals.bones[closestBoneName] or {})
     end
 
     -- on model and entity
@@ -508,14 +517,21 @@ function Container.getMenu(model, entity, menuId)
     return container, { model, entity, closestBoneId }
 end
 
-local function globalsExistsCheck(entityType)
+local function globalsExistsCheck(entity, entityType)
     if not entityType or entityType == 0 then return false end
     local globals = Container.indexes.globals
     local specificGlobals = globals[set[entityType]]
+    local isPlayer = entityType == 1 and IsPedAPlayer(entity)
+
+    if isPlayer and globals['players'] and next(globals['players']) then
+        return true
+    end
 
     if globals.entities and next(globals.entities) then
         return true
     end
+
+
 
     if specificGlobals and next(specificGlobals) then
         return true
@@ -534,7 +550,7 @@ function Container.getMenuType(t)
     if t.closestPoint and next(t.closestPoint) then
         -- onPosition
         return MenuTypes['ON_POSITION']
-    elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or globalsExistsCheck(entityType) then
+    elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or globalsExistsCheck(entity, entityType) then
         -- onModel / onEntity / onBone
         return MenuTypes['ON_ENTITY']
     else

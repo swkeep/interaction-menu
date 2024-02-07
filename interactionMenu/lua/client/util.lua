@@ -456,9 +456,27 @@ function Util.spawnVehicle(vehicleModel, spawnPoint)
     reqmodel(vehicleModel)
 
     local id = #object + 1
-    object[id] = CreateVehicle(vehicleModel, spawnPoint.x, spawnPoint.y, spawnPoint.z, spawnPoint.w, true, false)
+    object[id] = CreateVehicle(vehicleModel, spawnPoint.x, spawnPoint.y, spawnPoint.z, spawnPoint.w, false, false)
 
     SetModelAsNoLongerNeeded(vehicleModel)
+    return object[id]
+end
+
+function Util.spawnPed(hash, pos)
+    reqmodel(hash)
+
+    local id   = #object + 1
+    object[id] = CreatePed(5, hash, pos.x, pos.y, pos.z, 0.0, false, true)
+    while not DoesEntityExist(object[id]) do Wait(10) end
+
+    SetEntityHeading(object[id], pos.w)
+    SetBlockingOfNonTemporaryEvents(object[id], true)
+    SetPedFleeAttributes(object[id], 0, false)
+    SetPedCombatAttributes(object[id], 46, true)
+    SetPedAlertness(object[id], 3)
+    SetModelAsNoLongerNeeded(object[id])
+    FreezeEntityPosition(object[id], true)
+
     return object[id]
 end
 
