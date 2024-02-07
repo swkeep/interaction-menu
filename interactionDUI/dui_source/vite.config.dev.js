@@ -16,9 +16,9 @@ function myPlugin() {
 
       conn.on('auth', function () {
 
-        conn.send("ensure " + 'InteractionDUI');
-        console.warn("Restarting InteractionDUI");
-        setTimeout(() => { conn.send("ensure " + 'InteractionMenu'); console.warn("Restarting InteractionMenu"); }, 1000);
+        conn.send("ensure " + 'interactionDUI');
+        console.warn("Restarting interactionDUI");
+        setTimeout(() => { conn.send("ensure " + 'interactionMenu'); console.warn("Restarting interactionMenu"); }, 1000);
       })
     },
   }
