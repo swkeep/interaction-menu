@@ -333,6 +333,7 @@ local function METADATA(t)
             playerPedId = t.entity,
             playerIndex = NetworkGetPlayerIndexFromPed(t.entity),
         }
+
         metadata.player.serverId = GetPlayerServerId(metadata.player.playerIndex)
     end
 

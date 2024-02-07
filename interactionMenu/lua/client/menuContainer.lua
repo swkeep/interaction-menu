@@ -18,6 +18,9 @@ local interactionAudio = Config.interactionAudio or {
     }
 }
 
+local IsPedAPlayer = IsPedAPlayer
+local GetPlayerServerId = GetPlayerServerId
+local NetworkGetPlayerIndexFromPed = NetworkGetPlayerIndexFromPed
 local SpatialHashGrid = Util.SpatialHashGrid
 local grid = SpatialHashGrid:new(100)
 local StateManager = Util.StateManager()
@@ -43,6 +46,7 @@ Container = {
     indexes = {
         models = {},
         entities = {},
+        players = {},
         bones = {},
         globals = {
             bones = {},
@@ -196,6 +200,11 @@ local function classifyMenuInstance(instance)
         models[model] = models[model] or {}
 
         table.insert(models[model], instance.id)
+    elseif instance.player then
+        local players = indexes.players
+        players[instance.player] = players[instance.player] or {}
+
+        table.insert(players[instance.player], instance.id)
     end
 end
 
@@ -251,6 +260,12 @@ function Container.create(t)
     if t.position then
         instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id }
         grid:insert(instance.position)
+    elseif t.player then
+        if type(t.player) ~= 'number' then
+            warn('Player id must a integer value')
+            return
+        end
+        instance.player = t.player
     elseif t.entity then
         if not DoesEntityExist(t.entity) then
             local message = (
@@ -480,6 +495,14 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
     return container
 end
 
+local function IdentifyPlayerServerId(entityType, entity)
+    return entityType == 1 and IsPedAPlayer(entity) and GetPlayerServerId(NetworkGetPlayerIndexFromPed(entity))
+end
+
+local function isPedAPlayer(entityType, entity)
+    return entityType == 1 and IsPedAPlayer(entity)
+end
+
 function Container.getMenu(model, entity, menuId)
     local id
     local combinedIds = {}
@@ -506,6 +529,12 @@ function Container.getMenu(model, entity, menuId)
         end
     end
 
+    local playerId = IdentifyPlayerServerId(GetEntityType(entity), entity)
+
+    if playerId then
+        Util.table_merge(combinedIds, Container.indexes.players[playerId] or {})
+    end
+
     -- bone
     local bones = Container.indexes.bones[entity]
     if bones and closestBoneName then
@@ -521,7 +550,7 @@ local function globalsExistsCheck(entity, entityType)
     if not entityType or entityType == 0 then return false end
     local globals = Container.indexes.globals
     local specificGlobals = globals[set[entityType]]
-    local isPlayer = entityType == 1 and IsPedAPlayer(entity)
+    local isPlayer = isPedAPlayer(entityType, entity)
 
     if isPlayer and globals['players'] and next(globals['players']) then
         return true
@@ -531,8 +560,6 @@ local function globalsExistsCheck(entity, entityType)
         return true
     end
 
-
-
     if specificGlobals and next(specificGlobals) then
         return true
     end
@@ -540,17 +567,20 @@ local function globalsExistsCheck(entity, entityType)
     return false
 end
 
+
 function Container.getMenuType(t)
     local model = t.model
     local entity = t.entity
     local entityType = t.entityType
     local entities = Container.indexes.entities
     local models = Container.indexes.models
+    local players = Container.indexes.players
+    local playerId = IdentifyPlayerServerId(entityType, entity)
 
     if t.closestPoint and next(t.closestPoint) then
         -- onPosition
         return MenuTypes['ON_POSITION']
-    elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or globalsExistsCheck(entity, entityType) then
+    elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or players[playerId] or globalsExistsCheck(entity, entityType) then
         -- onModel / onEntity / onBone
         return MenuTypes['ON_ENTITY']
     else
