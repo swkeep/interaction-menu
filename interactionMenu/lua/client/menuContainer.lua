@@ -976,7 +976,6 @@ local function setMenuProperty(t)
         elseif t.type == 'progress' then
             setProgressProperty(menuRef, t.option, t.value)
         end
-    elseif t.type then
     else
         warn('Invalid property type: ' .. tostring(t.type))
     end
