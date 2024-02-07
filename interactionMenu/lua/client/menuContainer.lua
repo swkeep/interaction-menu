@@ -914,6 +914,7 @@ local function setHideProperty(menuRef, option, value)
         menuRef.options[option].flags.hide = value
     else
         menuRef.flags.hide = value
+        Interact:setVisibility(menuRef.id, value)
     end
 end
 

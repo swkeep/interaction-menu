@@ -93,11 +93,21 @@ subscribe('interactionMenu:menu:selectedUpdate', (data) => {
 });
 
 subscribe('interactionMenu:menu:setVisibility', (data: any) => {
-    const menuMap = new Map(Data.value.menus.map(menu => [menu.id, menu]));
-    const menu = menuMap.get(data.id);
+    // const menuMap = new Map(Data.value.menus.map(menu => [menu.id, menu]));
+    // const menu = menuMap.get(data.id);
 
-    if (menu) {
-        menu.flags.hide = data.flags.hide;
+    // if (menu) {
+    //     menu.flags.hide = data.hide;
+    // }
+
+    // #TODO: which one is better?
+    for (const key in Data.value.menus) {
+        const menu = Data.value.menus[key];
+
+        if (menu.id == data.id) {
+            menu.flags.hide = data.hide;
+            break;
+        }
     }
 });
 

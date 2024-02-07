@@ -571,23 +571,22 @@ CreateThread(function()
     local p2 = vector4(-1996.67, 3155.48, 31.81, 95.07)
     local ent2 = Util.spawnObject(`prop_watercooler`, p2, false)
 
-    local id_test = exports['interactionMenu']:Create {
+    local hideMenu_id = exports['interactionMenu']:Create {
         entity = ent2,
         offset = vec3(0, 0, 1),
-        static = true,
+        options = {
+            {
+                label = "Above Menu",
+                icon = "fas fa-heartbeat",
+            }
+        }
+    }
+
+    local hideOption_id = exports['interactionMenu']:Create {
+        entity = ent2,
+        offset = vec3(0, 0, 1),
         glow = true,
         -- suppressGlobals = true,
-        extra = {
-            onSeen = function()
-                print('onSeen')
-            end,
-            onExit = function()
-                print('onExit')
-            end,
-            onTrigger = function()
-                print('onTrigger')
-            end
-        },
         options = {
             {
                 label = "Up",
@@ -616,10 +615,16 @@ CreateThread(function()
 
             toggle = not toggle
             exports['interactionMenu']:set {
-                menuId = id_test,
+                menuId = hideOption_id,
                 option = 2,
                 type = 'hide',
                 value = toggle
+            }
+
+            exports['interactionMenu']:set {
+                menuId = hideMenu_id,
+                type = 'hide',
+                value = not toggle
             }
         end
     end)
