@@ -37,9 +37,11 @@ client_script {
      'lua/client/interact.lua',
 
      -- examples / tests
-     -- 'lua/examples/*.lua'
+     'lua/examples/*.lua'
 }
 
-server_script {}
+server_script {
+     'lua/server/server.lua'
+}
 
 lua54 'yes'
