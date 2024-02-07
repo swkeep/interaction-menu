@@ -43,13 +43,7 @@ The primary goal is not to replace target scripts; instead, it can be used simul
     </table>
 </center>
 
-### Video
-
-**[Youtube Click Here](https://www.youtube.com/watch?v=7ylxnj4HC5A)**
-
-## My Store
-
-**[Click Here](https://swkeep.tebex.io/)**
+**[Watch on YouTube](https://www.youtube.com/watch?v=7ylxnj4HC5A)**
 
 ## Documentation
 
@@ -57,12 +51,19 @@ The primary goal is not to replace target scripts; instead, it can be used simul
 
 ## Download
 
+**[Get the latest release](https://github.com/swkeep/interaction-menu/releases/latest)**
+
+## My Store
+
+**[Visit my store](https://swkeep.tebex.io/)**
+
 <!-- CONTRIBUTING -->
 ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+
 Don't forget to give the project a star! Thanks again!
 
 <!-- LICENSE -->
