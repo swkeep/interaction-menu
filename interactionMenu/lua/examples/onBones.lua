@@ -242,10 +242,7 @@ local bones = {
     },
 }
 
-local QBCore = exports['qb-core']:GetCoreObject()
-local resource_name = GetCurrentResourceName()
 local vehicle
-local vehicle2
 
 CreateThread(function()
     Wait(50)
@@ -253,42 +250,31 @@ CreateThread(function()
     local veh_pos = vector4(-1974.9, 3178.76, 32.81, 59.65)
     local veh_pos2 = vector4(-1973.78, 3180.58, 32.4, 58.78)
 
-    QBCore.Functions.SpawnVehicle('adder', function(veh)
-        vehicle = veh
-        SetVehicleNumberPlateText(veh, 'swkeep')
+    vehicle = Util.spawnVehicle('adder', veh_pos)
+    Util.spawnVehicle('adder', veh_pos2)
 
-        for boneName, bone in pairs(bones) do
-            -- for key, value in pairs(bone) do
-            --     if value.label then
-            --         value.label = ('%s (%s)'):format(value.label, veh)
-            --     end
-            -- end
-            exports['interactionMenu']:Create {
-                bone = boneName,
-                vehicle = veh,
-                offset = vec3(0, 0, 0),
-                maxDistance = 2.0,
-                indicator = {
-                    prompt   = 'E',
-                    keyPress = {
-                        -- https://docs.fivem.net/docs/game-references/controls/#controls
-                        padIndex = 0,
-                        control = 38
-                    }
-                },
-                options = bone or {}
-            }
-        end
-    end, veh_pos, true)
+    SetVehicleNumberPlateText(vehicle, 'swkeep')
 
-    QBCore.Functions.SpawnVehicle('adder', function(veh)
-        vehicle2 = veh
-    end, veh_pos2, true)
-end)
-
-AddEventHandler('onResourceStop', function(resource)
-    if resource ~= resource_name then return end
-
-    DeleteEntity(vehicle)
-    DeleteEntity(vehicle2)
+    for boneName, bone in pairs(bones) do
+        -- for key, value in pairs(bone) do
+        --     if value.label then
+        --         value.label = ('%s (%s)'):format(value.label, veh)
+        --     end
+        -- end
+        exports['interactionMenu']:Create {
+            bone = boneName,
+            vehicle = vehicle,
+            offset = vec3(0, 0, 0),
+            maxDistance = 2.0,
+            indicator = {
+                prompt   = 'E',
+                keyPress = {
+                    -- https://docs.fivem.net/docs/game-references/controls/#controls
+                    padIndex = 0,
+                    control = 38
+                }
+            },
+            options = bone or {}
+        }
+    end
 end)
