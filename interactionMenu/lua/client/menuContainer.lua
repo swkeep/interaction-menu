@@ -567,7 +567,6 @@ local function globalsExistsCheck(entity, entityType)
     return false
 end
 
-
 function Container.getMenuType(t)
     local model = t.model
     local entity = t.entity
@@ -595,7 +594,7 @@ end
 function Container.remove(id)
     local menuRef = Container.get(id)
 
-    menuRef.deleted = true
+    menuRef.flags.deleted = true
     menuRef.deletedAt = GetGameTimer()
 end
 
@@ -840,6 +839,9 @@ function Container.syncData(scaleform, menuData, refreshUI, passThrough)
                     table.insert(updatedElements, { menuId = menuId, option = option })
                 end
             end
+        elseif deleted and not menuOriginalData.flags.deletion_synced then
+            menuOriginalData.flags.deletion_synced = true
+            Interact:setVisibility(menuId, false)
         end
     end
 
@@ -904,17 +906,20 @@ function Container.loadingState(scaleform, menuData)
     end
 end
 
--- Helper functions for clarity and potential reuse
 local function setHideProperty(menuRef, option, value)
     if option then
         if not menuRef.options[option] then
-            warn("Option doesn't exists!")
+            warn("Option does not exist!")
             return
         end
         menuRef.options[option].flags.hide = value
     else
+        if type(value) ~= "boolean" then
+            warn("'Hide' value must be a boolean")
+            return
+        end
         menuRef.flags.hide = value
-        Interact:setVisibility(menuRef.id, value)
+        Interact:setVisibility(menuRef.id, not value)
     end
 end
 

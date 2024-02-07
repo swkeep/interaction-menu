@@ -689,15 +689,13 @@ CreateThread(function()
     }
 
     local ped_position = vector4(-1998.62, 3171.92, 31.81, 271.44)
-    Util.spawnPed(GetHashKey('cs_brad'), ped_position)
+    local ped_ = Util.spawnPed(GetHashKey('cs_brad'), ped_position)
 
-    exports['interactionMenu']:Create {
-        entity = ent,
-        offset = vec3(0, 0, 0),
-        static = true,
+    local remove_test = exports['interactionMenu']:Create {
+        entity = ped_,
         options = {
             {
-                label = 'Cook',
+                label = 'Disabled After 4 Seconds',
                 action = {
                     type = 'sync',
                     func = function(data)
@@ -707,6 +705,10 @@ CreateThread(function()
             }
         }
     }
+
+    SetTimeout(4000, function()
+        exports['interactionMenu']:remove(remove_test)
+    end)
 
 
     ped_position = vector4(-1998.86, 3173.44, 31.81, 271.76)

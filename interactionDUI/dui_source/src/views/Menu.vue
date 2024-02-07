@@ -105,7 +105,7 @@ subscribe('interactionMenu:menu:setVisibility', (data: any) => {
         const menu = Data.value.menus[key];
 
         if (menu.id == data.id) {
-            menu.flags.hide = data.hide;
+            menu.flags.hide = !data.visibility;
             break;
         }
     }

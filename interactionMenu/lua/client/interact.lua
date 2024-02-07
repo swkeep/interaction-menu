@@ -76,14 +76,14 @@ function Interact:scaleformUpdate(menuData, persistentData)
     end
 end
 
-function Interact:setVisibility(menuId, hide_value)
+--- set menu visibility
+---@param id number
+---@param value boolean
+function Interact:setVisibility(id, value)
     -- #TODO: it should check we actually looking at the same menu and update it
     if not StateManager.get('id') then return end
     -- #TODO: add a better type check
-    scaleform.send("interactionMenu:menu:setVisibility", {
-        id = menuId,
-        hide = hide_value
-    })
+    scaleform.send("interactionMenu:menu:setVisibility", { id = id, visibility = value })
 end
 
 function Interact:SetDarkMode(value)
