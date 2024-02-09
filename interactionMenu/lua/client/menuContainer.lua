@@ -243,15 +243,10 @@ function Container.create(t)
             deleted = false,
             disable = false,
             hide = false,
-            suppressGlobals = false,
+            suppressGlobals = t.suppressGlobals and true or false,
             static = t.static and true or false
         }
     }
-
-    -- suppressGlobals
-    if t.suppressGlobals or t.hideGlobals or t.disableGlobals then
-        instance.flags.suppressGlobals = true
-    end
 
     if t.position then
         instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id }
