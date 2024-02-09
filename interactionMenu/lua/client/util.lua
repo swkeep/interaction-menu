@@ -7,7 +7,7 @@
 --                             | |
 --                             |_|
 -- https://github.com/swkeep
-DEVMODE = false
+DEVMODE = Config.devMode or false
 
 -- cache
 local glm = require 'glm'

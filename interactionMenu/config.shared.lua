@@ -11,6 +11,7 @@
 Config = {}
 
 Config.framework = 'qb'
+Config.devMode = true
 
 Config.interactionAudio = {
     mouseWheel = {
