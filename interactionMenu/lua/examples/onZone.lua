@@ -1,54 +1,84 @@
 if not DEVMODE then return end
--- #TODO: test zone performance
--- local positions = {}
-
--- local Zones = {}
--- local function AddBoxZone(o)
---     Zones[o.name] = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
---         name = o.name,
---         heading = o.heading,
---         debugPoly = o.debugPoly,
---         minZ = o.minZ,
---         maxZ = o.maxZ,
---     })
---     return Zones[o.name]
--- end
-
--- for i = 1, 4, 1 do
---     positions[#positions + 1] = vector4(-1969.85, 3186.56 + (i * 4), 32.81, 60.05)
--- end
 
 -- -- isPointInside
--- CreateThread(function()
---     local zone = AddBoxZone {
---         name = "onZoneTest",
---         position = positions[1],
---         heading = positions[1].w,
---         debugPoly = true,
---         width = 4.0,
---         length = 10.0,
---         minZ = positions[1].z - 1,
---         maxZ = positions[1].z + 1
---     }
+CreateThread(function()
+    local position = vector4(-1967.13, 3188.71, 31.81, 58.08)
+    local ent      = Util.spawnObject('sf_prop_sf_desk_laptop_01a', position)
 
---     exports['interactionMenu']:Create {
---         zone = {
---             type = 'boxZone', -- entityZone/circleZone/polyZone/comboZone
---             name = "onZoneTest",
---             position = positions[1],
---             heading = positions[1].w,
---             width = 4.0,
---             length = 10.0,
---             minZ = positions[1].z - 1,
---             maxZ = positions[1].z + 1
---         },
---         position = vector4(-1966.16, 3188.47, 32.81, 58.8),
---         options = {
---             {
---                 picture = {
---                     url = 'http://127.0.0.1:8080/00235-990749447.png'
---                 }
---             }
---         }
---     }
--- end)
+    position       = vector4(-1967.13, 3188.71, 32.565, 240.0)
+    ent            = Util.spawnObject('xm_prop_x17_laptop_lester_01', position)
+
+    local p        = vector4(-1966.06, 3188.1, 32.81, 54.91)
+
+    exports['interactionMenu']:Create {
+        id = 'ZoneTest',
+        rotation = vector3(-40, 0, 240),
+        position = vector4(-1965.7, 3188.65, 32.81, 58.08),
+        scale = 1,
+        zone = {
+            type = 'boxZone', -- entityZone/circleZone/polyZone/comboZone
+            name = "onZoneTest",
+            position = p,
+            heading = p.w,
+            width = 4.0,
+            length = 6.0,
+            debugPoly = true,
+            minZ = p.z - 1,
+            maxZ = p.z + 1,
+        },
+        options = {
+            {
+                video = {
+                    url = 'http://127.0.0.1:8080/1.mp4',
+                    loop = true,
+                    autoplay = true,
+                    volume = 0.1
+                }
+            },
+            {
+                label = 'Display On-Duty Officers',
+                icon = 'fa fa-user-shield',
+                event = {
+                    name = 'interaction-menu:server:police:refresh',
+                    type = 'server'
+                }
+            },
+            {
+                label = 'Launch Trojan Horse',
+                icon = 'fa fa-code',
+                action = {
+                    type = 'async',
+                    func = function(data)
+                    end
+                }
+            },
+            {
+                label = 'Disable Security Cameras',
+                icon = 'fa fa-video-slash',
+                action = {
+                    type = 'async',
+                    func = function(data)
+                    end
+                }
+            },
+            {
+                label = 'Override Access Control',
+                icon = 'fa fa-key',
+                action = {
+                    type = 'async',
+                    func = function(data)
+                    end
+                }
+            },
+            {
+                label = 'Download Classified Files',
+                icon = 'fa fa-download',
+                action = {
+                    type = 'async',
+                    func = function(data)
+                    end
+                }
+            }
+        }
+    }
+end)

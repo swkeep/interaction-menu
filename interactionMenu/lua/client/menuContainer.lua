@@ -22,7 +22,7 @@ local IsPedAPlayer = IsPedAPlayer
 local GetPlayerServerId = GetPlayerServerId
 local NetworkGetPlayerIndexFromPed = NetworkGetPlayerIndexFromPed
 local SpatialHashGrid = Util.SpatialHashGrid
-local grid = SpatialHashGrid:new(100)
+local grid = SpatialHashGrid:new('position', 100)
 local StateManager = Util.StateManager()
 local PersistentData = Util.PersistentData()
 local previous_daytime = false
@@ -43,6 +43,7 @@ local set = {
 -- managing menus
 Container = {
     data = {},
+    zones = {},
     indexes = {
         models = {},
         entities = {},
@@ -221,6 +222,19 @@ local function transformJobData(data)
     end
 end
 
+local zone_grid = SpatialHashGrid:new('zone', 100)
+
+local function AddBoxZone(o)
+    local z = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
+        name = o.name,
+        heading = o.heading,
+        debugPoly = o.debugPoly,
+        minZ = o.minZ,
+        maxZ = o.maxZ,
+    })
+
+    return z
+end
 function Container.create(t)
     local invokingResource = GetInvokingResource() or 'interactionMenu'
     local id = t.id or Util.createUniqueId(Container.data)
@@ -248,7 +262,7 @@ function Container.create(t)
         }
     }
 
-    if t.position then
+    if t.position and not t.zone then
         instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id }
         grid:insert(instance.position)
     elseif t.player then
@@ -297,6 +311,17 @@ function Container.create(t)
                 instance.vehicle.netId = NetworkGetNetworkIdFromEntity(t.vehicle)
             end
         end
+    elseif t.zone and t.position then
+        instance.position = {
+            x = t.position.x,
+            y = t.position.y,
+            z = t.position.z,
+            id = id
+        }
+        instance.rotation = t.rotation
+        instance.zone = t.zone
+        Container.zones[id] = AddBoxZone(t.zone)
+        zone_grid:insert(instance.position)
     end
 
     buildOption(t, instance)
@@ -453,6 +478,8 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
             container.glow = data.glow and data.glow or container.glow
             container.maxDistance = data.metadata and data.metadata.maxDistance
             container.static = data.flags and data.flags.static
+            container.zone = data.zone
+            container.rotation = data.rotation
 
             if data.flags.suppressGlobals then
                 container.selected = {}
@@ -567,7 +594,9 @@ function Container.getMenuType(t)
     local players = Container.indexes.players
     local playerId = IdentifyPlayerServerId(entityType, entity)
 
-    if t.closestPoint and next(t.closestPoint) then
+    if t.zone then
+        return MenuTypes['ON_ZONE']
+    elseif t.closestPoint and next(t.closestPoint) then
         -- onPosition
         return MenuTypes['ON_POSITION']
     elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or players[playerId] or globalsExistsCheck(entity, entityType) then

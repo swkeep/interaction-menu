@@ -12,6 +12,7 @@ MenuTypes = Util.ENUM {
     'DISABLED',
     'ON_POSITION',
     'ON_ENTITY',
+    'ON_ZONE'
 }
 
 local Wait = Wait
@@ -27,7 +28,10 @@ local IsControlJustReleased = IsControlJustReleased
 local scaleform_initialized = false
 local scaleform
 local SpatialHashGrid = Util.SpatialHashGrid
-local grid = SpatialHashGrid:new(100)
+
+local grid_zone = SpatialHashGrid:new('zone', 100)
+local grid_position = SpatialHashGrid:new('position', 100)
+
 local visiblePoints = {}
 local visiblePointCount = 0
 -- Render
@@ -66,7 +70,6 @@ CreateThread(function()
         error("interactionDUI resource did not start within the timeout period")
     end
 end)
-
 
 function Interact:getSelectedIndex(menuData)
     local data = PersistentData.get(menuData.id)
@@ -247,6 +250,11 @@ local function handlePositionBasedInteraction()
     end
 end
 
+local function handleZoneBasedInteraction(closestZoneMenuId)
+    StateManager.set('id', closestZoneMenuId)
+    StateManager.set('menuType', MenuTypes['ON_ZONE'])
+end
+
 local function handleEntityInteraction(playerDistance, model, entity, hitPosition)
     SetScriptGfxDrawBehindPausemenu(false)
 
@@ -267,6 +275,18 @@ local function waitForScaleform()
     until scaleform_initialized or (GetGameTimer() - startTime >= timeout)
 
     return scaleform_initialized
+end
+
+local function findClosestZone(playerPosition, range)
+    local zonesInRange = grid_zone:queryRange(playerPosition, 100)
+
+    for index, value in ipairs(zonesInRange) do
+        if Container.zones[value.id]:isPointInside(playerPosition) then
+            return value.id
+        end
+    end
+
+    return nil
 end
 
 CreateThread(function()
@@ -314,20 +334,26 @@ CreateThread(function()
                 playerPosition = playerPosition
             }, true, true)
 
-            local nearPoints, totalNearPoints = grid:queryRange(playerPosition, 100)
+            local nearPoints, totalNearPoints = grid_position:queryRange(playerPosition, 100)
             visiblePoints, visiblePointCount  = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
+
+            -- onZone
+            local closestZoneMenuId           = findClosestZone(playerPosition)
 
             local menuType                    = Container.getMenuType {
                 model = model,
                 entity = entity,
                 entityType = entityType,
-                closestPoint = visiblePoints.closest
+                closestPoint = visiblePoints.closest,
+                zone = closestZoneMenuId
             }
 
             if menuType == MenuTypes['ON_ENTITY'] then
                 handleEntityInteraction(playerDistance, model, entity, hitPosition)
             elseif menuType == MenuTypes['ON_POSITION'] then
                 handlePositionBasedInteraction()
+            elseif menuType == MenuTypes['ON_ZONE'] then
+                handleZoneBasedInteraction(closestZoneMenuId)
             elseif menuType == MenuTypes['DISABLED'] then
                 StateManager.reset()
             end
@@ -405,6 +431,7 @@ function Render.onEntity(model, entity)
         boneDist = boneDistance
     }
 
+    scaleform.set3d(false)
     scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
     setOpen(data, persistentData)
     Container.validateAndSyncSelected(scaleform, data)
@@ -460,6 +487,7 @@ function Render.onPosition(currentMenuId)
         distance = StateManager.get('playerDistance')
     }
 
+    scaleform.set3d(false)
     StateManager.set('disableRayCast', true)
     scaleform.setPosition(data.position)
     setOpen(data, persistentData)
@@ -496,6 +524,62 @@ function Render.onPosition(currentMenuId)
     triggers.onExit(data, metadata)
 end
 
+function Render.onZone(currentMenuId)
+    local data = Container.getMenu(nil, nil, currentMenuId)
+    if not data then return end
+    local persistentData = PersistentData.get(currentMenuId)
+
+    local running = true
+    local metadata = {
+        id = currentMenuId
+    }
+
+    StateManager.set('disableRayCast', true)
+
+    local position = data.position
+    local rotation = data.rotation
+    scaleform.setPosition(position)
+
+    if rotation then
+        scaleform.setRotation(rotation)
+        scaleform.set3d(true)
+        scaleform.setScale(data.scale or 1)
+    end
+
+    setOpen(data, persistentData)
+    Container.validateAndSyncSelected(scaleform, data)
+    triggers.onSeen(data, metadata)
+
+    CreateThread(function()
+        while running do
+            Container.syncData(scaleform, data, true)
+            Wait(1000)
+        end
+    end)
+
+    CreateThread(function()
+        while running do
+            Container.loadingState(scaleform, data)
+            Wait(250)
+        end
+    end)
+
+    while StateManager.get('id') == currentMenuId do
+        Wait(30)
+        handleMouseWheel(data)
+        handleKeyPress(data, {
+            metadata = metadata
+        })
+    end
+
+    running = false
+    persistentData.showingLoading = nil
+    StateManager.set('disableRayCast', false)
+    triggers.onExit(data, metadata)
+
+    setClose()
+end
+
 -- Handle the rendering logic based on the current state
 local function RenderMenu()
     if StateManager.get('playerIsInVehicle') then return end
@@ -512,6 +596,8 @@ local function RenderMenu()
         Render.onEntity(entityModel, entityHandle)
     elseif menuType == MenuTypes['ON_POSITION'] then
         Render.onPosition(currentMenuId)
+    elseif menuType == MenuTypes['ON_ZONE'] then
+        Render.onZone(currentMenuId)
     end
 end
 
