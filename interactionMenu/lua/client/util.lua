@@ -205,7 +205,9 @@ function Util.rayCast(maxDist, playerPed)
     return endCoords, entityHit, distance
 end
 
-local SpatialHashGrid = {}
+local SpatialHashGrid = {
+    data = {}
+}
 
 ---@class Item
 ---@field x number
@@ -215,11 +217,21 @@ local SpatialHashGrid = {}
 --- Creates a new SpatialHashGrid instance.
 ---@param cellSize number "The size of each grid cell"
 ---@return table "A new SpatialHashGrid instance"
-function SpatialHashGrid:new(cellSize)
-    self.cellSize = cellSize
-    self.cells = {}
+function SpatialHashGrid:new(name, cellSize)
+    if SpatialHashGrid.data[name] then return SpatialHashGrid.data[name] end
 
-    return self
+    local t = {}
+
+    t.name = name
+    t.cellSize = cellSize
+    t.cells = {}
+
+    SpatialHashGrid.data[name] = t
+
+    setmetatable(t, self)
+    self.__index = self
+
+    return t
 end
 
 --- Inserts an item into the grid
@@ -289,6 +301,7 @@ function SpatialHashGrid:queryRange(position, rangeRadius)
             end
         end
     end
+
 
     return results, #results
 end
