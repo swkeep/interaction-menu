@@ -7,23 +7,24 @@
 --                             | |
 --                             |_|
 -- https://github.com/swkeep
-local thisResource     = GetCurrentResourceName()
-local duiUrl           = ("nui://%s/dui/index.html"):format(thisResource)
-local width            = 1000
-local height           = 1480
-local txdName          = 'keep_interaction' -- texture dictionary
-local txnName          = "interaction_txn"  -- texture name
+local thisResource           = GetCurrentResourceName()
+local duiUrl                 = ("nui://%s/dui/index.html"):format(thisResource)
+local width                  = 1000
+local height                 = 1480
+local txdName                = 'keep_interaction' -- texture dictionary
+local txnName                = "interaction_txn" -- texture name
 
-local SetDrawOrigin    = SetDrawOrigin
-local DrawSprite       = DrawSprite
-local ClearDrawOrigin  = ClearDrawOrigin
-local math_rad         = math.rad
-local math_sin         = math.sin
-local math_cos         = math.cos
+local SetDrawOrigin          = SetDrawOrigin
+local DrawSprite             = DrawSprite
+local ClearDrawOrigin        = ClearDrawOrigin
+local math_rad               = math.rad
+local math_sin               = math.sin
+local math_cos               = math.cos
 
-local rederingIsActive = false
+local scalex, scaley, scalez = 0.07, 0.04, 1
+local rederingIsActive       = false
 
-DUI                    = {
+DUI                          = {
     scaleform = nil,
     status = 1
 }
@@ -54,6 +55,14 @@ local function enableScaleform(name)
     if not loaded then return end
 
     BeginScaleformMovieMethod(sfHandle, "SET_TEXTURE")
+    -- 3d
+    ScaleformMovieMethodAddParamTextureNameString(txdName)
+    ScaleformMovieMethodAddParamTextureNameString(txnName)
+    ScaleformMovieMethodAddParamInt(0)
+    ScaleformMovieMethodAddParamInt(0)
+    ScaleformMovieMethodAddParamInt(width)
+    ScaleformMovieMethodAddParamInt(height)
+
     EndScaleformMovieMethod()
     return sfHandle
 end
@@ -65,6 +74,19 @@ end
 local function setPosition(position)
     if DUI.scaleform.position == position then return end
     DUI.scaleform.position = vec3(position.x, position.y, position.z)
+end
+
+local function setRotation(rotation)
+    if DUI.scaleform.rotation == rotation then return end
+    DUI.scaleform.rotation = vec3(rotation.x, rotation.y, rotation.z)
+end
+
+local function set3d(value)
+    DUI.scaleform['3d'] = value
+end
+
+local function setScale(value)
+    DUI.scaleform['scale'] = value
 end
 
 local function setStatus(status)
@@ -135,6 +157,9 @@ function DUI:Create()
     scaleform.sfHandle = enableScaleform(scaleform.name)
 
     scaleform.setPosition = setPosition
+    scaleform.setRotation = setRotation
+    scaleform.set3d = set3d
+    scaleform.setScale = setScale
     scaleform.send = send
     scaleform.setStatus = setStatus
     scaleform.attach = attach
@@ -147,9 +172,20 @@ function DUI.Render()
     local scaleform = DUI.scaleform
     if not scaleform then return end
 
-    SetDrawOrigin(scaleform.position.x, scaleform.position.y, scaleform.position.z, 0)
-    DrawSprite(txdName, txnName, 0.0, 0.0, 0.21, 0.55, 0.0, 255, 255, 255, 255)
-    ClearDrawOrigin()
+    if not scaleform['3d'] then
+        SetDrawOrigin(scaleform.position.x, scaleform.position.y, scaleform.position.z, 0)
+        DrawSprite(txdName, txnName, 0.0, 0.0, 0.21, 0.55, 0.0, 255, 255, 255, 255)
+        ClearDrawOrigin()
+    else
+        local sx = scalex * (scaleform.scale or 1)
+        local sy = scaley * (scaleform.scale or 1)
+        local sz = scalez * (scaleform.scale or 1)
+
+        DrawScaleformMovie_3dSolid(scaleform.sfHandle, scaleform.position.x, scaleform.position.y,
+            scaleform.position.z + 1, scaleform.rotation.x, scaleform.rotation.y, scaleform.rotation.z, 2.0, 2.0, 1.0,
+            sx, sy,
+            sz, 2)
+    end
 end
 
 function DUI.Destroy()
