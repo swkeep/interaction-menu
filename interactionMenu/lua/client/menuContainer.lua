@@ -23,21 +23,14 @@ local GetPlayerServerId = GetPlayerServerId
 local NetworkGetPlayerIndexFromPed = NetworkGetPlayerIndexFromPed
 local SpatialHashGrid = Util.SpatialHashGrid
 local grid = SpatialHashGrid:new('position', 100)
+local zone_grid = SpatialHashGrid:new('zone', 100)
 local StateManager = Util.StateManager()
 local PersistentData = Util.PersistentData()
 local previous_daytime = false
 
 -- enum: used in difference between OBJECTs, PEDs, VEHICLEs
-EntityTypes = Util.ENUM {
-    'PED',
-    'VEHICLE',
-    'OBJECT'
-}
-local set = {
-    "peds",
-    "vehicles",
-    "objects"
-}
+local set = { "peds", "vehicles", "objects" }
+EntityTypes = Util.ENUM { 'PED', 'VEHICLE', 'OBJECT' }
 
 -- class: PersistentData
 -- managing menus
@@ -59,6 +52,10 @@ Container = {
         }
     }
 }
+
+local function canCreateZone()
+    return GetResourceState('PolyZone') == 'started'
+end
 
 --- Build interaction table for named interactions (canInteract, onSeen, onExit)
 ---@param data table 'raw menu data'
@@ -222,8 +219,6 @@ local function transformJobData(data)
     end
 end
 
-local zone_grid = SpatialHashGrid:new('zone', 100)
-
 local function AddBoxZone(o)
     local z = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
         name = o.name,
@@ -313,18 +308,22 @@ function Container.create(t)
             end
         end
     elseif t.zone and t.position then
-        instance.type = 'zone'
-        instance.position = {
-            x = t.position.x,
-            y = t.position.y,
-            z = t.position.z,
-            id = id
-        }
+        if canCreateZone() then
+            instance.type = 'zone'
+            instance.position = {
+                x = t.position.x,
+                y = t.position.y,
+                z = t.position.z,
+                id = id
+            }
 
-        instance.rotation = t.rotation
-        instance.zone = t.zone
-        Container.zones[id] = AddBoxZone(t.zone)
-        zone_grid:insert(instance.position)
+            instance.rotation = t.rotation
+            instance.zone = t.zone
+            Container.zones[id] = AddBoxZone(t.zone)
+            zone_grid:insert(instance.position)
+        else
+            warn('Could not find `PolyZone`. Make sure it is started before interactionMenu.')
+        end
     end
 
     buildOption(t, instance)
