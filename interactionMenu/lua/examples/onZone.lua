@@ -36,14 +36,6 @@ CreateThread(function()
                 }
             },
             {
-                label = 'Display On-Duty Officers',
-                icon = 'fa fa-user-shield',
-                event = {
-                    name = 'interaction-menu:server:police:refresh',
-                    type = 'server'
-                }
-            },
-            {
                 label = 'Launch Trojan Horse',
                 icon = 'fa fa-code',
                 action = {
