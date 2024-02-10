@@ -32,7 +32,7 @@ CreateThread(function()
                     url = 'http://127.0.0.1:8080/1.mp4',
                     loop = true,
                     autoplay = true,
-                    volume = 0.1
+                    volume = 0.0
                 }
             },
             {

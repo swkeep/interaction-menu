@@ -22,17 +22,18 @@ shared_scripts {
 }
 
 client_script {
-     -- '@PolyZone/client.lua',
-     -- '@PolyZone/BoxZone.lua',
-     -- '@PolyZone/EntityZone.lua',
-     -- '@PolyZone/CircleZone.lua',
-     -- '@PolyZone/ComboZone.lua',
+     '@PolyZone/client.lua',
+     '@PolyZone/BoxZone.lua',
+     '@PolyZone/EntityZone.lua',
+     '@PolyZone/CircleZone.lua',
+     '@PolyZone/ComboZone.lua',
 
      --
      'lua/frameworks/qb/client.lua',
      --
 
      'lua/client/util.lua',
+     'lua/client/3dDuiMaker.lua',
      'lua/client/menuContainer.lua',
      'lua/client/interact.lua',
 
