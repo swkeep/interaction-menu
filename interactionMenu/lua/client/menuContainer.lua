@@ -782,36 +782,38 @@ function Container.constructMetadata(t)
         gameTimer = GetGameTimer()
     }
 
-    if t.type == 'entity' or t.type == 'model' then
+    if t.type == 'entity' or t.type == 'model' or t.type == 'peds' then
         metadata.entity = t.entity
         metadata.boneId = t.boneId
         metadata.boneName = t.boneName
         metadata.boneDist = t.boneDist
 
-        metadata.entityDetail = {
-            handle = t.entity,
-            networked = NetworkGetEntityIsNetworked(t.entity) == 1,
-            model = t.model,
-            position = GetEntityCoords(t.entity),
-            rotation = GetEntityRotation(t.entity),
-        }
-
-        metadata.entityDetail.typeInt = GetEntityType(t.entity)
-        metadata.entityDetail.type = EntityTypes[metadata.entityDetail.typeInt]
-
-        if metadata.entityDetail.networked then
-            metadata.entityDetail.netId = NetworkGetNetworkIdFromEntity(t.entity)
-        end
-
-        local isPlayer = metadata.entityDetail.typeInt == 1 and IsPedAPlayer(t.entity)
-
-        if isPlayer then
-            metadata.player = {
-                playerPedId = t.entity,
-                playerIndex = NetworkGetPlayerIndexFromPed(t.entity),
+        if metadata.entity then
+            metadata.entityDetail = {
+                handle = t.entity,
+                networked = NetworkGetEntityIsNetworked(t.entity) == 1,
+                model = t.model,
+                position = GetEntityCoords(t.entity),
+                rotation = GetEntityRotation(t.entity),
             }
 
-            metadata.player.serverId = GetPlayerServerId(metadata.player.playerIndex)
+            metadata.entityDetail.typeInt = GetEntityType(t.entity)
+            metadata.entityDetail.type = EntityTypes[metadata.entityDetail.typeInt]
+
+            if metadata.entityDetail.networked then
+                metadata.entityDetail.netId = NetworkGetNetworkIdFromEntity(t.entity)
+            end
+
+            local isPlayer = metadata.entityDetail.typeInt == 1 and IsPedAPlayer(t.entity)
+
+            if isPlayer then
+                metadata.player = {
+                    playerPedId = t.entity,
+                    playerIndex = NetworkGetPlayerIndexFromPed(t.entity),
+                }
+
+                metadata.player.serverId = GetPlayerServerId(metadata.player.playerIndex)
+            end
         end
     elseif t.type == 'zone' or t.type == 'position' then
         -- As of right now it should work, unless we add a culler or something like that

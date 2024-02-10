@@ -387,6 +387,10 @@ function Render.onEntity(model, entity)
     local closestVehicleBone, closestBoneName, boneDistance = Container.boneCheck(entity)
     local offset = data.offset or vec3(0, 0, 0)
 
+    -- Add entity, model into menu data container
+    data.model = model
+    data.entity = entity
+
     local metadata = Container.constructMetadata(data)
 
     scaleform.set3d(false)
