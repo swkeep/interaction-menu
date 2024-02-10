@@ -25,6 +25,7 @@ local SetScriptGfxDrawBehindPausemenu = SetScriptGfxDrawBehindPausemenu
 local IsControlJustReleased = IsControlJustReleased
 
 -- init
+local pause = false
 local scaleform_initialized = false
 local scaleform
 local SpatialHashGrid = Util.SpatialHashGrid
@@ -45,6 +46,10 @@ Interact = {
     data = {},
     bones = {}
 }
+
+exports('pause', function(value)
+    pause = value and true or false
+end)
 
 -- init
 CreateThread(function()
@@ -132,14 +137,14 @@ local function handleMouseWheel(menuData)
     end
 end
 
-local function handleKeyPress(menuData, passThrough)
+local function handleKeyPress(menuData)
     -- E
     local padIndex = (menuData.indicator and menuData.indicator.keyPress) and menuData.indicator.keyPress.padIndex or 0
     local control = (menuData.indicator and menuData.indicator.keyPress) and menuData.indicator.keyPress.control or 38
 
     if not IsControlJustReleased(padIndex, control) then return end
 
-    Container.keyPress(scaleform, menuData, passThrough)
+    Container.keyPress(menuData)
 end
 
 local function isPlayerWithinDistance(maxDistance)
@@ -369,46 +374,6 @@ end)
 
 -- #region Render Threads
 
-local function METADATA(t)
-    local metadata = {
-        entity = t.entity,
-        playerPosition = t.playerPosition,
-        distance = StateManager.get('playerDistance'),
-        boneId = t.boneId,
-        boneName = t.boneName,
-        boneDist = t.boneDist,
-        gameTimer = GetGameTimer()
-    }
-
-    metadata.entityDetail = {
-        handle = t.entity,
-        networked = NetworkGetEntityIsNetworked(t.entity) == 1,
-        model = t.model,
-        position = GetEntityCoords(t.entity),
-        rotation = GetEntityRotation(t.entity),
-    }
-
-    metadata.entityDetail.typeInt = GetEntityType(t.entity)
-    metadata.entityDetail.type = EntityTypes[metadata.entityDetail.typeInt]
-
-    if metadata.entityDetail.networked then
-        metadata.entityDetail.netId = NetworkGetNetworkIdFromEntity(t.entity)
-    end
-
-    local isPlayer = metadata.entityDetail.typeInt == 1 and IsPedAPlayer(t.entity)
-
-    if isPlayer then
-        metadata.player = {
-            playerPedId = t.entity,
-            playerIndex = NetworkGetPlayerIndexFromPed(t.entity),
-        }
-
-        metadata.player.serverId = GetPlayerServerId(metadata.player.playerIndex)
-    end
-
-    return metadata
-end
-
 -- we can try to merge these two functions to render both in a Render function
 --  but i want to have two seperated functions for position and entites
 function Render.onEntity(model, entity)
@@ -422,14 +387,7 @@ function Render.onEntity(model, entity)
     local closestVehicleBone, closestBoneName, boneDistance = Container.boneCheck(entity)
     local offset = data.offset or vec3(0, 0, 0)
 
-    local metadata = METADATA {
-        playerPosition = GetEntityCoords(PlayerPedId()),
-        model = model,
-        entity = entity,
-        boneId = closestVehicleBone,
-        boneName = closestBoneName,
-        boneDist = boneDistance
-    }
+    local metadata = Container.constructMetadata(data)
 
     scaleform.set3d(false)
     scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
@@ -463,7 +421,7 @@ function Render.onEntity(model, entity)
         Wait(30)
 
         handleMouseWheel(data)
-        handleKeyPress(data, metadata)
+        handleKeyPress(data)
     end
 
     running = false
@@ -482,10 +440,7 @@ function Render.onPosition(currentMenuId)
     if not canInteract(data, nil) then return end
 
     local running = true
-    local metadata = {
-        id = currentMenuId,
-        distance = StateManager.get('playerDistance')
-    }
+    local metadata = Container.constructMetadata(data)
 
     scaleform.set3d(false)
     StateManager.set('disableRayCast', true)
@@ -511,9 +466,7 @@ function Render.onPosition(currentMenuId)
     while canInteract(data, nil) and StateManager.get('id') == currentMenuId do
         Wait(30)
         handleMouseWheel(data)
-        handleKeyPress(data, {
-            metadata = metadata
-        })
+        handleKeyPress(data)
     end
 
     running = false
@@ -530,9 +483,7 @@ function Render.onZone(currentMenuId)
     local persistentData = PersistentData.get(currentMenuId)
 
     local running = true
-    local metadata = {
-        id = currentMenuId
-    }
+    local metadata = Container.constructMetadata(data)
 
     StateManager.set('disableRayCast', true)
 
@@ -567,9 +518,7 @@ function Render.onZone(currentMenuId)
     while StateManager.get('id') == currentMenuId do
         Wait(30)
         handleMouseWheel(data)
-        handleKeyPress(data, {
-            metadata = metadata
-        })
+        handleKeyPress(data)
     end
 
     running = false
@@ -582,6 +531,7 @@ end
 
 -- Handle the rendering logic based on the current state
 local function RenderMenu()
+    if pause then return end
     if StateManager.get('playerIsInVehicle') then return end
 
     local currentMenuId = StateManager.get('id')

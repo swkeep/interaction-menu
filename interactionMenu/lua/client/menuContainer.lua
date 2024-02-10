@@ -235,6 +235,7 @@ local function AddBoxZone(o)
 
     return z
 end
+
 function Container.create(t)
     local invokingResource = GetInvokingResource() or 'interactionMenu'
     local id = t.id or Util.createUniqueId(Container.data)
@@ -312,12 +313,14 @@ function Container.create(t)
             end
         end
     elseif t.zone and t.position then
+        instance.type = 'zone'
         instance.position = {
             x = t.position.x,
             y = t.position.y,
             z = t.position.z,
             id = id
         }
+
         instance.rotation = t.rotation
         instance.zone = t.zone
         Container.zones[id] = AddBoxZone(t.zone)
@@ -471,6 +474,7 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
 
         if data and not deleted then
             local index = #container.menus + 1
+            container.type = data.type and data.type or container.type
             container.position = data.position and data.position or container.position
             container.offset = data.metadata and data.metadata.offset or container.offset
             container.indicator = data.indicator and data.indicator or container.indicator
@@ -768,19 +772,70 @@ local function jobCheck(data)
     return data.extra.job and data.extra.job[job_name] and data.extra.job[job_name][current_grade]
 end
 
-function Container.keyPress(scaleform, menuData, passThrough)
+--- generate metadata for triggers
+---@param t table 'menuData (menu container)'
+---@return table 'metadata'
+function Container.constructMetadata(t)
+    local metadata = {
+        playerPosition = StateManager.get('playerPosition'),
+        distance = StateManager.get('playerDistance'),
+        gameTimer = GetGameTimer()
+    }
+
+    if t.type == 'entity' or t.type == 'model' then
+        metadata.entity = t.entity
+        metadata.boneId = t.boneId
+        metadata.boneName = t.boneName
+        metadata.boneDist = t.boneDist
+
+        metadata.entityDetail = {
+            handle = t.entity,
+            networked = NetworkGetEntityIsNetworked(t.entity) == 1,
+            model = t.model,
+            position = GetEntityCoords(t.entity),
+            rotation = GetEntityRotation(t.entity),
+        }
+
+        metadata.entityDetail.typeInt = GetEntityType(t.entity)
+        metadata.entityDetail.type = EntityTypes[metadata.entityDetail.typeInt]
+
+        if metadata.entityDetail.networked then
+            metadata.entityDetail.netId = NetworkGetNetworkIdFromEntity(t.entity)
+        end
+
+        local isPlayer = metadata.entityDetail.typeInt == 1 and IsPedAPlayer(t.entity)
+
+        if isPlayer then
+            metadata.player = {
+                playerPedId = t.entity,
+                playerIndex = NetworkGetPlayerIndexFromPed(t.entity),
+            }
+
+            metadata.player.serverId = GetPlayerServerId(metadata.player.playerIndex)
+        end
+    elseif t.type == 'zone' or t.type == 'position' then
+        -- As of right now it should work, unless we add a culler or something like that
+        metadata.id = t.id
+    end
+
+    return metadata
+end
+
+function Container.keyPress(menuData)
     local data = PersistentData.get(menuData.id)
     -- skip when already loading
     if data.loading then return end
+    local metadata = Container.constructMetadata(menuData)
 
     for index, value in ipairs(menuData.menus) do
-        Container.triggerInteraction(value.id, 'onTrigger', passThrough)
+        Container.triggerInteraction(value.id, 'onTrigger', metadata)
     end
 
     local menuId, selectedOption = findSelectedOption(menuData, data.selected)
     if not selectedOption then return end
     local interaction = Container.data[menuId].interactions[selectedOption]
 
+    -- #TODO: test refresh functionality
     local function refresh()
         PersistentData.clear(menuData.id)
         StateManager.reset()
@@ -791,16 +846,16 @@ function Container.keyPress(scaleform, menuData, passThrough)
             if interaction.type == "sync" then
                 data.loading = true
             end
-            local success, result = pcall(interaction.func, passThrough, refresh)
+            local success, result = pcall(interaction.func, metadata)
 
             if interaction.type == "sync" then
                 data.loading = false
             end
         elseif interaction.event then
             if interaction.type == 'client' then
-                TriggerEvent(interaction.name, interaction.payload)
+                TriggerEvent(interaction.name, interaction.payload, metadata)
             elseif interaction.type == 'server' then
-                TriggerServerEvent(interaction.name, interaction.payload)
+                TriggerServerEvent(interaction.name, interaction.payload, metadata)
             end
         end
     end)

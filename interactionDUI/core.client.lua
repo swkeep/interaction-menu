@@ -11,8 +11,8 @@ local thisResource           = GetCurrentResourceName()
 local duiUrl                 = ("nui://%s/dui/index.html"):format(thisResource)
 local width                  = 1000
 local height                 = 1480
-local txdName                = 'keep_interaction' -- texture dictionary
-local txnName                = "interaction_txn" -- texture name
+local txdName                = "keep_interaction" -- texture dictionary
+local txnName                = "interaction_txn"  -- texture name
 
 local SetDrawOrigin          = SetDrawOrigin
 local DrawSprite             = DrawSprite
@@ -177,6 +177,7 @@ function DUI.Render()
         DrawSprite(txdName, txnName, 0.0, 0.0, 0.21, 0.55, 0.0, 255, 255, 255, 255)
         ClearDrawOrigin()
     else
+        -- #TODO: we should calculate these once
         local sx = scalex * (scaleform.scale or 1)
         local sy = scaley * (scaleform.scale or 1)
         local sz = scalez * (scaleform.scale or 1)
