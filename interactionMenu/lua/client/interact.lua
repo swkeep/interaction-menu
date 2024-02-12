@@ -424,7 +424,7 @@ function Render.onEntity(model, entity)
     end)
 
     while running and isMatchingEntity(model, entity) do
-        Wait(30)
+        Wait(0)
 
         handleMouseWheel(data)
         handleKeyPress(data)
@@ -470,7 +470,7 @@ function Render.onPosition(currentMenuId)
     end)
 
     while canInteract(data, nil) and StateManager.get('id') == currentMenuId do
-        Wait(30)
+        Wait(0)
         handleMouseWheel(data)
         handleKeyPress(data)
     end
@@ -522,7 +522,7 @@ function Render.onZone(currentMenuId)
     end)
 
     while StateManager.get('id') == currentMenuId do
-        Wait(30)
+        Wait(0)
         handleMouseWheel(data)
         handleKeyPress(data)
     end
