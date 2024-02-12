@@ -130,12 +130,12 @@ local function handleMouseWheel(menuData)
     -- not the best way to do it but it works if we add new options on runtime
     HideHudComponentThisFrame(19)
 
-    if IsDisabledControlJustReleased(0, 14) then -- Mouse Wheel Down
+    -- Mouse Wheel Down / Arrow Down
+    if IsDisabledControlJustReleased(0, 14) or IsControlJustReleased(0, 173) then
         Container.changeMenuItem(scaleform, menuData, true)
-        Wait(60)
-    elseif IsDisabledControlJustReleased(0, 15) then -- Mouse Wheel Up
+        -- Mouse Wheel Up / Arrow Up
+    elseif IsDisabledControlJustReleased(0, 15) or IsControlJustReleased(0, 172) then
         Container.changeMenuItem(scaleform, menuData, false)
-        Wait(60)
     end
 end
 
