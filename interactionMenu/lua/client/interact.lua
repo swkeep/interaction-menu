@@ -221,7 +221,7 @@ local function StartSpriteThread()
                     drawSprite(value.point)
                 end
 
-                if visiblePoints.closest.id ~= StateManager.get('id') then
+                if visiblePoints.closest.id ~= StateManager.get('id') and not StateManager.get('active') then
                     drawSprite(visiblePoints.closest.point)
                 end
             end
@@ -393,6 +393,7 @@ function Render.onEntity(model, entity)
     data.model = model
     data.entity = entity
 
+    StateManager.set('active', true)
     local metadata = Container.constructMetadata(data)
 
     scaleform.set3d(false)
@@ -436,6 +437,7 @@ function Render.onEntity(model, entity)
     scaleform.dettach()
     metadata.position = GetEntityCoords(entity)
     triggers.onExit(data, metadata)
+    StateManager.set('active', false)
 end
 
 function Render.onPosition(currentMenuId)
@@ -444,6 +446,7 @@ function Render.onPosition(currentMenuId)
     local persistentData = PersistentData.get(currentMenuId)
 
     if not canInteract(data, nil) then return end
+    StateManager.set('active', true)
     StateManager.set('disableRayCast', true)
 
     local running = true
@@ -489,6 +492,7 @@ function Render.onPosition(currentMenuId)
     persistentData.showingLoading = nil
     setClose()
     StateManager.set('disableRayCast', false)
+    StateManager.set('active', false)
     metadata.distance = StateManager.get('playerDistance')
     triggers.onExit(data, metadata)
 end
@@ -511,6 +515,7 @@ function Render.onZone(currentMenuId)
         scaleform.setScale(data.scale or 1)
     end
 
+    StateManager.set('active', true)
     StateManager.set('disableRayCast', true)
 
     setOpen(data, persistentData)
@@ -540,6 +545,7 @@ function Render.onZone(currentMenuId)
     running = false
     persistentData.showingLoading = nil
     StateManager.set('disableRayCast', false)
+    StateManager.set('active', false)
     triggers.onExit(data, metadata)
 
     setClose()
