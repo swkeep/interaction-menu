@@ -260,6 +260,8 @@ function Container.create(t)
 
     if t.position and not t.zone then
         instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id }
+        instance.rotation = t.rotation
+
         grid:insert(instance.position)
     elseif t.player then
         if type(t.player) ~= 'number' then
@@ -876,6 +878,17 @@ function Container.syncData(scaleform, menuData, refreshUI, passThrough)
     for _, menu in pairs(menuData.menus) do
         local menuId = menu.id
         local menuOriginalData = Container.get(menuId)
+
+        if not menuOriginalData then
+            -- What is this?
+            -- If we delete the menu (garbage collection) while a player is using that menu, we have to close it.
+            -- For example, if a player is looking at an entity that has a menu and two globals on it, the menu is still in use.
+            -- However, we've literally garbage collected it XD, so we need to close the menu and get the new container.
+
+            StateManager.reset()
+            return
+        end
+
         local deleted = menuOriginalData.flags.deleted
 
         if not deleted then
@@ -1076,8 +1089,33 @@ AddEventHandler('onResourceStop', function(resource)
     Container.removeByInvokingResource(resource)
 end)
 
+-- -- garbage collection
 -- CreateThread(function()
---     Wait(1000)
+--     while true do
+--         local currentTime = GetGameTimer()
+--         for key, value in pairs(Container.data) do
+--             if value.flags.deleted then
+--                 if currentTime - value.deletedAt > 3000 then
+--                     if value.type == 'entity' then
+--                         for entityHandle, menus in pairs(Container.indexes.entities) do
+--                             for index, menuId in ipairs(menus) do
+--                                 if menuId == value.id then
+--                                     table.remove(menus, index)
 
---     Util.print_table(Container.indexes)
+--                                     if #menus == 0 then
+--                                         Container.indexes.entities[entityHandle] = nil
+--                                     end
+--                                     Container.data[key] = nil
+--                                 end
+--                             end
+--                         end
+--                         -- table.remove(Container.indexes.entities)
+--                     end
+--                 end
+--             end
+--         end
+
+
+--         Wait(2000)
+--     end
 -- end)

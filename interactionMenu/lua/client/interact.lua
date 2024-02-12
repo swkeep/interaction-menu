@@ -444,13 +444,23 @@ function Render.onPosition(currentMenuId)
     local persistentData = PersistentData.get(currentMenuId)
 
     if not canInteract(data, nil) then return end
+    StateManager.set('disableRayCast', true)
 
     local running = true
     local metadata = Container.constructMetadata(data)
+    local position = data.position
+    local rotation = data.rotation
 
-    scaleform.set3d(false)
-    StateManager.set('disableRayCast', true)
-    scaleform.setPosition(data.position)
+    scaleform.setPosition(position)
+
+    if rotation then
+        scaleform.setRotation(rotation)
+        scaleform.set3d(true)
+        scaleform.setScale(data.scale or 1)
+    else
+        scaleform.set3d(false)
+    end
+
     setOpen(data, persistentData)
     Container.validateAndSyncSelected(scaleform, data)
     triggers.onSeen(data, metadata)

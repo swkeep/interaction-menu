@@ -134,6 +134,34 @@ CreateThread(function()
         end
     end
 
+    exports['interactionMenu']:Create {
+        type = 'position',
+        position = vector3(-1978.47, 3194.68, 32.81),
+        rotation = vec3(0, 0, 0),
+        maxDistance = 2.0,
+        options = {
+            {
+                video = {
+                    url = 'http://127.0.0.1:8080/1.mp4',
+                    loop = true,
+                    autoplay = true,
+                    volume = 0.0
+                }
+            },
+            {
+                label = 'Spawn Vehicles',
+                icon = 'fas fa-car',
+                action = {
+                    type = 'sync',
+                    func = function()
+                        Wait(500)
+                        SpawnVehiclesAtAllPoints()
+                    end
+                }
+            },
+        }
+    }
+
     local id = exports['interactionMenu']:Create {
         type = 'position',
         position = vec3(controlPoint.x, controlPoint.y, controlPoint.z),
