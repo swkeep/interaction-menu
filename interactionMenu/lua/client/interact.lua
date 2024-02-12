@@ -47,9 +47,11 @@ Interact = {
     bones = {}
 }
 
-exports('pause', function(value)
+function Interact.pause(value)
     pause = value and true or false
-end)
+end
+
+exports('pause', Interact.pause)
 
 -- init
 CreateThread(function()
@@ -488,11 +490,9 @@ function Render.onZone(currentMenuId)
 
     local running = true
     local metadata = Container.constructMetadata(data)
-
-    StateManager.set('disableRayCast', true)
-
     local position = data.position
     local rotation = data.rotation
+
     scaleform.setPosition(position)
 
     if rotation then
@@ -500,6 +500,8 @@ function Render.onZone(currentMenuId)
         scaleform.set3d(true)
         scaleform.setScale(data.scale or 1)
     end
+
+    StateManager.set('disableRayCast', true)
 
     setOpen(data, persistentData)
     Container.validateAndSyncSelected(scaleform, data)
