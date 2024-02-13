@@ -104,13 +104,16 @@ local function constructInteractionData(option, instance, index, formatted)
         }
 
         interactionType = 'bind'
-    elseif option.canInteract then
-        interaction = {
+    end
+
+    if option.canInteract then
+        local canInteract = {
             canInteract = true,
-            func = option.canInteract
+            func = option.canInteract.func
         }
 
-        interactionType = 'canInteract'
+        instance.interactions['canInteract'] = canInteract
+        formatted.flags['canInteract'] = true
     end
 
     if interaction and interactionType then
@@ -945,8 +948,9 @@ function Container.syncData(scaleform, menuData, refreshUI, passThrough)
 
                 -- #FIX: this can crash game if menu deleted
                 if option.flags.canInteract then
-                    local value = menuOriginalData.interactions[optionIndex]
+                    local value = menuOriginalData.interactions['canInteract']
                     local success, res = pcall(value.func, passThrough)
+
                     if success then
                         option.flags.hide = res and true or false
                     end
