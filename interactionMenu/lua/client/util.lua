@@ -41,11 +41,12 @@ local object = {}
 local centerX, centerY = 0.45, 0.45
 local radius = 0.2 ^ 2
 
+
 Util = {}
 
 function Util.print_debug(...)
     if not DEVMODE then return end
-    -- print('[Interaction]:', ...)
+    print('[Interaction]:', ...)
 end
 
 --- Function to find the closest bone on a vehicle based on a list of bone names
@@ -248,6 +249,24 @@ function SpatialHashGrid:insert(item)
     end
 
     cell[#cell + 1] = item
+end
+
+--- Removes an item from the grid
+---@param item Item "The item to remove"
+function SpatialHashGrid:remove(item)
+    local x, y = item.x, item.y
+    local cellX, cellY = math_floor(x / self.cellSize), math_floor(y / self.cellSize)
+
+    local cell = self.cells[cellX] and self.cells[cellX][cellY]
+
+    if cell then
+        for i, v in ipairs(cell) do
+            if v == item then
+                table_remove(cell, i)
+                break
+            end
+        end
+    end
 end
 
 --- Updates the position of an item within the grid
