@@ -35,6 +35,7 @@ EntityTypes = Util.ENUM { 'PED', 'VEHICLE', 'OBJECT' }
 -- class: PersistentData
 -- managing menus
 Container = {
+    total = 0,
     data = {},
     zones = {},
     indexes = {
@@ -103,6 +104,13 @@ local function constructInteractionData(option, instance, index, formatted)
         }
 
         interactionType = 'bind'
+    elseif option.canInteract then
+        interaction = {
+            canInteract = true,
+            func = option.canInteract
+        }
+
+        interactionType = 'canInteract'
     end
 
     if interaction and interactionType then
@@ -259,6 +267,7 @@ function Container.create(t)
     }
 
     if t.position and not t.zone then
+        instance.type = 'position'
         instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id }
         instance.rotation = t.rotation
 
@@ -268,6 +277,7 @@ function Container.create(t)
             warn('Player id must a integer value')
             return
         end
+        instance.type = 'player'
         instance.player = t.player
     elseif t.entity then
         if not DoesEntityExist(t.entity) then
@@ -326,6 +336,9 @@ function Container.create(t)
         else
             warn('Could not find `PolyZone`. Make sure it is started before interactionMenu.')
         end
+    else
+        warn('Could not determine menu type (failed to create interaction)')
+        return
     end
 
     buildOption(t, instance)
@@ -336,6 +349,7 @@ function Container.create(t)
     buildInteraction(t, instance.interactions, "onExit")
     classifyMenuInstance(instance)
 
+    Container.total = Container.total + 1
     Container.data[id] = instance
     return id
 end
@@ -616,11 +630,20 @@ function Container.get(id)
     return Container.data[id]
 end
 
+function Container.count()
+    return Container.total
+end
+
 function Container.remove(id)
     local menuRef = Container.get(id)
+    if not menuRef then
+        Util.print_debug('Could not find this menu')
+        return
+    end
 
     menuRef.flags.deleted = true
-    menuRef.deletedAt = GetGameTimer()
+    menuRef.deletedAt = GetGameTimer() / 1000
+    Container.total = Container.total - 1
 end
 
 exports('remove', Container.remove)
@@ -911,12 +934,21 @@ function Container.syncData(scaleform, menuData, refreshUI, passThrough)
                 -- #FIX: this can crash game if menu deleted
                 if option.flags.bind then
                     local value = menuOriginalData.interactions[optionIndex]
-                    local sucess, res = pcall(value.func, passThrough)
+                    local success, res = pcall(value.func, passThrough)
 
                     if option.progress and option.progress.value ~= res then
                         option.cached_value = option.progress.value
                         option.progress.value = res
                         table.insert(updatedElements, { menuId = menuId, option = option })
+                    end
+                end
+
+                -- #FIX: this can crash game if menu deleted
+                if option.flags.canInteract then
+                    local value = menuOriginalData.interactions[optionIndex]
+                    local success, res = pcall(value.func, passThrough)
+                    if success then
+                        option.flags.hide = res and true or false
                     end
                 end
 
@@ -1089,33 +1121,116 @@ AddEventHandler('onResourceStop', function(resource)
     Container.removeByInvokingResource(resource)
 end)
 
+-- #TODO: collector for globals
+
+local GarbageCollector = {}
+
+function GarbageCollector.position(key, value)
+    local menu = Container.data[key]
+    if menu.position then
+        grid:remove(menu.position)
+        Container.data[key] = nil
+    end
+end
+
+function GarbageCollector.zone(menuId, value)
+    zone_grid:remove(Container.data[menuId].position)
+    Container.zones[menuId]:destroy()
+    Container.data[menuId] = nil
+end
+
+function GarbageCollector.entity(key, value)
+    for entityHandle, menus in pairs(Container.indexes.entities) do
+        for index, menuId in ipairs(menus) do
+            if menuId == value.id then
+                table.remove(menus, index)
+                Container.data[key] = nil
+
+                if #menus == 0 then
+                    Container.indexes.entities[entityHandle] = nil
+                end
+                break
+            end
+        end
+    end
+end
+
+function GarbageCollector.player(key, value)
+    for playerId, menus in pairs(Container.indexes.players) do
+        for index, menuId in ipairs(menus) do
+            if menuId == value.id then
+                table.remove(menus, index)
+                Container.data[key] = nil
+
+                if #menus == 0 then
+                    Container.indexes.players[playerId] = nil
+                end
+                break
+            end
+        end
+    end
+end
+
+function GarbageCollector.model(key, value)
+    for model, menus in pairs(Container.indexes.models) do
+        for index, menuId in ipairs(menus) do
+            if menuId == value.id then
+                table.remove(menus, index)
+
+                if #menus == 0 then
+                    Container.indexes.models[model] = nil
+                end
+                Container.data[key] = nil
+                break
+            end
+        end
+    end
+end
+
+function GarbageCollector.bone(key, value)
+    local vehicleBones = Container.indexes.bones[value.vehicle.handle]
+    if vehicleBones then
+        local boneMenu = vehicleBones[value.bone]
+        if boneMenu then
+            for index, menuId in ipairs(boneMenu) do
+                if menuId == value.id then
+                    table.remove(boneMenu, index)
+                    if #boneMenu == 0 then
+                        vehicleBones[value.bone] = nil
+                    end
+                    Container.data[key] = nil
+                    break
+                end
+            end
+        end
+    end
+end
+
 -- -- garbage collection
--- CreateThread(function()
---     while true do
---         local currentTime = GetGameTimer()
---         for key, value in pairs(Container.data) do
---             if value.flags.deleted then
---                 if currentTime - value.deletedAt > 3000 then
---                     if value.type == 'entity' then
---                         for entityHandle, menus in pairs(Container.indexes.entities) do
---                             for index, menuId in ipairs(menus) do
---                                 if menuId == value.id then
---                                     table.remove(menus, index)
+CreateThread(function()
+    while true do
+        Wait(10 * 60 * 1000) -- 10 min
 
---                                     if #menus == 0 then
---                                         Container.indexes.entities[entityHandle] = nil
---                                     end
---                                     Container.data[key] = nil
---                                 end
---                             end
---                         end
---                         -- table.remove(Container.indexes.entities)
---                     end
---                 end
---             end
---         end
+        local currentTime = GetGameTimer() / 1000
+        local chunkSize = 5000
+        local current = 0
 
+        for key, value in pairs(Container.data) do
+            current = current + 1
 
---         Wait(2000)
---     end
--- end)
+            -- why we wait 10 seconds? if one of function is still excuting it's gonna crash the game when we delete its refrence
+            if value.flags.deleted and (currentTime - value.deletedAt) > 2 then
+                GarbageCollector[value.type](key, value)
+            end
+
+            -- why? we are not in hurry to cleanup so we can wait a little so game client doesn't freak out
+            if current > chunkSize then
+                current = 0
+                Wait(500)
+            end
+        end
+
+        local endTime = (GetGameTimer() / 1000) - currentTime
+        Util.print_debug("GarbageCollector Took: " .. endTime .. " seconds")
+    end
+end)

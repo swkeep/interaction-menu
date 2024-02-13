@@ -288,7 +288,7 @@ local function findClosestZone(playerPosition, range)
     local zonesInRange = grid_zone:queryRange(playerPosition, 100)
 
     for index, value in ipairs(zonesInRange) do
-        if Container.zones[value.id]:isPointInside(playerPosition) then
+        if Container.zones[value.id] and Container.zones[value.id]:isPointInside(playerPosition) then
             return value.id
         end
     end
@@ -343,7 +343,6 @@ CreateThread(function()
 
             local nearPoints, totalNearPoints = grid_position:queryRange(playerPosition, 100)
             visiblePoints, visiblePointCount  = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
-
             -- onZone
             local closestZoneMenuId           = findClosestZone(playerPosition)
 
