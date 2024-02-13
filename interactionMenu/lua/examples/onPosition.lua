@@ -134,33 +134,14 @@ CreateThread(function()
         end
     end
 
-    exports['interactionMenu']:Create {
-        type = 'position',
-        position = vector3(-1978.47, 3194.68, 32.81),
-        rotation = vec3(0, 0, 0),
-        maxDistance = 2.0,
-        options = {
-            {
-                video = {
-                    url = 'http://127.0.0.1:8080/1.mp4',
-                    loop = true,
-                    autoplay = true,
-                    volume = 0.0
-                }
-            },
-            {
-                label = 'Spawn Vehicles',
-                icon = 'fas fa-car',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(500)
-                        SpawnVehiclesAtAllPoints()
-                    end
-                }
-            },
-        }
-    }
+    local toggle = false
+    CreateThread(function()
+        while true do
+            toggle = not toggle
+
+            Wait(2000)
+        end
+    end)
 
     local id = exports['interactionMenu']:Create {
         type = 'position',
@@ -168,8 +149,21 @@ CreateThread(function()
         maxDistance = 2.0,
         options = {
             {
+                video = {
+                    url = 'http://127.0.0.1:8080/AMV The Garden of Words Stay.mp4',
+                    loop = true,
+                    autoplay = true,
+                    volume = 0.3
+                }
+            },
+            {
                 label = 'Spawn Vehicles',
                 icon = 'fas fa-car',
+                canInteract = {
+                    func = function()
+                        return toggle
+                    end
+                },
                 action = {
                     type = 'sync',
                     func = function()
@@ -214,11 +208,15 @@ CreateThread(function()
         }
     }
 
-    SetTimeout(6000, function()
+    SetTimeout(2000, function()
         exports['interactionMenu']:set {
             menuId = id,
             type = 'position',
             value = vector4(-1981.69, 3188.51, 32.81, 111.91)
         }
     end)
+
+    -- SetTimeout(6000, function()
+    --     exports['interactionMenu']:remove(id)
+    -- end)
 end)
