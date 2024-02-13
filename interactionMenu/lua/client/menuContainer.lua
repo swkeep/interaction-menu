@@ -350,6 +350,7 @@ function Container.create(t)
     buildInteraction(t, instance.interactions, "onTrigger")
     buildInteraction(t, instance.interactions, "onSeen")
     buildInteraction(t, instance.interactions, "onExit")
+    buildInteraction(t, instance.interactions, "canInteract")
     classifyMenuInstance(instance)
 
     Container.total = Container.total + 1
@@ -916,6 +917,7 @@ function Container.syncData(scaleform, menuData, refreshUI, passThrough)
         end
 
         local deleted = menuOriginalData.flags.deleted
+        -- menuOriginalData.flags.hide = Container.triggerInteraction(menuId, 'canInteract') or false
 
         if not deleted then
             for optionIndex, option in ipairs(menu.options) do
@@ -1223,7 +1225,7 @@ CreateThread(function()
             current = current + 1
 
             -- why we wait 10 seconds? if one of function is still excuting it's gonna crash the game when we delete its refrence
-            if value.flags.deleted and (currentTime - value.deletedAt) > 2 then
+            if value.flags.deleted and (currentTime - value.deletedAt) > 60 then
                 GarbageCollector[value.type](key, value)
             end
 
