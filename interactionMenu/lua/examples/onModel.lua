@@ -139,7 +139,7 @@ CreateThread(function()
                 label = "Open Door",
                 action = {
                     type = 'sync',
-                    func = function(data)
+                    func = function(entity)
                         Wait(1000)
                         print('HEY')
                     end

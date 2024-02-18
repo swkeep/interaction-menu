@@ -171,8 +171,7 @@ local bones = {
                 percent = true
             },
             bind = {
-                func = function(data)
-                    local entity = data.entity
+                func = function(entity)
                     return GetVehicleEngineHealth(entity) / 10
                 end
             }
@@ -185,8 +184,7 @@ local bones = {
                 value = 70
             },
             bind = {
-                func = function(data)
-                    local entity = data.entity
+                func = function(entity)
                     return GetVehicleBodyHealth(entity) / 10
                 end
             }
@@ -196,8 +194,8 @@ local bones = {
             icon = "fas fa-cogs",
             action = {
                 type = 'sync',
-                func = function(data)
-                    SetVehicleEngineOn(data.entity, true, false)
+                func = function(entity)
+                    SetVehicleEngineOn(entity, true, false)
                 end
             }
         }
@@ -209,8 +207,8 @@ local bones = {
             icon = "fas fa-car",
             action = {
                 type = 'sync',
-                func = function(data)
-                    toggle_door(data.entity, 4)
+                func = function(entity)
+                    toggle_door(entity, 4)
                 end
             }
         }
@@ -222,8 +220,7 @@ local bones = {
             icon = "fas fa-smog",
             action = {
                 type = 'sync',
-                func = function(data, e)
-                    Util.print_table(data)
+                func = function()
                 end
             }
         }
@@ -234,8 +231,8 @@ local bones = {
             label = "Trunk",
             action = {
                 type = 'sync',
-                func = function(data)
-                    toggle_door(data.entity, 5)
+                func = function(entity)
+                    toggle_door(entity, 5)
                 end
             }
         }

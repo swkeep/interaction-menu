@@ -128,7 +128,7 @@ end
 
 local function handleMouseWheel(menuData)
     -- not the best way to do it but it works if we add new options on runtime
-    HideHudComponentThisFrame(19)
+    -- HideHudComponentThisFrame(19)
 
     -- Mouse Wheel Down / Arrow Down
     if IsDisabledControlJustReleased(0, 14) or IsControlJustReleased(0, 173) then
@@ -202,13 +202,54 @@ local triggers = {
 }
 
 -- #region Show sprite while holding alt
+CreateThread(function()
+    local txd = CreateRuntimeTxd('interaction_txd_indicator')
+    CreateRuntimeTextureFromImage(txd, 'indicator', "indicator.png")
+end)
 
 local function drawSprite(p)
     if not p then return end
     SetDrawOrigin(p.x, p.y, p.z, 0)
-    DrawSprite("shared", "emptydot_32", 0, 0, 0.02, 0.035, 0, 255, 255, 255, 255)
+    DrawSprite('interaction_txd_indicator', 'indicator', 0, 0, 0.02, 0.035, 0, 255, 255, 255, 255)
     ClearDrawOrigin()
 end
+
+-- local function getNearbyObjects(coords, maxDistance)
+--     local objects = GetGamePool('CObject')
+--     local nearby = {}
+--     local count = 0
+--     maxDistance = maxDistance or 2.0
+
+--     for i = 1, #objects do
+--         local object = objects[i]
+
+--         local objectCoords = GetEntityCoords(object)
+--         local distance = #(coords - objectCoords)
+
+--         if distance < maxDistance then
+--             count += 1
+--             nearby[count] = {
+--                 object = object,
+--                 coords = objectCoords
+--             }
+--         end
+--     end
+
+--     return nearby
+-- end
+
+-- CreateThread(function()
+--     if not waitForScaleform() then return end
+
+--     while true do
+--         local entities = getNearbyObjects(StateManager.get('playerPosition'), 10)
+
+--         for index, value in ipairs(entities) do
+--             drawSprite(value.coords)
+--         end
+--         Wait(10)
+--     end
+-- end)
 
 local function StartSpriteThread()
     if isSpriteThreadRunning then return end
@@ -393,7 +434,7 @@ function Render.onEntity(model, entity)
     data.entity = entity
 
     StateManager.set('active', true)
-    local metadata = Container.constructMetadata(data)
+    local metadata = Container.constructMetadata2(data)
 
     scaleform.set3d(false)
     scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
@@ -403,7 +444,7 @@ function Render.onEntity(model, entity)
 
     CreateThread(function()
         while running do
-            Container.syncData(scaleform, data, true, metadata)
+            Container.syncData(scaleform, data, true)
             Wait(1000)
         end
     end)
@@ -449,7 +490,7 @@ function Render.onPosition(currentMenuId)
     StateManager.set('disableRayCast', true)
 
     local running = true
-    local metadata = Container.constructMetadata(data)
+    local metadata = Container.constructMetadata2(data)
     local position = data.position
     local rotation = data.rotation
 
@@ -502,7 +543,7 @@ function Render.onZone(currentMenuId)
     local persistentData = PersistentData.get(currentMenuId)
 
     local running = true
-    local metadata = Container.constructMetadata(data)
+    local metadata = Container.constructMetadata2(data)
     local position = data.position
     local rotation = data.rotation
 

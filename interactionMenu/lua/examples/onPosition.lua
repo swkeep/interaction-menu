@@ -143,6 +143,50 @@ CreateThread(function()
         end
     end)
 
+    exports['interactionMenu']:Create {
+        type = 'position',
+        position = vector3(-1984.06, 3189.42, 32.81),
+        maxDistance = 2.0,
+        options = {
+            {
+                label = 'Delete All Vehicles',
+                icon = 'fas fa-trash-alt',
+                action = {
+                    type = 'sync',
+                    func = function()
+                        Wait(1000)
+                        DeleteAllSpawnedVehicles()
+                    end
+                },
+                canInteract = function()
+                    return toggle
+                end
+            },
+            {
+                label = 'Vehicles Toward Center',
+                icon = 'fas fa-long-arrow-alt-up',
+                action = {
+                    type = 'sync',
+                    func = function()
+                        Wait(1000)
+                        buildSpawnPoints(true)
+                    end
+                }
+            },
+            {
+                label = 'Vehicles Outward from Center',
+                icon = 'fas fa-long-arrow-alt-down',
+                action = {
+                    type = 'sync',
+                    func = function()
+                        Wait(1000)
+                        buildSpawnPoints(false)
+                    end
+                }
+            }
+        }
+    }
+
     local id = exports['interactionMenu']:Create {
         type = 'position',
         position = vec3(controlPoint.x, controlPoint.y, controlPoint.z),
@@ -153,17 +197,15 @@ CreateThread(function()
                     url = 'http://127.0.0.1:8080/AMV The Garden of Words Stay.mp4',
                     loop = true,
                     autoplay = true,
-                    volume = 0.3
+                    volume = 0.1
                 }
             },
             {
                 label = 'Spawn Vehicles',
                 icon = 'fas fa-car',
-                canInteract = {
-                    func = function()
-                        return toggle
-                    end
-                },
+                canInteract = function()
+                    return toggle
+                end,
                 action = {
                     type = 'sync',
                     func = function()

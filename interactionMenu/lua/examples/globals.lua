@@ -10,8 +10,8 @@ exports['interactionMenu']:createGlobal {
             icon = 'fa fa-bug',
             action = {
                 type = 'sync',
-                func = function(data)
-                    Util.print_table(data)
+                func = function(entity)
+                    print(entity)
                 end
             }
         }
@@ -28,8 +28,8 @@ exports['interactionMenu']:createGlobal {
             icon = 'fa fa-person',
             action = {
                 type = 'sync',
-                func = function(data)
-                    Util.print_table(data)
+                func = function(entity)
+                    print(entity)
                 end
             }
         }
@@ -46,8 +46,8 @@ exports['interactionMenu']:createGlobal {
             icon = 'fa fa-car',
             action = {
                 type = 'sync',
-                func = function(data)
-                    Util.print_table(data)
+                func = function(entity)
+                    print(entity)
                 end
             }
         }
@@ -65,8 +65,8 @@ exports['interactionMenu']:createGlobal {
             icon = 'fa fa-rectangle-ad',
             action = {
                 type = 'sync',
-                func = function(data)
-                    print('Plate:', GetVehicleNumberPlateText(data.entity))
+                func = function(entity)
+                    print('Plate:', GetVehicleNumberPlateText(entity))
                 end
             }
         }
@@ -84,13 +84,9 @@ exports['interactionMenu']:createGlobal {
             icon = 'fa fa-person',
             action = {
                 type = 'sync',
-                func = function(data)
-                    if not data.player then return end
-
-                    local player = data.player
-
-                    Util.print_table(player)
-                    TriggerServerEvent('interaction-menu:server:syncAnimation', player.serverId)
+                func = function(entity)
+                    print(entity)
+                    -- TriggerServerEvent('interaction-menu:server:syncAnimation', player.serverId)
                 end
             }
         }

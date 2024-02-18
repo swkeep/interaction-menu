@@ -21,8 +21,8 @@ CreateThread(function()
                 icon = 'fa fa-person',
                 action = {
                     type = 'sync',
-                    func = function(data)
-                        Util.print_table(data)
+                    func = function(entity)
+                        print(entity)
                     end
                 }
             }
