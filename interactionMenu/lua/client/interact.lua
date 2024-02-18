@@ -546,6 +546,7 @@ function Render.onZone(currentMenuId)
     local metadata = Container.constructMetadata2(data)
     local position = data.position
     local rotation = data.rotation
+    if not position then return end -- probably deleted or just missing position
 
     scaleform.setPosition(position)
 
