@@ -49,6 +49,6 @@ files {
      'indicator.png'
 }
 
-provide 'qb-target'
+-- provide 'qb-target'
 
 lua54 'yes'
