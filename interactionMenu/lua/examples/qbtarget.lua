@@ -8,6 +8,8 @@
 --                             |_|
 -- https://github.com/swkeep
 if not DEVMODE then return end
+if true then return end
+
 CreateThread(function()
     Wait(1000)
 
