@@ -109,10 +109,10 @@ local function constructInteractionData(option, instance, index, formatted)
     if option.canInteract then
         local canInteract = {
             canInteract = true,
-            func = option.canInteract.func
+            func = option.canInteract
         }
 
-        instance.interactions['canInteract'] = canInteract
+        instance.interactions['canInteract|' .. index] = canInteract
         formatted.flags['canInteract'] = true
     end
 
@@ -265,7 +265,8 @@ function Container.create(t)
             disable = false,
             hide = false,
             suppressGlobals = t.suppressGlobals and true or false,
-            static = t.static and true or false
+            static = t.static and true or false,
+            alternativeMetadata = t.alternativeMetadata or false
         }
     }
 
@@ -350,7 +351,6 @@ function Container.create(t)
     buildInteraction(t, instance.interactions, "onTrigger")
     buildInteraction(t, instance.interactions, "onSeen")
     buildInteraction(t, instance.interactions, "onExit")
-    buildInteraction(t, instance.interactions, "canInteract")
     classifyMenuInstance(instance)
 
     Container.total = Container.total + 1
@@ -803,6 +803,7 @@ end
 --- generate metadata for triggers
 ---@param t table 'menuData (menu container)'
 ---@return table 'metadata'
+---@deprecated
 function Container.constructMetadata(t)
     local metadata = {
         playerPosition = StateManager.get('playerPosition'),
@@ -851,11 +852,30 @@ function Container.constructMetadata(t)
     return metadata
 end
 
+function Container.constructMetadata2(t)
+    local metadata = {
+        entity = nil,
+        distance = StateManager.get('playerDistance'),
+        coords = StateManager.get('playerPosition'),
+        name = t.id,
+        bone = nil
+    }
+
+    if t.type == 'entity' or t.type == 'model' or t.type == 'peds' then
+        metadata.entity = t.entity
+    elseif t.type == 'bone' then
+        metadata.entity = t.entity
+        metadata.bone = t.boneId
+    end
+
+    return metadata
+end
+
 function Container.keyPress(menuData)
     local data = PersistentData.get(menuData.id)
     -- skip when already loading
     if data.loading then return end
-    local metadata = Container.constructMetadata(menuData)
+    local metadata = Container.constructMetadata2(menuData)
 
     for index, value in ipairs(menuData.menus) do
         Container.triggerInteraction(value.id, 'onTrigger', metadata)
@@ -876,7 +896,8 @@ function Container.keyPress(menuData)
             if interaction.type == "sync" then
                 data.loading = true
             end
-            local success, result = pcall(interaction.func, metadata)
+            local success, result = pcall(interaction.func, menuData.entity, menuData.distance, menuData.coords,
+                menuData.name, menuData.bone)
 
             if interaction.type == "sync" then
                 data.loading = false
@@ -896,11 +917,65 @@ local function is_daytime()
     return hour >= 6 and hour < 19
 end
 
+local function evaluateDynamicValue(updatedElements, menuId, option)
+    local already_inserted = false
+    -- to get the dynamic values
+    if option.flags.dynamic then
+        if option.progress and option.progress.value ~= option.cached_value then
+            already_inserted = true
+            option.cached_value = option.progress.value
+            table.insert(updatedElements, { menuId = menuId, option = option })
+        elseif option.label_cache ~= option.label then
+            already_inserted = true
+            option.label_cache = option.label
+            table.insert(updatedElements, { menuId = menuId, option = option })
+        end
+    end
+    return already_inserted
+end
+
+local function evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
+    local already_inserted = false
+
+    -- #FIX: this can crash game if menu deleted
+    if option.flags.bind then
+        local value = menuOriginalData.interactions[optionIndex]
+        local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords,
+            passThrough.name, passThrough.bone)
+
+        if option.progress and option.progress.value ~= res then
+            option.cached_value = option.progress.value
+            option.progress.value = res
+            table.insert(updatedElements, { menuId = menuId, option = option })
+        end
+    end
+
+    return already_inserted
+end
+
+local function evaluateCanInteract(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
+    if not option.flags.canInteract then return false end
+    local already_inserted = false
+
+    local value = menuOriginalData.interactions['canInteract|' .. optionIndex]
+    local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords,
+        passThrough.name, passThrough.bone)
+
+    if success and type(res) == "boolean" then
+        option.flags.hide = not res
+    else
+        option.flags.hide = false
+    end
+
+    return already_inserted
+end
+
 --- calculate canInteract and update values and refresh UI
 ---@param scaleform table
 ---@param menuData table
-function Container.syncData(scaleform, menuData, refreshUI, passThrough)
+function Container.syncData(scaleform, menuData, refreshUI)
     local updatedElements = {}
+    local passThrough = Container.constructMetadata2(menuData)
 
     for _, menu in pairs(menuData.menus) do
         local menuId = menu.id
@@ -917,46 +992,18 @@ function Container.syncData(scaleform, menuData, refreshUI, passThrough)
         end
 
         local deleted = menuOriginalData.flags.deleted
-        -- menuOriginalData.flags.hide = Container.triggerInteraction(menuId, 'canInteract') or false
 
         if not deleted then
+            -- menuOriginalData.flags.hide = Container.triggerInteraction(menuId, 'canInteract') or false
+
             for optionIndex, option in ipairs(menu.options) do
                 local already_inserted = false
 
-                -- to get the dynamic values
-                if option.flags.dynamic then
-                    if option.progress and option.progress.value ~= option.cached_value then
-                        already_inserted = true
-                        option.cached_value = option.progress.value
-                        table.insert(updatedElements, { menuId = menuId, option = option })
-                    elseif option.label_cache ~= option.label then
-                        already_inserted = true
-                        option.label_cache = option.label
-                        table.insert(updatedElements, { menuId = menuId, option = option })
-                    end
-                end
-
-                -- #FIX: this can crash game if menu deleted
-                if option.flags.bind then
-                    local value = menuOriginalData.interactions[optionIndex]
-                    local success, res = pcall(value.func, passThrough)
-
-                    if option.progress and option.progress.value ~= res then
-                        option.cached_value = option.progress.value
-                        option.progress.value = res
-                        table.insert(updatedElements, { menuId = menuId, option = option })
-                    end
-                end
-
-                -- #FIX: this can crash game if menu deleted
-                if option.flags.canInteract then
-                    local value = menuOriginalData.interactions['canInteract']
-                    local success, res = pcall(value.func, passThrough)
-
-                    if success then
-                        option.flags.hide = res and true or false
-                    end
-                end
+                already_inserted = evaluateDynamicValue(updatedElements, menuId, option)
+                already_inserted = evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
+                    passThrough)
+                already_inserted = evaluateCanInteract(updatedElements, menuId, option, optionIndex, menuOriginalData,
+                    passThrough)
 
                 -- to hide option if its canInteract value has been changed
                 if not already_inserted and option.flags.hide ~= nil and option.flags.hide ~= option.flags.previous_hide then
