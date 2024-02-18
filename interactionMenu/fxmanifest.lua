@@ -45,4 +45,10 @@ server_script {
      'lua/server/server.lua'
 }
 
+files {
+     'indicator.png'
+}
+
+provide 'qb-target'
+
 lua54 'yes'
