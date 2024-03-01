@@ -601,6 +601,10 @@ local function globalsExistsCheck(entity, entityType)
         return true
     end
 
+    if globals.bones and next(globals.bones) then
+        return true
+    end
+
     if specificGlobals and next(specificGlobals) then
         return true
     end
