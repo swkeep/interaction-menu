@@ -46,7 +46,6 @@ Container = {
         globals = {
             bones = {},
             entities = {},
-            objects = {},
             peds = {},
             players = {},
             vehicles = {}
@@ -601,7 +600,7 @@ local function globalsExistsCheck(entity, entityType)
         return true
     end
 
-    if globals.bones and next(globals.bones) then
+    if entityType == 2 and (globals.bones and next(globals.bones)) then
         return true
     end
 
