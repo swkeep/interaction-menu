@@ -45,6 +45,7 @@ Container = {
         bones = {},
         globals = {
             bones = {},
+            objects = {},
             entities = {},
             peds = {},
             players = {},
@@ -252,6 +253,7 @@ function Container.create(t)
         glow = t.glow,
         extra = t.extra or {},
         indicator = t.indicator,
+        icon = t.icon,
         interactions = {},
         options = {},
         metadata = {
@@ -271,7 +273,7 @@ function Container.create(t)
 
     if t.position and not t.zone then
         instance.type = 'position'
-        instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id }
+        instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id, maxDistance = t.maxDistance }
         instance.rotation = t.rotation
 
         grid:insert(instance.position)
@@ -502,6 +504,7 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
             container.static = data.flags and data.flags.static
             container.zone = data.zone
             container.rotation = data.rotation
+            container.icon = data.icon
 
             if data.flags.suppressGlobals then
                 container.selected = {}
@@ -1033,7 +1036,7 @@ function Container.syncData(scaleform, menuData, refreshUI)
         Container.validateAndSyncSelected(scaleform, menuData)
     end
 
-    if Config.features.time_based_theme_switch and is_daytime() ~= previous_daytime then
+    if Config.features.timeBasedTheme and is_daytime() ~= previous_daytime then
         previous_daytime = is_daytime()
         Interact:SetDarkMode(previous_daytime)
     end
@@ -1165,6 +1168,10 @@ function Container.removeByInvokingResource(i_r)
     for key, menu in pairs(Container.data) do
         if menu.metadata.invokingResource == i_r then
             Container.data[key].flags.deleted = true
+
+            if Container.data[key].type == 'position' then
+                grid:remove(Container.data[key].position)
+            end
         end
     end
 

@@ -220,4 +220,46 @@ CreateThread(function()
             }
         }
     }
+
+
+    coords = vector4(-1999.05, 3178.58, 31.81, 147.54)
+    Util.spawnObject(`prop_paper_bag_01`, coords)
+    coords = vector4(-1999.05, 3179.58, 31.81, 147.54)
+    Util.spawnObject(`prop_paper_bag_01`, coords)
+    coords = vector4(-1998.05, 3178.58, 31.81, 147.54)
+    Util.spawnObject(`prop_paper_bag_01`, coords)
+
+    exports['interactionMenu']:Create {
+        type = 'model',
+        model = `prop_paper_bag_01`,
+        offset = vec3(0, 0, 0),
+        maxDistance = 3.0,
+        options = {
+            {
+                label = 'Second On Model',
+                icon = 'fa fa-book',
+                action = {
+                    func = function(e)
+                    end
+                },
+            }
+        }
+    }
+
+    -- exports['interactionMenu']:Create {
+    --     type = 'model',
+    --     model = `prop_paper_bag_01`,
+    --     offset = vec3(0, 0, 0),
+    --     maxDistance = 3.0,
+    --     options = {
+    --         {
+    --             label = 'Pick',
+    --             icon = 'fa fa-book',
+    --             action = {
+    --                 func = function(e)
+    --                 end
+    --             },
+    --         }
+    --     }
+    -- }
 end)

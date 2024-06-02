@@ -1,0 +1,46 @@
+-- CreateThread(function()
+--     local veh_pos = vector4(-1974.9, 3178.76, 32.81, 59.65)
+--     local vehicle = Util.spawnVehicle('adder', veh_pos)
+
+--     SetVehicleNumberPlateText(vehicle, 'swkeep')
+
+--     exports['interactionMenu']:createGlobal {
+--         type = 'bones',
+--         bone = 'platelight',
+--         offset = vec3(0, 0, 0),
+--         maxDistance = 2.0,
+--         options = {
+--             {
+--                 label = '[Debug] On All plates',
+--                 icon = 'fa fa-rectangle-ad',
+--                 action = {
+--                     type = 'sync',
+--                     func = function(entity)
+--                         print('Plate:', GetVehicleNumberPlateText(entity))
+--                     end
+--                 }
+--             }
+--         }
+--     }
+
+--     local pos = vector4(-1973.31, 3181.98, 32.81, 249.84)
+--     local ped_ = Util.spawnPed(GetHashKey('cs_brad'), pos)
+
+--     exports['interactionMenu']:createGlobal {
+--         type = 'peds',
+--         offset = vec3(0, 0, 0),
+--         maxDistance = 2.0,
+--         options = {
+--             {
+--                 label = '[Debug] On All peds',
+--                 icon = 'fa fa-rectangle-ad',
+--                 action = {
+--                     type = 'sync',
+--                     func = function(entity)
+--                         print('Plate:', GetVehicleNumberPlateText(entity))
+--                     end
+--                 }
+--             }
+--         }
+--     }
+-- end)

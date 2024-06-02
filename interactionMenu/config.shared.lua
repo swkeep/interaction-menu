@@ -10,7 +10,6 @@
 
 Config = {}
 
-Config.framework = 'qb'
 Config.devMode = true
 
 Config.interactionAudio = {
@@ -24,7 +23,23 @@ Config.interactionAudio = {
     }
 }
 
+Config.intervals = {
+    detection = 400
+}
+
 Config.features = {
     positionCorrection = true,
-    time_based_theme_switch = true
+    timeBasedTheme = true,
+    drawIndicator = {
+        active = true
+    }
+}
+
+Config.icons = {
+    'stove',
+    'stove2',
+    'glowingball',
+    'box',
+    'wrench',
+    'vending'
 }

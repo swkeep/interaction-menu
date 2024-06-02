@@ -29,16 +29,18 @@ client_script {
      '@PolyZone/ComboZone.lua',
 
      --
-     'lua/frameworks/qb/client.lua',
+     -- 'lua/frameworks/qb/client.lua',
      --
 
      'lua/client/util.lua',
      'lua/client/3dDuiMaker.lua',
      'lua/client/menuContainer.lua',
      'lua/client/interact.lua',
+     'lua/client/drawIndicator.lua',
 
      -- examples / tests
-     'lua/examples/*.lua'
+     'lua/examples/*.lua',
+     -- 'lua/examples/test.lua',
 }
 
 server_script {
@@ -46,7 +48,7 @@ server_script {
 }
 
 files {
-     'indicator.png'
+     'lua/client/icons/*.*',
 }
 
 -- provide 'qb-target'

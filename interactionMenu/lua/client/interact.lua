@@ -34,10 +34,7 @@ local grid_zone = SpatialHashGrid:new('zone', 100)
 local grid_position = SpatialHashGrid:new('position', 100)
 
 local visiblePoints = {}
-local visiblePointCount = 0
 -- Render
-local isTargetSpritesActive = false
-local isSpriteThreadRunning = false
 local PersistentData = Util.PersistentData()
 local StateManager = Util.StateManager()
 
@@ -201,97 +198,13 @@ local triggers = {
     end
 }
 
--- #region Show sprite while holding alt
-CreateThread(function()
-    local txd = CreateRuntimeTxd('interaction_txd_indicator')
-    CreateRuntimeTextureFromImage(txd, 'indicator', "indicator.png")
-end)
-
-local function drawSprite(p)
-    if not p then return end
-    SetDrawOrigin(p.x, p.y, p.z, 0)
-    DrawSprite('interaction_txd_indicator', 'indicator', 0, 0, 0.02, 0.035, 0, 255, 255, 255, 255)
-    ClearDrawOrigin()
-end
-
--- local function getNearbyObjects(coords, maxDistance)
---     local objects = GetGamePool('CObject')
---     local nearby = {}
---     local count = 0
---     maxDistance = maxDistance or 2.0
-
---     for i = 1, #objects do
---         local object = objects[i]
-
---         local objectCoords = GetEntityCoords(object)
---         local distance = #(coords - objectCoords)
-
---         if distance < maxDistance then
---             count += 1
---             nearby[count] = {
---                 object = object,
---                 coords = objectCoords
---             }
---         end
---     end
-
---     return nearby
--- end
-
--- CreateThread(function()
---     if not waitForScaleform() then return end
-
---     while true do
---         local entities = getNearbyObjects(StateManager.get('playerPosition'), 10)
-
---         for index, value in ipairs(entities) do
---             drawSprite(value.coords)
---         end
---         Wait(10)
---     end
--- end)
-
-local function StartSpriteThread()
-    if isSpriteThreadRunning then return end
-    isSpriteThreadRunning = true
-
-    CreateThread(function()
-        while isTargetSpritesActive do
-            if visiblePointCount > 0 then
-                for _, value in ipairs(visiblePoints.inView) do
-                    drawSprite(value.point)
-                end
-
-                if visiblePoints.closest.id ~= StateManager.get('id') and not StateManager.get('active') then
-                    drawSprite(visiblePoints.closest.point)
-                end
-            end
-
-            Wait(10)
-        end
-        isSpriteThreadRunning = false
-    end)
-end
-
-RegisterCommand('+toggleTargetSprites', function()
-    isTargetSpritesActive = true
-    StartSpriteThread()
-end, false)
-
-RegisterCommand('-toggleTargetSprites', function()
-    isTargetSpritesActive = false
-end, false)
-
-RegisterKeyMapping('+toggleTargetSprites', 'Toggle Target Sprites', 'keyboard', 'LMENU')
-RegisterKeyMapping('~!+toggleTargetSprites', 'Toggle Target Sprites - Alternate Key', 'keyboard', 'RMENU')
-
--- #endregion
-
 -- #region process data
 -- detect the menu type and set menu data and pass rest to render thread
 
 local function handlePositionBasedInteraction()
-    if visiblePoints.closest.distance and visiblePoints.closest.distance < 3 then
+    local maxDistance = visiblePoints.closest.maxDistance or 3
+
+    if visiblePoints.closest.distance and visiblePoints.closest.distance < maxDistance then
         StateManager.set('id', visiblePoints.closest.id)
         StateManager.set('menuType', MenuTypes['ON_POSITION'])
         StateManager.set('playerDistance', visiblePoints.closest.distance)
@@ -326,7 +239,7 @@ local function waitForScaleform()
 end
 
 local function findClosestZone(playerPosition, range)
-    local zonesInRange = grid_zone:queryRange(playerPosition, 100)
+    local zonesInRange = grid_zone:queryRange(playerPosition, 25)
 
     for index, value in ipairs(zonesInRange) do
         if Container.zones[value.id] and Container.zones[value.id]:isPointInside(playerPosition) then
@@ -340,14 +253,13 @@ end
 CreateThread(function()
     if not waitForScaleform() then return end
     -- We can bump it up to 1000 for better performance, but it looks better with 500/600 ms
-    local interval = 600
+    local interval = Config.intervals.detection or 500
     local pid = PlayerId()
 
-    -- give client sometime to actually load
+    -- give client sometime to load
     repeat
         Wait(1000)
     until NetworkIsPlayerActive(pid) == 1
-    Wait(500)
 
     while true do
         local playerPed = PlayerPedId()
@@ -382,12 +294,12 @@ CreateThread(function()
                 playerPosition = playerPosition
             }, true, true)
 
-            local nearPoints, totalNearPoints = grid_position:queryRange(playerPosition, 100)
-            visiblePoints, visiblePointCount  = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
+            local nearPoints        = grid_position:queryRange(playerPosition, 25)
+            visiblePoints           = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
             -- onZone
-            local closestZoneMenuId           = findClosestZone(playerPosition)
+            local closestZoneMenuId = findClosestZone(playerPosition)
 
-            local menuType                    = Container.getMenuType {
+            local menuType          = Container.getMenuType {
                 model = model,
                 entity = entity,
                 entityType = entityType,
@@ -483,6 +395,7 @@ end
 function Render.onPosition(currentMenuId)
     local data = Container.getMenu(nil, nil, currentMenuId)
     if not data then return end
+    -- print(data.flags.deleted)
     local persistentData = PersistentData.get(currentMenuId)
 
     if not canInteract(data, nil) then return end

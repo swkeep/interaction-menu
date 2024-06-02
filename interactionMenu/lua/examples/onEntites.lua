@@ -26,6 +26,7 @@ CreateThread(function()
         entity = entity,
         offset = vec3(0, 0, 0),
         maxDistance = 2.0,
+        icon = 'vending',
         indicator = {
             prompt   = 'F',
             keyPress = {
@@ -94,6 +95,7 @@ CreateThread(function()
         suppressGlobals = true,
         theme = 'red',
         entity = entity,
+        icon = 'vending',
         extra = {
             onSeen = function()
                 print('seen')
@@ -176,6 +178,7 @@ CreateThread(function()
         suppressGlobals = true,
         theme = 'cyan',
         entity = entity,
+        icon = 'vending',
         extra = {
             onExit = function()
                 print('exit')
@@ -228,6 +231,7 @@ CreateThread(function()
         suppressGlobals = true,
         theme = 'cyan',
         entity = entity,
+        icon = 'vending',
         indicator = {
             prompt = 'Press Enter',
             glow = true
@@ -288,6 +292,7 @@ CreateThread(function()
         {
             position = positions[9],
             model = 'v_ret_fh_kitchtable',
+            icon = 'stove',
             options = {
                 {
                     video = {
@@ -459,8 +464,8 @@ CreateThread(function()
                 label = 'Delete Door',
                 action = {
                     type = 'sync',
-                    func = function(data)
-                        DeleteEntity(data.entity)
+                    func = function(e)
+                        DeleteEntity(e)
                     end
                 }
             }
@@ -472,6 +477,7 @@ CreateThread(function()
     exports['interactionMenu']:Create {
         entity = entity,
         offset = vec3(0, 0, 0.3),
+        icon = 'glowingball',
         extra = {
             onExit = function()
                 print('exit')
@@ -520,6 +526,7 @@ CreateThread(function()
     exports['interactionMenu']:Create {
         entity = entity,
         offset = vec3(0, 0, 0),
+        icon = 'box',
         extra = {
             onExit = function()
                 print('exit')
@@ -680,6 +687,7 @@ CreateThread(function()
         entity = ent,
         offset = vec3(0, 0, 0),
         static = true,
+        icon = "stove2",
         options = {
             {
                 label = 'Cook',
