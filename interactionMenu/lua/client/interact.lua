@@ -16,9 +16,6 @@ MenuTypes = Util.ENUM {
 }
 
 local Wait = Wait
-local SetDrawOrigin = SetDrawOrigin
-local DrawSprite = DrawSprite
-local ClearDrawOrigin = ClearDrawOrigin
 local PlayerPedId = PlayerPedId
 local GetEntityCoords = GetEntityCoords
 local SetScriptGfxDrawBehindPausemenu = SetScriptGfxDrawBehindPausemenu
@@ -29,6 +26,7 @@ local pause = false
 local scaleform_initialized = false
 local scaleform
 local SpatialHashGrid = Util.SpatialHashGrid
+--
 
 local grid_zone = SpatialHashGrid:new('zone', 100)
 local grid_position = SpatialHashGrid:new('position', 100)
@@ -114,7 +112,7 @@ function Interact:setVisibility(id, value)
     scaleform.send("interactionMenu:menu:setVisibility", { id = id, visibility = value })
 end
 
-function Interact:SetDarkMode(value)
+function Interact:setDarkMode(value)
     scaleform.send("interactionMenu:darkMode", value)
 end
 

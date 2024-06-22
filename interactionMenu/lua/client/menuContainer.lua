@@ -41,6 +41,7 @@ Container = {
     indexes = {
         models = {},
         entities = {},
+        netIds = {},
         players = {},
         bones = {},
         globals = {
@@ -209,6 +210,12 @@ local function classifyMenuInstance(instance)
         models[model] = models[model] or {}
 
         table.insert(models[model], instance.id)
+    elseif instance.type == 'netId' then
+        local netIds = indexes.netIds
+        local netId = instance.netId
+        netIds[netId] = netIds[netId] or {}
+
+        table.insert(netIds[netId], instance.id)
     elseif instance.player then
         local players = indexes.players
         players[instance.player] = players[instance.player] or {}
@@ -308,6 +315,9 @@ function Container.create(t)
     elseif t.model then
         instance.type = 'model'
         instance.model = t.model
+    elseif t.netId then
+        instance.type = 'netId'
+        instance.netId = t.netId
     elseif t.bone then
         instance.type = 'bone'
         instance.bone = t.bone
@@ -578,6 +588,14 @@ function Container.getMenu(model, entity, menuId)
         Util.table_merge(combinedIds, Container.indexes.players[playerId] or {})
     end
 
+    local networked = NetworkGetEntityIsNetworked(entity)
+    local netId
+
+    if networked then
+        netId = NetworkGetNetworkIdFromEntity(entity)
+        Util.table_merge(combinedIds, Container.indexes.netIds[netId] or {})
+    end
+
     -- bone
     local bones = Container.indexes.bones[entity]
     if bones and closestBoneName then
@@ -621,14 +639,21 @@ function Container.getMenuType(t)
     local entities = Container.indexes.entities
     local models = Container.indexes.models
     local players = Container.indexes.players
+    local netIds = Container.indexes.netIds
     local playerId = IdentifyPlayerServerId(entityType, entity)
+    local networked = NetworkGetEntityIsNetworked(entity)
+    local netId
+
+    if networked then
+        netId = NetworkGetNetworkIdFromEntity(entity)
+    end
 
     if t.zone then
         return MenuTypes['ON_ZONE']
     elseif t.closestPoint and next(t.closestPoint) then
         -- onPosition
         return MenuTypes['ON_POSITION']
-    elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or players[playerId] or globalsExistsCheck(entity, entityType) then
+    elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or players[playerId] or globalsExistsCheck(entity, entityType) or netIds[netId] then
         -- onModel / onEntity / onBone
         return MenuTypes['ON_ENTITY']
     else
@@ -1038,7 +1063,7 @@ function Container.syncData(scaleform, menuData, refreshUI)
 
     if Config.features.timeBasedTheme and is_daytime() ~= previous_daytime then
         previous_daytime = is_daytime()
-        Interact:SetDarkMode(previous_daytime)
+        Interact:setDarkMode(previous_daytime)
     end
 end
 
