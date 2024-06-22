@@ -191,6 +191,7 @@ local controls = {
 }
 
 local function hideScaleform()
+    if not scaleform then return end
     scaleform.send("interactionMenu:hideMenu")
     scaleform.send("interactionMenu:loading:hide")
     exports['interactionMenu']:pause(false)
