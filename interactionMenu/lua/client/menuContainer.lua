@@ -80,8 +80,7 @@ local function constructInteractionData(option, instance, index, formatted)
     if option.action then
         interaction = {
             action = true,
-            type = option.action.type,
-            func = option.action.func
+            func = option.action
         }
         interactionType = 'action'
     elseif option.event then
@@ -95,13 +94,13 @@ local function constructInteractionData(option, instance, index, formatted)
     elseif option.update then
         interaction = {
             update = true,
-            func = option.update.func
+            func = option.update
         }
         interactionType = 'update'
     elseif option.bind then
         interaction = {
             bind = true,
-            func = option.bind.func
+            func = option.bind
         }
 
         interactionType = 'bind'
@@ -916,31 +915,18 @@ function Container.keyPress(menuData)
     if not selectedOption then return end
     local interaction = Container.data[menuId].interactions[selectedOption]
 
-    -- #TODO: test refresh functionality
-    local function refresh()
-        PersistentData.clear(menuData.id)
-        StateManager.reset()
-    end
-
-    CreateThread(function()
-        if interaction.action then
-            if interaction.type == "sync" then
-                data.loading = true
-            end
+    if interaction.action then
+        CreateThread(function()
             local success, result = pcall(interaction.func, menuData.entity, menuData.distance, menuData.coords,
                 menuData.name, menuData.bone)
-
-            if interaction.type == "sync" then
-                data.loading = false
-            end
-        elseif interaction.event then
-            if interaction.type == 'client' then
-                TriggerEvent(interaction.name, interaction.payload, metadata)
-            elseif interaction.type == 'server' then
-                TriggerServerEvent(interaction.name, interaction.payload, metadata)
-            end
+        end)
+    elseif interaction.event then
+        if interaction.type == 'client' then
+            TriggerEvent(interaction.name, interaction.payload, metadata)
+        elseif interaction.type == 'server' then
+            TriggerServerEvent(interaction.name, interaction.payload, metadata)
         end
-    end)
+    end
 end
 
 local function is_daytime()

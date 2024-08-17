@@ -44,3 +44,81 @@
 --         }
 --     }
 -- end)
+
+-- spawn two objects of same model
+local coords = vector4(-1996.28, 3161.06, 31.81, 103.8)
+Util.spawnObject(`xm_prop_crates_sam_01a`, coords)
+
+exports['interactionMenu']:Create {
+    type = 'model',
+    id = 'Harmony',
+    model = `xm_prop_crates_sam_01a`,
+    offset = vec3(0, 0, 0.5),
+    maxDistance = 2.0,
+    -- indicator = {
+    --     prompt   = 'F',
+    --     keyPress = {
+    --         -- https://docs.fivem.net/docs/game-references/controls/#controls
+    --         padIndex = 0,
+    --         control = 23
+    --     },
+    -- },
+    options = {
+        {
+            label = "Open",
+            action = function(e)
+                print('Health')
+            end
+        },
+        {
+            icon = "fas fa-spinner",
+            label = "Spinner",
+            action = function(e)
+                Wait(1000)
+                print('HEY')
+            end
+        },
+        {
+            label = "Health",
+            progress = {
+                type = "info",
+                value = 0,
+                percent = true
+            },
+            bind = function(entity, distance, coords, name, bone)
+                local max_hp = 100 - GetEntityMaxHealth(entity)
+                local current_hp = 100 - GetEntityHealth(entity)
+                return math.floor(current_hp * 100 / max_hp)
+            end
+        },
+        {
+            label = "rgb(50,100,50)",
+            style = {
+                color = {
+                    label = 'rgb(50,255,50)',
+                }
+            }
+        },
+        {
+            label = "rgb(250,0,50)",
+            style = {
+                color = {
+                    label = 'rgb(250,0,50)',
+                }
+            }
+        },
+        {
+            icon = "fas fa-spinner",
+            label = "rgb(0,0,250)",
+            style = {
+                color = {
+                    background = 'wheat',
+                    label = 'rgb(0,0,250)',
+                }
+            },
+            action = function(e)
+                print('HEY')
+            end
+        }
+    }
+}
