@@ -1,12 +1,11 @@
-import { createApp } from 'vue'
+import { createApp } from 'vue';
 
-import './reset.css'
-import './style.scss'
+import './reset.css';
+import './style.scss';
 
 // themes
-import './themes.scss'
+import './themes.scss';
 
+import App from './App.vue';
 
-import App from './App.vue'
-
-createApp(App).mount('#app')
+createApp(App).mount('#app');

@@ -1,5 +1,5 @@
 import { onMounted, onBeforeUnmount } from 'vue';
-import { Option } from "../types/types";
+import { Option } from '../types/types';
 
 interface EventData {
     action: string;
@@ -17,7 +17,7 @@ const subscribe = (action: string, handler: EventHandler): void => {
 
     onMounted(() => window.addEventListener('message', eventListener));
     onBeforeUnmount(() => window.removeEventListener('message', eventListener));
-}
+};
 
 interface DebugEvent {
     action: string;
@@ -28,29 +28,34 @@ const debug = (events: DebugEvent[], timer = 1000): void => {
     if (process.env.NODE_ENV !== 'development') return;
 
     events.forEach((event, index) => {
-        setTimeout(() => {
-            const eventData: EventData = {
-                action: event.action,
-                data: event.data,
-            };
+        setTimeout(
+            () => {
+                const eventData: EventData = {
+                    action: event.action,
+                    data: event.data,
+                };
 
-            const customEvent = new MessageEvent('message', {
-                data: eventData,
-            });
+                const customEvent = new MessageEvent('message', {
+                    data: eventData,
+                });
 
-            window.dispatchEvent(customEvent);
-        }, timer * (index + 1));
+                window.dispatchEvent(customEvent);
+            },
+            timer * (index + 1),
+        );
     });
-}
+};
 
 const dev_run = (handler: () => void): void => {
     if (process.env.NODE_ENV !== 'development') return;
     handler();
-}
+};
 
 const itemStyle = (item: Option) => {
-    const { checked, style } = item
-    const background = checked ? (style?.color?.backgroundSelected || style?.color?.background) : style?.color?.background;
+    const { checked, style } = item;
+    const background = checked
+        ? style?.color?.backgroundSelected || style?.color?.background
+        : style?.color?.background;
     const labelColor = style?.color?.label;
     const labelFontSize = style?.text?.labelFontSize;
 
@@ -59,6 +64,11 @@ const itemStyle = (item: Option) => {
         color: labelColor,
         fontSize: labelFontSize,
     };
-}
+};
 
-export { itemStyle, subscribe, debug, dev_run }
+const pad = (num: number) => String(Math.floor(num)).padStart(2, '0');
+const formatTime = (seconds: number) => {
+    return `${pad(seconds / 3600)}:${pad((seconds / 60) % 60)}:${pad(seconds % 60)}`;
+};
+
+export { itemStyle, subscribe, debug, dev_run, formatTime };
