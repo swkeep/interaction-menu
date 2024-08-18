@@ -1,12 +1,15 @@
-<template >
+<template>
     <Transition @after-leave="resetData">
-        <div class="menu-container" :class="{ 'glow': Data.glow }" v-if="focusTracker.menu">
-            <div class="menu" v-for="(menu, i) in Data.menus" :data-menuId="menu.id">
-
-                <TransitionGroup name="slide" v-if="menu.flags.hide === false" appear>
+        <div v-if="focusTracker.menu" class="menu-container" :class="{ glow: Data.glow }">
+            <div v-for="(menu, _i) in Data.menus" class="menu" :data-menuId="menu.id">
+                <TransitionGroup v-if="menu.flags.hide === false" name="slide" appear>
                     <template v-for="(item, index) in menu.options" :key="index">
-                        <div :class="{ 'menu-wrapper': true, 'no-margin': item.flags?.hide }" :data-id="index"
-                            :data-vid="item.vid">
+                        <div
+                            class="menu-wrapper"
+                            :class="{ 'no-margin': item.flags?.hide }"
+                            :data-id="index"
+                            :data-vid="item.vid"
+                        >
                             <Component :is="getFieldComponent(item)" :item="item" :selected="Data.selected" />
                         </div>
                     </template>
@@ -16,7 +19,7 @@
     </Transition>
 </template>
 <script lang="ts" setup>
-import { debug, subscribe } from '../util';
+import { subscribe } from '../util';
 import { defineAsyncComponent, ref } from 'vue';
 import { FocusTracker, InteractionMenu, Option } from '../types/types';
 
@@ -24,7 +27,7 @@ const menuComponents = {
     // @ts-ignore
     videoPlayer: defineAsyncComponent(() => import('../components/MenuVideoPlayer.vue')),
     // @ts-ignore
-    pictureViewer: defineAsyncComponent(() => import('../components/MenuPictureViewer.vue')),
+    pictureViewer: defineAsyncComponent(() => import('../components/ImageRenderer.vue')),
     // @ts-ignore
     menuLabel: defineAsyncComponent(() => import('../components/MenuLabel.vue')),
     // @ts-ignore
@@ -33,13 +36,13 @@ const menuComponents = {
     menuAction: defineAsyncComponent(() => import('../components/MenuAction.vue')),
 };
 
-defineProps<{ focusTracker: FocusTracker }>()
+defineProps<{ focusTracker: FocusTracker }>();
 
 const emit = defineEmits<{
-    (event: 'setVisible', name: string, value: boolean): void
-}>()
+    (event: 'setVisible', name: string, value: boolean): void;
+}>();
 
-const setVisible = (val: boolean) => emit('setVisible', 'menu', val)
+const setVisible = (val: boolean) => emit('setVisible', 'menu', val);
 
 const getFieldComponent = (item: Option) => {
     if (item.flags.hide) return;
@@ -63,7 +66,7 @@ const defaultInteractionMenu = (): InteractionMenu => ({
     menus: [],
     selected: [],
     theme: 'default',
-    glow: false
+    glow: false,
 });
 
 const Data = ref(defaultInteractionMenu());
@@ -73,23 +76,23 @@ const resetData = function () {
 };
 
 subscribe('interactionMenu:hideMenu', function () {
-    setVisible(false)
-    resetData()
-})
+    setVisible(false);
+    resetData();
+});
 
 subscribe('interactionMenu:menu:show', (data: InteractionMenu) => {
     if (!data.menus) return;
-    resetData()
+    resetData();
 
-    Data.value.glow = data.glow
-    Data.value.menus = data.menus
-    Data.value.selected = data.selected
+    Data.value.glow = data.glow;
+    Data.value.menus = data.menus;
+    Data.value.selected = data.selected;
 
-    setVisible(true)
-})
+    setVisible(true);
+});
 
 subscribe('interactionMenu:menu:selectedUpdate', (data) => {
-    Data.value.selected = data
+    Data.value.selected = data;
 });
 
 subscribe('interactionMenu:menu:setVisibility', (data: any) => {
@@ -111,43 +114,46 @@ subscribe('interactionMenu:menu:setVisibility', (data: any) => {
     }
 });
 
-subscribe('interactionMenu:menu:batchUpdate', (data: { [key: string]: { menuId: string | number; option: Option } }) => {
-    const menus = Data.value.menus;
-    const updatedOptions = new Map<string | number, Option>();
+subscribe(
+    'interactionMenu:menu:batchUpdate',
+    (data: { [key: string]: { menuId: string | number; option: Option } }) => {
+        const menus = Data.value.menus;
+        const updatedOptions = new Map<string | number, Option>();
 
-    for (const [key, updatedElement] of Object.entries(data)) {
-        updatedOptions.set(updatedElement.option.vid, updatedElement.option);
-    }
+        for (const [_, updatedElement] of Object.entries(data)) {
+            updatedOptions.set(updatedElement.option.vid, updatedElement.option);
+        }
 
-    // copy of menus to avoid unnecessary updates
-    const updatedMenus = menus.slice();
+        // copy of menus to avoid unnecessary updates
+        const updatedMenus = menus.slice();
 
-    for (const menu of updatedMenus) {
-        for (const [key, option] of Object.entries(menu.options)) {
-            const updatedOption = updatedOptions.get(option.vid);
-            if (updatedOption) {
-                menu.options[key] = updatedOption;
+        for (const menu of updatedMenus) {
+            for (const [key, option] of Object.entries(menu.options)) {
+                const updatedOption = updatedOptions.get(option.vid);
+                if (updatedOption) {
+                    menu.options[key] = updatedOption;
+                }
             }
         }
-    }
 
-    Data.value.menus = updatedMenus; // Assign the updated menus
-});
-
+        Data.value.menus = updatedMenus; // Assign the updated menus
+    },
+);
 </script>
 
 <style>
 .slide-enter-from {
     opacity: 0;
-    transform: translateY(160px)
+    transform: translateY(160px);
 }
 
 .slide-enter-active {
-    transition: transform 1.4s ease,
-        opacity 1.8s ease
+    transition:
+        transform 1.4s ease,
+        opacity 1.8s ease;
 }
 
 .slide-move {
-    transition: transform .4s
+    transition: transform 0.4s;
 }
 </style>
