@@ -1,7 +1,6 @@
 export interface FocusTracker {
     indicator: boolean;
     menu: boolean;
-    loading: boolean;
 }
 
 export interface Indicator {
@@ -39,6 +38,7 @@ type BorderType = 'dash' | 'solid' | 'double' | 'none' | null | undefined;
 
 interface Picture {
     url: string;
+    interval?: number;
     opacity?: number;
     width?: number;
     height?: number;
