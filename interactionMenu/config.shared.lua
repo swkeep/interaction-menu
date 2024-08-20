@@ -24,7 +24,7 @@ Config.interactionAudio = {
 }
 
 Config.intervals = {
-    detection = 400
+    detection = 500
 }
 
 Config.features = {
