@@ -880,20 +880,21 @@ local function is_daytime()
 end
 
 local function evaluateDynamicValue(updatedElements, menuId, option)
-    local already_inserted = false
-    -- to get the dynamic values
-    if option.flags.dynamic then
-        if option.progress and option.progress.value ~= option.cached_value then
-            already_inserted = true
-            option.cached_value = option.progress.value
-            table.insert(updatedElements, { menuId = menuId, option = option })
-        elseif option.label_cache ~= option.label then
-            already_inserted = true
-            option.label_cache = option.label
-            table.insert(updatedElements, { menuId = menuId, option = option })
-        end
+    if not option.flags.dynamic then return false end
+
+    local updated = false
+    if option.progress and option.progress.value ~= option.cached_value then
+        option.cached_value = option.progress.value
+        updated = true
     end
-    return already_inserted
+    if option.label_cache ~= option.label then
+        option.label_cache = option.label
+        updated = true
+    end
+    if updated then
+        table.insert(updatedElements, { menuId = menuId, option = option })
+    end
+    return updated
 end
 
 local function evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
