@@ -1,32 +1,32 @@
-<template>
-    <div v-if="show" class="dev-element">
-        <div class="controls">
-            <p class="count">
-                {{ count }}
-            </p>
-            <button @click="moveDown">Down</button>
-            <button @click="moveUp">Up</button>
-        </div>
-        <button @click="toggleDarkMode">Dark Mode: {{ darkMode }}</button>
-        <button @click="cycleTheme">Theme: {{ currentTheme }}</button>
-    </div>
-</template>
-
 <script lang="ts" setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { debug, dev_run } from '../util';
+import { menuMockData } from '../types/mockData';
 
 const props = defineProps<{
     theme: string;
 }>();
 
 const count = ref(1);
-const themes = ['default', 'cyan', 'red', 'green', 'yellow'];
+const themes = ['default', 'box'];
 const darkMode = ref(false);
 const show = ref(false);
 const currentTheme = computed(() => props.theme);
-
-dev_run(() => (show.value = true));
+const currentMenu = ref(0);
+const selectOptions = reactive([
+    {
+        name: 'Action and Indicator',
+    },
+    {
+        name: 'Text and Action',
+    },
+    {
+        name: 'Image and Video',
+    },
+    {
+        name: 'Actions and Icons',
+    },
+]);
 
 const toggleDarkMode = () => {
     darkMode.value = !darkMode.value;
@@ -48,127 +48,66 @@ const updateCount = (delta: number) => {
 const moveUp = () => updateCount(-1);
 const moveDown = () => updateCount(1);
 
-const mockData = {
-    selected: 1,
-    theme: 'default',
-    // indicator: {
-    //     prompt: 'Enter',
-    //     glow: true,
-    //     active: true
-    // },
-    menus: [
-        {
-            id: 'test',
-            flags: {
-                hide: false,
-            },
-            options: [
-                {
-                    vid: 1,
-                    label: 'Center No Action',
-                    flags: {
-                        hide: false,
-                    },
-                },
-                {
-                    vid: 2,
-                    label: 'Sand',
-                    flags: {
-                        action: true,
-                        hide: false,
-                    },
-                },
-                {
-                    vid: 3,
-                    label: 'State: Locked',
-                    flags: {
-                        update: true,
-                        hide: false,
-                    },
-                },
-            ],
-        },
-        {
-            id: 'test2',
-            flags: {
-                hide: false,
-            },
-            options: [
-                {
-                    vid: 4,
-                    picture: {
-                        height: '15em',
-                        url: [
-                            'http://127.0.0.1:8080/thumb-1920-1013065.jpg',
-                            'http://127.0.0.1:8080/thumb-1920-1014054.png',
-                            'http://127.0.0.1:8080/warframe1.jpg',
-                            'http://127.0.0.1:8080/warframe2.jpg',
-                        ],
-                    },
-                    flags: {
-                        hide: false,
-                    },
-                },
-                {
-                    vid: 4,
-                    picture: {
-                        url: 'http://127.0.0.1:8080/00235-990749447.png',
-                    },
-                    flags: {
-                        hide: false,
-                    },
-                },
-                {
-                    vid: 5,
-                    id: 5,
-                    label: 'Test Title',
-                    description: 'Test Subtitle',
-                    video: {
-                        url: 'http://127.0.0.1:8080/2.mp4',
-                        volume: 0.0,
-                        progress: true,
-                        // percent: true,
-                        // loop: true,
-                        timecycle: true,
-                    },
-                    flags: {
-                        hide: false,
-                    },
-                },
-                {
-                    vid: 6,
-                    label: 'Progress',
-                    progress: {
-                        type: 'info',
-                        percent: true,
-                        value: 69,
-                    },
-                    flags: {
-                        hide: false,
-                    },
-                },
-            ],
-        },
-    ],
-};
-
-debug(
-    [
+const syncMenu = async () => {
+    const evnt = [
         {
             action: 'interactionMenu:menu:show',
-            data: mockData,
+            data: menuMockData[currentMenu.value],
         },
-    ],
-    1000,
-);
+    ];
+    debug(evnt, 100);
+};
+
+const hideMenu = async () => {
+    const event = [
+        {
+            action: 'interactionMenu:hideMenu',
+            data: {},
+        },
+    ];
+    debug(event, 10);
+};
+dev_run(() => (show.value = true));
+
+onMounted(() => {
+    setTimeout(syncMenu, 500);
+});
 </script>
 
-<style scoped lang="scss">
+<template>
+    <div v-if="show" class="dev-element">
+        <div class="controls">
+            <select v-model="currentMenu" class="select-input" @change="syncMenu">
+                <option v-for="(item, index) in selectOptions" :key="index" :value="index">{{ item.name }}</option>
+            </select>
+        </div>
+        <div class="controls">
+            <p class="count">
+                {{ count }}
+            </p>
+            <button @click="moveDown">Down</button>
+            <button @click="moveUp">Up</button>
+        </div>
+        <button @click="toggleDarkMode">Dark Mode: {{ darkMode }}</button>
+        <button @click="cycleTheme">Theme: {{ currentTheme }}</button>
+        <div style="display: flex; justify-content: space-between; gap: 1rem">
+            <button @click="syncMenu">Show current</button>
+            <button @click="hideMenu">Hide</button>
+        </div>
+    </div>
+</template>
+
+<style lang="scss">
+[data-dev='true'] {
+    &.interact-container {
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+}
+
 .dev-element {
     padding: 1rem;
     margin-right: 1rem;
     background-color: #ffffff31;
-    border-radius: 4px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -247,6 +186,18 @@ debug(
         justify-content: center;
         align-items: center;
         border-radius: 0.5rem;
+    }
+
+    .select-input {
+        border: none;
+        text-align: center;
+        width: 100%;
+        height: 3rem;
+        background-color: #303030;
+        color: #fff;
+        font-size: inherit;
+        border-radius: 0.5rem;
+        font-family: 'Jura', Arial, sans-serif;
     }
 }
 </style>
