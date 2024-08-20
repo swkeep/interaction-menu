@@ -557,6 +557,13 @@ local function isPedAPlayer(entityType, entity)
 end
 
 function Container.getMenu(model, entity, menuId)
+    local is_deleted = false
+    if menuId then
+        is_deleted = Container.isDeleted(menuId)
+        if is_deleted then return end
+    end
+
+
     local id
     local combinedIds = {}
     local container = {
@@ -668,19 +675,15 @@ function Container.count()
     return Container.total
 end
 
-function Container.remove(id)
+function Container.isDeleted(id)
     local menuRef = Container.get(id)
     if not menuRef then
         Util.print_debug('Could not find this menu')
-        return
+        return true
     end
 
-    menuRef.flags.deleted = true
-    menuRef.deletedAt = GetGameTimer() / 1000
-    Container.total = Container.total - 1
+    return menuRef.flags and menuRef.flags.deleted
 end
-
-exports('remove', Container.remove)
 
 function Container.triggerInteraction(menuId, optionId, ...)
     if not Container.data[menuId] or not Container.data[menuId].interactions[optionId] then return end
@@ -1126,118 +1129,4 @@ AddEventHandler('onResourceStop', function(resource)
     if resource == GetCurrentResourceName() then return end
 
     Container.removeByInvokingResource(resource)
-end)
-
--- #TODO: collector for globals
-
-local GarbageCollector = {}
-
-function GarbageCollector.position(key, value)
-    local menu = Container.data[key]
-    if menu.position then
-        grid:remove(menu.position)
-        Container.data[key] = nil
-    end
-end
-
-function GarbageCollector.zone(menuId, value)
-    zone_grid:remove(Container.data[menuId].position)
-    Container.zones[menuId]:destroy()
-    Container.data[menuId] = nil
-end
-
-function GarbageCollector.entity(key, value)
-    for entityHandle, menus in pairs(Container.indexes.entities) do
-        for index, menuId in ipairs(menus) do
-            if menuId == value.id then
-                table.remove(menus, index)
-                Container.data[key] = nil
-
-                if #menus == 0 then
-                    Container.indexes.entities[entityHandle] = nil
-                end
-                break
-            end
-        end
-    end
-end
-
-function GarbageCollector.player(key, value)
-    for playerId, menus in pairs(Container.indexes.players) do
-        for index, menuId in ipairs(menus) do
-            if menuId == value.id then
-                table.remove(menus, index)
-                Container.data[key] = nil
-
-                if #menus == 0 then
-                    Container.indexes.players[playerId] = nil
-                end
-                break
-            end
-        end
-    end
-end
-
-function GarbageCollector.model(key, value)
-    for model, menus in pairs(Container.indexes.models) do
-        for index, menuId in ipairs(menus) do
-            if menuId == value.id then
-                table.remove(menus, index)
-
-                if #menus == 0 then
-                    Container.indexes.models[model] = nil
-                end
-                Container.data[key] = nil
-                break
-            end
-        end
-    end
-end
-
-function GarbageCollector.bone(key, value)
-    local vehicleBones = Container.indexes.bones[value.vehicle.handle]
-    if vehicleBones then
-        local boneMenu = vehicleBones[value.bone]
-        if boneMenu then
-            for index, menuId in ipairs(boneMenu) do
-                if menuId == value.id then
-                    table.remove(boneMenu, index)
-                    if #boneMenu == 0 then
-                        vehicleBones[value.bone] = nil
-                    end
-                    Container.data[key] = nil
-                    break
-                end
-            end
-        end
-    end
-end
-
--- -- garbage collection
-CreateThread(function()
-    while true do
-        Wait(10 * 60 * 1000) -- 10 min
-
-        local currentTime = GetGameTimer() / 1000
-        local chunkSize = 5000
-        local current = 0
-
-        for key, value in pairs(Container.data) do
-            current = current + 1
-
-            -- why we wait 10 seconds? if one of function is still excuting it's gonna crash the game when we delete its refrence
-            if value.flags.deleted and (currentTime - value.deletedAt) > 60 then
-                GarbageCollector[value.type](key, value)
-            end
-
-            -- why? we are not in hurry to cleanup so we can wait a little so game client doesn't freak out
-            if current > chunkSize then
-                current = 0
-                Wait(500)
-            end
-        end
-
-        local endTime = (GetGameTimer() / 1000) - currentTime
-        Util.print_debug("GarbageCollector Took: " .. endTime .. " seconds")
-    end
 end)
