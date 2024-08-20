@@ -25,14 +25,13 @@ local SpatialHashGrid = Util.SpatialHashGrid
 local grid = SpatialHashGrid:new('position', 100)
 local zone_grid = SpatialHashGrid:new('zone', 100)
 local StateManager = Util.StateManager()
-local PersistentData = Util.PersistentData()
 local previous_daytime = false
 
 -- enum: used in difference between OBJECTs, PEDs, VEHICLEs
 local set = { "peds", "vehicles", "objects" }
 EntityTypes = Util.ENUM { 'PED', 'VEHICLE', 'OBJECT' }
 
--- class: PersistentData
+-- class: menu container
 -- managing menus
 Container = {
     total = 0,
@@ -52,7 +51,8 @@ Container = {
             players = {},
             vehicles = {}
         }
-    }
+    },
+    runningInteractions = {}
 }
 
 local function canCreateZone()
@@ -420,10 +420,15 @@ end
 exports('CreateGlobal', Container.createGlobal)
 exports('createGlobal', Container.createGlobal)
 
+---comment
+---@param entity any
+---@return number "closestVehicleBone"
+---@return unknown "closestBoneName"
+---@return number "boneDistance"
 function Container.boneCheck(entity)
     -- it's safer to use it only in vehicles
     if GetEntityType(entity) ~= 2 then
-        return
+        return nil, nil, nil
     end
 
     local bones = Container.indexes.bones[entity] or Container.indexes.globals.bones
@@ -540,10 +545,6 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
 
     id = setId(container, bones, closestBoneName, closestBoneId, model, entity, menuId)
 
-    if not PersistentData.hasBeenSet(id) then
-        PersistentData.set(id, { selected = container.selected, loading = false })
-    end
-
     return container
 end
 
@@ -563,8 +564,7 @@ function Container.getMenu(model, entity, menuId)
         menus = {},
         selected = {},
         glow = false,
-        theme = 'default',
-        loading = false
+        theme = 'default'
     }
 
     local closestBoneId, closestBoneName = Container.boneCheck(entity)
@@ -778,8 +778,7 @@ function Container.changeMenuItem(scaleform, menuData, wheelDirection)
         return
     end
 
-    local data = PersistentData.get(menuData.id)
-    local selected = data.selected
+    local selected = menuData.selected
     local menus = menuData.menus
 
     -- Ignore if list is empty, selected is not present, or menus are absent
@@ -820,69 +819,10 @@ local function findSelectedOption(menuData, selected)
     end
 end
 
---- Checks the player's job
----@param data table
----@return boolean
-local function jobCheck(data)
-    if not data.extra or not data.extra.job then return true end
-    local job_name, current_grade = Bridge.getJob()
-    if not data.extra.job[job_name] then return false end
-    return data.extra.job and data.extra.job[job_name] and data.extra.job[job_name][current_grade]
-end
-
 --- generate metadata for triggers
 ---@param t table 'menuData (menu container)'
 ---@return table 'metadata'
----@deprecated
 function Container.constructMetadata(t)
-    local metadata = {
-        playerPosition = StateManager.get('playerPosition'),
-        distance = StateManager.get('playerDistance'),
-        gameTimer = GetGameTimer()
-    }
-
-    if t.type == 'entity' or t.type == 'model' or t.type == 'peds' then
-        metadata.entity = t.entity
-        metadata.boneId = t.boneId
-        metadata.boneName = t.boneName
-        metadata.boneDist = t.boneDist
-
-        if metadata.entity then
-            metadata.entityDetail = {
-                handle = t.entity,
-                networked = NetworkGetEntityIsNetworked(t.entity) == 1,
-                model = t.model,
-                position = GetEntityCoords(t.entity),
-                rotation = GetEntityRotation(t.entity),
-            }
-
-            metadata.entityDetail.typeInt = GetEntityType(t.entity)
-            metadata.entityDetail.type = EntityTypes[metadata.entityDetail.typeInt]
-
-            if metadata.entityDetail.networked then
-                metadata.entityDetail.netId = NetworkGetNetworkIdFromEntity(t.entity)
-            end
-
-            local isPlayer = metadata.entityDetail.typeInt == 1 and IsPedAPlayer(t.entity)
-
-            if isPlayer then
-                metadata.player = {
-                    playerPedId = t.entity,
-                    playerIndex = NetworkGetPlayerIndexFromPed(t.entity),
-                }
-
-                metadata.player.serverId = GetPlayerServerId(metadata.player.playerIndex)
-            end
-        end
-    elseif t.type == 'zone' or t.type == 'position' then
-        -- As of right now it should work, unless we add a culler or something like that
-        metadata.id = t.id
-    end
-
-    return metadata
-end
-
-function Container.constructMetadata2(t)
     local metadata = {
         entity = nil,
         distance = StateManager.get('playerDistance'),
@@ -902,24 +842,29 @@ function Container.constructMetadata2(t)
 end
 
 function Container.keyPress(menuData)
-    local data = PersistentData.get(menuData.id)
-    -- skip when already loading
-    if data.loading then return end
-    local metadata = Container.constructMetadata2(menuData)
+    local metadata = Container.constructMetadata(menuData)
 
     for index, value in ipairs(menuData.menus) do
         Container.triggerInteraction(value.id, 'onTrigger', metadata)
     end
 
-    local menuId, selectedOption = findSelectedOption(menuData, data.selected)
+    local menuId, selectedOption = findSelectedOption(menuData, menuData.selected)
     if not selectedOption then return end
     local interaction = Container.data[menuId].interactions[selectedOption]
 
     if interaction.action then
-        CreateThread(function()
-            local success, result = pcall(interaction.func, menuData.entity, menuData.distance, menuData.coords,
-                menuData.name, menuData.bone)
-        end)
+        if not Container.runningInteractions[interaction.func] then
+            Container.runningInteractions[interaction.func] = true
+
+            CreateThread(function()
+                local success, result = pcall(interaction.func, menuData.entity, menuData.distance, menuData.coords,
+                    menuData.name, menuData.bone)
+
+                Container.runningInteractions[interaction.func] = nil
+            end)
+        else
+            Util.print_debug("Function is already running, ignoring additional calls to prevent spam.")
+        end
     elseif interaction.event then
         if interaction.type == 'client' then
             TriggerEvent(interaction.name, interaction.payload, metadata)
@@ -992,7 +937,7 @@ end
 ---@param menuData table
 function Container.syncData(scaleform, menuData, refreshUI)
     local updatedElements = {}
-    local passThrough = Container.constructMetadata2(menuData)
+    local passThrough = Container.constructMetadata(menuData)
 
     for _, menu in pairs(menuData.menus) do
         local menuId = menu.id
@@ -1058,12 +1003,11 @@ end
 ---@param scaleform table
 ---@param menuData table
 function Container.validateAndSyncSelected(scaleform, menuData)
-    local data = PersistentData.get(menuData.id)
-    if not data then return end
+    if not menuData then return end
 
     for menuId, menu in pairs(menuData.menus) do
         for _, option in pairs(menu.options) do
-            if data.selected[option.vid] and isOptionValid(option) then
+            if menuData.selected[option.vid] and isOptionValid(option) then
                 scaleform.send("interactionMenu:menu:selectedUpdate", option.vid)
                 return
             end
@@ -1074,26 +1018,10 @@ function Container.validateAndSyncSelected(scaleform, menuData)
     local vid = validOption and validOption.vid
 
     if vid then
-        data.selected[vid] = true
+        menuData.selected[vid] = true
         scaleform.send("interactionMenu:menu:selectedUpdate", vid)
     else
         Util.print_debug('probably trigger only menu')
-    end
-end
-
-function Container.loadingState(scaleform, menuData)
-    local data = PersistentData.get(menuData.id)
-
-    if not data then return end
-    if data.showingLoading == nil then data.showingLoading = false end
-
-    if data.loading and not data.showingLoading then
-        data.showingLoading = true
-        Interact:scaleformUpdate(menuData, { loading = true })
-    elseif not data.loading and data.showingLoading then
-        Interact:scaleformUpdate(menuData, { loading = false })
-
-        data.showingLoading = false
     end
 end
 
