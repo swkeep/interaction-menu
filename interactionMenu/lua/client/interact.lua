@@ -152,7 +152,7 @@ local function isMatchingEntity(model, entity)
 end
 
 local function setOpen(menuData)
-    Wait(0) -- a lazy fix flicker issue
+    Wait(0)
     scaleform.setStatus(true)
     Interact:scaleformUpdate(menuData)
     StateManager.set('isOpen', true)
@@ -162,7 +162,7 @@ end
 
 local function setClose()
     Interact:Hide()
-    Wait(300)
+    Wait(150)
     scaleform.setStatus(false)
     StateManager.set('isOpen', false)
 end
