@@ -1,45 +1,57 @@
 <script setup lang="ts">
-import { Ref, ref } from 'vue';
-import { FocusTracker, InteractionMenu } from './types/types';
+import { computed, ref } from 'vue';
+import { FocusTracker, FocusTrackerT, InteractionMenu } from './types/types';
 import { subscribe, dev_run } from './util';
-import Indicator from './views/Indicator.vue';
-import Menu from './views/Menu.vue';
+import ActionPromptIndicator from './views/ActionPromptIndicator.vue';
+import MenuContentRenderer from './views/MenuContentRenderer.vue';
 import DevTools from './components/DevTools.vue';
 
+// Reactive
 const dev = ref(false);
 const darkMode = ref(false);
 const theme = ref('default');
-const focusTracker: Ref<FocusTracker> = ref({
+const focusTracker = ref<FocusTracker>({
     indicator: false,
     menu: false,
 });
 
-const setVisible = (name: string, value: boolean) => (focusTracker.value[name] = value);
-dev_run(() => (dev.value = true));
+// Computed
+const isDevVisible = computed(() => dev.value);
+const isDarkMode = computed(() => darkMode.value);
+const currentTheme = computed(() => theme.value);
 
-subscribe('interactionMenu:hideMenu', () => {
+// Methods
+const setVisible = (name: FocusTrackerT, value: boolean) => {
+    focusTracker.value[name] = value;
+};
+
+const handleHideMenu = () => {
     setVisible('indicator', false);
     setVisible('menu', false);
-});
+};
 
-subscribe('interactionMenu:darkMode', (value: boolean) => {
+const handleDarkModeChange = (value: boolean) => {
     darkMode.value = value;
-});
+};
 
-subscribe('interactionMenu:menu:show', (data: InteractionMenu) => {
-    if (!data) return;
+const handleMenuShow = (data: InteractionMenu) => {
+    if (data && data.theme) {
+        theme.value = data.theme;
+    }
+};
 
-    theme.value = data.theme || 'default';
-});
+// Subscriptions
+dev_run(() => (dev.value = true));
+subscribe('interactionMenu:hideMenu', handleHideMenu);
+subscribe('interactionMenu:darkMode', handleDarkModeChange);
+subscribe('interactionMenu:menu:show', handleMenuShow);
 </script>
 
 <template>
-    <Transition>
-        <div class="interact-container" :class="{ dev: dev, dark: darkMode }" :data-theme="theme">
-            <DevTools :theme="theme" v-if="dev" />
+    <div class="interact-container" :data-theme="currentTheme" :data-dev="isDevVisible" :data-dark="isDarkMode">
+        <DevTools :theme="currentTheme" v-if="isDevVisible" />
 
-            <Indicator :focus-tracker="focusTracker" @set-visible="setVisible"></Indicator>
-            <Menu :focus-tracker="focusTracker" @set-visible="setVisible"></Menu>
-        </div>
-    </Transition>
+        <ActionPromptIndicator :focus-tracker="focusTracker" @set-visible="setVisible" />
+        <MenuContentRenderer :focus-tracker="focusTracker" @set-visible="setVisible" />
+    </div>
 </template>
