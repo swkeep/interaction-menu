@@ -1,5 +1,5 @@
 <template>
-    <Transition @after-leave="resetData">
+    <Transition @after-leave="resetData" name="fade" mode="out-in">
         <div v-if="focusTracker.menu" class="menu-container" :class="{ 'menu-container--glow': Data.glow }">
             <div v-for="(menu, i) in Data.menus" class="menu" :data-menuId="menu.id" :key="i">
                 <TransitionGroup v-if="menu.flags.hide === false" name="slide" appear>

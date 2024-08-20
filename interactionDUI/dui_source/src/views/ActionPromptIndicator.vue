@@ -34,7 +34,7 @@ subscribe('interactionMenu:hideMenu', () => setVisible(false));
 </script>
 
 <template>
-    <Transition>
+    <Transition name="fade">
         <div v-if="focusTracker.indicator" class="indicator" :class="{ 'indicator--glow': state.glow }">
             <div class="indicator__text">
                 {{ state.content }}
@@ -47,7 +47,7 @@ subscribe('interactionMenu:hideMenu', () => setVisible(false));
 .indicator {
     min-width: 5rem;
     height: 5rem;
-    border: 4px solid var(--primary-color-border);
+    border: 6px solid var(--primary-color-border);
     border-radius: 1rem;
     color: var(--text-color);
     font-size: 2.5rem;
