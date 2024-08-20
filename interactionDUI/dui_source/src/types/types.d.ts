@@ -1,3 +1,4 @@
+export type FocusTrackerT = 'indicator' | 'menu';
 export interface FocusTracker {
     indicator: boolean;
     menu: boolean;
@@ -36,9 +37,29 @@ interface Video {
 
 type BorderType = 'dash' | 'solid' | 'double' | 'none' | null | undefined;
 
+declare enum TransitionType {
+    LEFT = 'slide-left',
+    UP = 'slide-up',
+    RIGHT = 'slide-right',
+    DOWN = 'slide-down',
+}
+
+export interface Filters {
+    brightness?: number; // percentage 0-100
+    contrast?: number; // percentage 0-100
+    saturation?: number; // percentage 0-100
+    hue?: number; // degrees
+    blur?: number; // pixels
+    grayscale?: number; // percentage 0-100
+    sepia?: number; // percentage 0-100
+    invert?: number; // percentage 0-100
+}
+
 interface Picture {
     url: string;
     interval?: number;
+    filters?: Filters;
+    transition?: TransitionType;
     opacity?: number;
     width?: number;
     height?: number;
@@ -71,11 +92,12 @@ export interface Option {
     style?: OptionsStyle;
     progress?: Progress;
     flags: OptionFlags;
+    checked?: boolean;
 }
 
 export interface Menu {
     id: string | number;
-    options: Option[];
+    options: { [key: string]: Option };
     selected: Array<boolean>;
     flags: OptionFlags;
 }
