@@ -49,7 +49,8 @@ Container = {
             entities = {},
             peds = {},
             players = {},
-            vehicles = {}
+            vehicles = {},
+            zones = {}
         }
     },
     runningInteractions = {}
@@ -580,6 +581,13 @@ function Container.getMenu(model, entity, menuId)
     if entity then
         combinedIds = mergeGlobals(combinedIds, entity, model, closestBoneName)
     else
+        -- globals for zones
+        if menuId then
+            local menuRef = Container.get(menuId)
+            if menuRef.type == 'zone' then
+                combinedIds = Util.table_merge(combinedIds, Container.indexes.globals.zones or {})
+            end
+        end
         Util.table_merge(combinedIds, Container.indexes.models[model] or {})
 
         -- we're passsing menuId for position based menus
