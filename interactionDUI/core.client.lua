@@ -89,7 +89,13 @@ local function setScale(value)
     DUI.scaleform['scale'] = value
 end
 
+local calculateWorldPosition
+
 local function setStatus(status)
+    local ref = DUI.scaleform.attached
+    if ref and status == true then
+        calculateWorldPosition(ref)
+    end
     rederingIsActive = status
 end
 
@@ -207,7 +213,7 @@ local function getRotatedOffset(rotation, offset)
     return x, y, offset.z
 end
 
-local function calculateWorldPosition(ref)
+calculateWorldPosition = function(ref)
     if not DoesEntityExist(ref.entity) then
         rederingIsActive = false
         return
