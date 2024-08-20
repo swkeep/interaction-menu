@@ -325,6 +325,10 @@ function SpatialHashGrid:queryRange(position, rangeRadius)
     return results, #results
 end
 
+function SpatialHashGrid:get(name)
+    return self.data[name]
+end
+
 Util.SpatialHashGrid = SpatialHashGrid
 
 -- #region PersistentData
@@ -424,7 +428,7 @@ function Util.createUniqueId(table, len)
         uniqueId = randomId(len)
     end
 
-    return uniqueId
+    return GetGameTimer() .. uniqueId
 end
 
 --- Checks the job data
