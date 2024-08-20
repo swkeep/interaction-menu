@@ -33,7 +33,6 @@ local grid_position = SpatialHashGrid:new('position', 100)
 
 local visiblePoints = {}
 -- Render
-local PersistentData = Util.PersistentData()
 local StateManager = Util.StateManager()
 
 local Render = {}
@@ -74,31 +73,25 @@ CreateThread(function()
 end)
 
 function Interact:getSelectedIndex(menuData)
-    local data = PersistentData.get(menuData.id)
-    for index, value in ipairs(data.selected) do
+    for index, value in ipairs(menuData.selected) do
         if value then return index end
     end
     return 1
 end
 
-function Interact:scaleformUpdate(menuData, persistentData)
-    if persistentData.loading then
-        scaleform.send("interactionMenu:loading:show")
-        scaleform.send("interactionMenu:hideMenu")
-    else
-        scaleform.send("interactionMenu:loading:hide")
-        scaleform.send("interactionMenu:menu:show", {
-            indicator = {
-                prompt = menuData.indicator and menuData.indicator.prompt,
-                active = menuData.indicator and true or false,
-                glow = menuData.indicator and menuData.indicator.glow and true
-            },
-            theme = menuData.theme,
-            glow = menuData.glow,
-            menus = menuData.menus,
-            selected = Interact:getSelectedIndex(menuData)
-        })
-    end
+function Interact:scaleformUpdate(menuData)
+    scaleform.send("interactionMenu:loading:hide")
+    scaleform.send("interactionMenu:menu:show", {
+        indicator = {
+            prompt = menuData.indicator and menuData.indicator.prompt,
+            active = menuData.indicator and true or false,
+            glow = menuData.indicator and menuData.indicator.glow and true
+        },
+        theme = menuData.theme,
+        glow = menuData.glow,
+        menus = menuData.menus,
+        selected = Interact:getSelectedIndex(menuData)
+    })
 end
 
 --- set menu visibility
@@ -158,11 +151,11 @@ local function isMatchingEntity(model, entity)
     return stateId and matched and stateId == entity
 end
 
-local function setOpen(menuData, persistentData)
-    Wait(150) -- a lazy fix flicker issue
+local function setOpen(menuData)
     StateManager.set('isOpen', true)
+    Wait(0) -- a lazy fix flicker issue
     scaleform.setStatus(true)
-    Interact:scaleformUpdate(menuData, persistentData)
+    Interact:scaleformUpdate(menuData)
 
     Util.print_debug(('Menu Id [%s] '):format(menuData.id)) -- #DEBUG
 end
@@ -335,8 +328,7 @@ function Render.onEntity(model, entity)
     if not canInteract(data, nil) then return end
 
     local running = true
-    local persistentData = PersistentData.get(data.id)
-    local closestVehicleBone, closestBoneName, boneDistance = Container.boneCheck(entity)
+    local closestVehicleBone = Container.boneCheck(entity)
     local offset = data.offset or vec3(0, 0, 0)
 
     -- Add entity, model into menu data container
@@ -344,11 +336,11 @@ function Render.onEntity(model, entity)
     data.entity = entity
 
     StateManager.set('active', true)
-    local metadata = Container.constructMetadata2(data)
+    local metadata = Container.constructMetadata(data)
 
     scaleform.set3d(false)
     scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
-    setOpen(data, persistentData)
+    setOpen(data)
     Container.validateAndSyncSelected(scaleform, data)
     triggers.onSeen(data, metadata)
 
@@ -362,14 +354,12 @@ function Render.onEntity(model, entity)
     CreateThread(function()
         while running do
             local nclosestVehicleBone = Container.boneCheck(entity)
-            Container.loadingState(scaleform, data)
 
             if closestVehicleBone ~= nclosestVehicleBone then
                 running = false
             end
 
             running = running and canInteract(data, nil)
-
             Wait(250)
         end
     end)
@@ -382,7 +372,6 @@ function Render.onEntity(model, entity)
     end
 
     running = false
-    persistentData.showingLoading = nil
     setClose()
     scaleform.dettach()
     metadata.position = GetEntityCoords(entity)
@@ -394,14 +383,13 @@ function Render.onPosition(currentMenuId)
     local data = Container.getMenu(nil, nil, currentMenuId)
     if not data then return end
     -- print(data.flags.deleted)
-    local persistentData = PersistentData.get(currentMenuId)
 
     if not canInteract(data, nil) then return end
     StateManager.set('active', true)
     StateManager.set('disableRayCast', true)
 
     local running = true
-    local metadata = Container.constructMetadata2(data)
+    local metadata = Container.constructMetadata(data)
     local position = data.position
     local rotation = data.rotation
 
@@ -415,7 +403,7 @@ function Render.onPosition(currentMenuId)
         scaleform.set3d(false)
     end
 
-    setOpen(data, persistentData)
+    setOpen(data)
     Container.validateAndSyncSelected(scaleform, data)
     triggers.onSeen(data, metadata)
 
@@ -426,13 +414,6 @@ function Render.onPosition(currentMenuId)
         end
     end)
 
-    CreateThread(function()
-        while running do
-            Container.loadingState(scaleform, data)
-            Wait(250)
-        end
-    end)
-
     while canInteract(data, nil) and StateManager.get('id') == currentMenuId do
         Wait(0)
         handleMouseWheel(data)
@@ -440,7 +421,6 @@ function Render.onPosition(currentMenuId)
     end
 
     running = false
-    persistentData.showingLoading = nil
     setClose()
     StateManager.set('disableRayCast', false)
     StateManager.set('active', false)
@@ -451,10 +431,9 @@ end
 function Render.onZone(currentMenuId)
     local data = Container.getMenu(nil, nil, currentMenuId)
     if not data then return end
-    local persistentData = PersistentData.get(currentMenuId)
 
     local running = true
-    local metadata = Container.constructMetadata2(data)
+    local metadata = Container.constructMetadata(data)
     local position = data.position
     local rotation = data.rotation
     if not position then return end -- probably deleted or just missing position
@@ -470,7 +449,7 @@ function Render.onZone(currentMenuId)
     StateManager.set('active', true)
     StateManager.set('disableRayCast', true)
 
-    setOpen(data, persistentData)
+    setOpen(data)
     Container.validateAndSyncSelected(scaleform, data)
     triggers.onSeen(data, metadata)
 
@@ -481,13 +460,6 @@ function Render.onZone(currentMenuId)
         end
     end)
 
-    CreateThread(function()
-        while running do
-            Container.loadingState(scaleform, data)
-            Wait(250)
-        end
-    end)
-
     while StateManager.get('id') == currentMenuId do
         Wait(0)
         handleMouseWheel(data)
@@ -495,7 +467,6 @@ function Render.onZone(currentMenuId)
     end
 
     running = false
-    persistentData.showingLoading = nil
     StateManager.set('disableRayCast', false)
     StateManager.set('active', false)
     triggers.onExit(data, metadata)

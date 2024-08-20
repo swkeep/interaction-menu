@@ -54,7 +54,7 @@ body {
     margin-left: 1.5rem;
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: 1em;
-    transition: background-color 0.5s ease;
+    transition: background-color 2.5s ease;
 
     &--glow {
         box-shadow: 0 0px 20px 4px var(--primary-color-glow);
@@ -143,20 +143,20 @@ body {
     }
 }
 
-.v-enter-from,
-.v-leave-to {
+.fade-enter-from,
+.fade-leave-to {
     opacity: 0;
     transform: translateX(-30px);
 }
 
-.v-enter-active,
-.v-leave-active {
+.fade-enter-active,
+.fade-leave-active {
     transition:
-        opacity 0.3s ease,
-        transform 0.1s ease-in;
+        opacity 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+        transform 0.25s ease-in;
 }
 
-.v-enter-to {
+.fade-enter-to {
     opacity: 1;
     transform: translateX(0);
 }
