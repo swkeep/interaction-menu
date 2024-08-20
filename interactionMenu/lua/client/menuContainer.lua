@@ -902,7 +902,7 @@ local function evaluateBindValue(updatedElements, menuId, option, optionIndex, m
 
     local value = menuOriginalData.interactions[optionIndex]
     local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords, passThrough
-    .name, passThrough.bone)
+        .name, passThrough.bone)
 
     if success and option.progress and option.progress.value ~= res then
         option.cached_value = option.progress.value
@@ -914,13 +914,19 @@ local function evaluateBindValue(updatedElements, menuId, option, optionIndex, m
     return false
 end
 
-local function evaluateCanInteract(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
+--- check canInteract passed by user and update option's visibility
+---@param updatedElements any
+---@param menuId any
+---@param option any
+---@param optionIndex any
+---@param menuOriginalData any
+---@param pt any "passThrough"
+---@return boolean
+local function updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData, pt)
     if not option.flags.canInteract then return false end
-    local already_inserted = false
 
     local value = menuOriginalData.interactions['canInteract|' .. optionIndex]
-    local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords,
-        passThrough.name, passThrough.bone)
+    local success, res = pcall(value.func, pt.entity, pt.distance, pt.coords, pt.name, pt.bone)
 
     if success and type(res) == "boolean" then
         option.flags.hide = not res
@@ -928,7 +934,7 @@ local function evaluateCanInteract(updatedElements, menuId, option, optionIndex,
         option.flags.hide = false
     end
 
-    return already_inserted
+    return false
 end
 
 --- calculate canInteract and update values and refresh UI
@@ -963,7 +969,7 @@ function Container.syncData(scaleform, menuData, refreshUI)
                 already_inserted = evaluateDynamicValue(updatedElements, menuId, option)
                 already_inserted = evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
                     passThrough)
-                already_inserted = evaluateCanInteract(updatedElements, menuId, option, optionIndex, menuOriginalData,
+                already_inserted = updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData,
                     passThrough)
 
                 -- to hide option if its canInteract value has been changed
