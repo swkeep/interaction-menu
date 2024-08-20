@@ -10,18 +10,15 @@ export default [
     {
         files: ['*.vue', '**/*.vue'],
         languageOptions: {
-          parserOptions: {
-            parser: '@typescript-eslint/parser'
-          }
+            parserOptions: {
+                parser: '@typescript-eslint/parser',
+            },
         },
-        
+
         plugins: {
             prettier,
         },
 
-        ignores: [
-            'vite.config.dev.js',
-            'vite.config.prod.js',
-        ],
+        ignores: ['vite.config.dev.js', 'vite.config.prod.js'],
     },
 ];
