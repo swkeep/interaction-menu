@@ -898,22 +898,20 @@ local function evaluateDynamicValue(updatedElements, menuId, option)
 end
 
 local function evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
-    local already_inserted = false
+    if not option.flags.bind then return false end
 
-    -- #FIX: this can crash game if menu deleted
-    if option.flags.bind then
-        local value = menuOriginalData.interactions[optionIndex]
-        local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords,
-            passThrough.name, passThrough.bone)
+    local value = menuOriginalData.interactions[optionIndex]
+    local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords, passThrough
+    .name, passThrough.bone)
 
-        if option.progress and option.progress.value ~= res then
-            option.cached_value = option.progress.value
-            option.progress.value = res
-            table.insert(updatedElements, { menuId = menuId, option = option })
-        end
+    if success and option.progress and option.progress.value ~= res then
+        option.cached_value = option.progress.value
+        option.progress.value = res
+        table.insert(updatedElements, { menuId = menuId, option = option })
+        return true
     end
 
-    return already_inserted
+    return false
 end
 
 local function evaluateCanInteract(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
