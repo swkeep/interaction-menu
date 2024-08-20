@@ -1,5 +1,5 @@
 local COLLECTOR_CONFIG = {
-    INTERVAL = 1000
+    INTERVAL = 1000 * 60
 }
 
 local GarbageCollector = {}
@@ -23,18 +23,18 @@ local function removeMenuData(key, value, indexTable, idField)
     end
 end
 
-function GarbageCollector.position(key, value)
-    local menu = Container.data[key]
-    if menu and menu.position then
+local function removeMenuSimple(key)
+    if Container.data[key] then
         Container.data[key] = nil
     end
 end
 
+function GarbageCollector.position(menuId, value)
+    removeMenuSimple(menuId)
+end
+
 function GarbageCollector.zone(menuId, value)
-    local menu = Container.data[menuId]
-    if menu then
-        Container.data[menuId] = nil
-    end
+    removeMenuSimple(menuId)
 end
 
 function GarbageCollector.entity(key, value)
@@ -63,7 +63,9 @@ function Container.remove(id)
         return
     end
 
+    -- remove zone and position triggers early
     if menuRef.type == 'zone' then
+        zone_grid:remove(menuRef.position) -- this is our internal refer
         local zone = Container.zones[id]
         Container.zones[id] = nil
         zone:destroy()
