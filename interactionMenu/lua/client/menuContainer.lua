@@ -661,6 +661,18 @@ function Container.getMenuType(t)
         return MenuTypes['ON_POSITION']
     elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or players[playerId] or globalsExistsCheck(entity, entityType) or netIds[netId] then
         -- onModel / onEntity / onBone
+        if entityType == 2 and globalsExistsCheck(entity, entityType) then
+            local _, closestBoneName = Container.boneCheck(entity)
+            local globals = Container.indexes.globals
+            local bones = Container.indexes.bones
+
+            if bones[entity][closestBoneName] then
+                return MenuTypes['ON_ENTITY']
+            end
+            if not globals.bones[closestBoneName] then
+                return 1
+            end
+        end
         return MenuTypes['ON_ENTITY']
     else
         return 1

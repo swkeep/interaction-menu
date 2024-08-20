@@ -152,10 +152,10 @@ local function isMatchingEntity(model, entity)
 end
 
 local function setOpen(menuData)
-    StateManager.set('isOpen', true)
     Wait(0) -- a lazy fix flicker issue
     scaleform.setStatus(true)
     Interact:scaleformUpdate(menuData)
+    StateManager.set('isOpen', true)
 
     Util.print_debug(('Menu Id [%s] '):format(menuData.id)) -- #DEBUG
 end
@@ -207,7 +207,7 @@ local function handleZoneBasedInteraction(closestZoneMenuId)
     StateManager.set('menuType', MenuTypes['ON_ZONE'])
 end
 
-local function handleEntityInteraction(playerDistance, model, entity, hitPosition)
+local function handleEntityInteraction(playerDistance, model, entity)
     SetScriptGfxDrawBehindPausemenu(false)
 
     StateManager.set('id', entity)
@@ -215,7 +215,6 @@ local function handleEntityInteraction(playerDistance, model, entity, hitPositio
     StateManager.set('entityModel', model)
     StateManager.set('entityHandle', entity)
     StateManager.set('playerDistance', playerDistance)
-    StateManager.set('hitPosition', hitPosition)
 end
 
 local function waitForScaleform()
@@ -279,7 +278,7 @@ CreateThread(function()
                     end
                 end
             end
-
+            StateManager.set('hitPosition', hitPosition)
             StateManager.set({
                 playerPed = playerPed,
                 playerPosition = playerPosition
@@ -299,7 +298,7 @@ CreateThread(function()
             }
 
             if menuType == MenuTypes['ON_ENTITY'] then
-                handleEntityInteraction(playerDistance, model, entity, hitPosition)
+                handleEntityInteraction(playerDistance, model, entity)
             elseif menuType == MenuTypes['ON_POSITION'] then
                 handlePositionBasedInteraction()
             elseif menuType == MenuTypes['ON_ZONE'] then
@@ -382,7 +381,6 @@ end
 function Render.onPosition(currentMenuId)
     local data = Container.getMenu(nil, nil, currentMenuId)
     if not data then return end
-    -- print(data.flags.deleted)
 
     if not canInteract(data, nil) then return end
     StateManager.set('active', true)

@@ -36,12 +36,9 @@ CreateThread(function()
 end)
 
 local function createWheelAction(wheelIndex)
-    return {
-        type = 'sync',
-        func = function(data)
-            SetVehicleTyreBurst(data.entity, wheelIndex, true, 1000.0)
-        end
-    }
+    return function(entity)
+        SetVehicleTyreBurst(entity, wheelIndex, true, 1000.0)
+    end
 end
 
 local bones = {
@@ -49,14 +46,11 @@ local bones = {
         {
             label = "Switch Plate",
             icon = "fas fa-toggle-on",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    Wait(1000)
-                    SetVehicleNumberPlateText(data.entity, 'swkeep' .. math.random(0, 9))
-                    Wait(500)
-                end
-            },
+            action = function(entity)
+                Wait(1000)
+                SetVehicleNumberPlateText(entity, 'swkeep' .. math.random(0, 9))
+                Wait(500)
+            end
         },
     },
 
@@ -93,21 +87,15 @@ local bones = {
         {
             label = "Driver Seat",
             icon = "fas fa-user",
-            action = {
-                type = 'sync',
-                func = function(e)
-                end
-            }
+            action = function(e)
+            end
         },
         {
             label = "Passenger Seat",
             icon = "fas fa-user",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    TaskEnterVehicle(PlayerPedId(), data.entity, 2000, 0, 2.0, 1, 0)
-                end
-            }
+            action = function(entity)
+                TaskEnterVehicle(PlayerPedId(), entity, 2000, 0, 2.0, 1, 0)
+            end
         },
     },
 
@@ -115,22 +103,16 @@ local bones = {
         {
             label = "Passenger Seat",
             icon = "fas fa-user",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    TaskEnterVehicle(PlayerPedId(), data.entity, 2000, 0, 2.0, 1, 0)
-                end
-            }
+            action = function(entity)
+                TaskEnterVehicle(PlayerPedId(), entity, 2000, 0, 2.0, 1, 0)
+            end
         },
         {
             label = "Driver Seat",
             icon = "fas fa-user",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    TaskEnterVehicle(PlayerPedId(), data.entity, 2000, -1, 1.0, 16, 0)
-                end
-            }
+            action = function(entity)
+                TaskEnterVehicle(PlayerPedId(), entity, 2000, -1, 1.0, 16, 0)
+            end
         },
     },
 
@@ -138,12 +120,9 @@ local bones = {
         {
             label = "Front Left Door",
             icon = "fas fa-door-open",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    toggle_door(data.entity, 0)
-                end
-            }
+            action = function(entity)
+                toggle_door(entity, 0)
+            end
         },
     },
 
@@ -151,12 +130,9 @@ local bones = {
         {
             label = "Front Left Window",
             icon = "fas fa-window-close",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    toggle_door(data.entity, 0)
-                end
-            }
+            action = function(entity)
+                toggle_door(entity, 0)
+            end
         }
     },
 
@@ -170,11 +146,9 @@ local bones = {
                 value = 30,
                 percent = true
             },
-            bind = {
-                func = function(entity)
-                    return GetVehicleEngineHealth(entity) / 10
-                end
-            }
+            bind = function(entity)
+                return GetVehicleEngineHealth(entity) / 10
+            end
         },
         {
             label = "Body Health",
@@ -183,21 +157,16 @@ local bones = {
                 type = "info",
                 value = 70
             },
-            bind = {
-                func = function(entity)
-                    return GetVehicleBodyHealth(entity) / 10
-                end
-            }
+            bind = function(entity)
+                return GetVehicleBodyHealth(entity) / 10
+            end
         },
         {
             label = "Engine Status",
             icon = "fas fa-cogs",
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    SetVehicleEngineOn(entity, true, false)
-                end
-            }
+            action = function(entity)
+                SetVehicleEngineOn(entity, true, false)
+            end
         }
     },
 
@@ -205,12 +174,9 @@ local bones = {
         {
             label = "Hood",
             icon = "fas fa-car",
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    toggle_door(entity, 4)
-                end
-            }
+            action = function(entity)
+                toggle_door(entity, 4)
+            end
         }
     },
 
@@ -218,23 +184,17 @@ local bones = {
         {
             label = "Exhaust",
             icon = "fas fa-smog",
-            action = {
-                type = 'sync',
-                func = function()
-                end
-            }
+            action = function()
+            end
         }
     },
 
     boot    = {
         {
             label = "Trunk",
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    toggle_door(entity, 5)
-                end
-            }
+            action = function(entity)
+                toggle_door(entity, 5)
+            end
         }
     },
 }
