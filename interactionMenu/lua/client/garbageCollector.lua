@@ -4,7 +4,6 @@ local COLLECTOR_CONFIG = {
 
 local GarbageCollector = {}
 local grid = Util.SpatialHashGrid:get('position')
-local zone_grid = Util.SpatialHashGrid:get('zone')
 
 -- Helper to remove menu data
 local function removeMenuData(key, value, indexTable, idField)
@@ -65,7 +64,6 @@ function Container.remove(id)
 
     -- remove zone and position triggers early
     if menuRef.type == 'zone' then
-        zone_grid:remove(menuRef.position) -- this is our internal refer
         local zone = Container.zones[id]
         Container.zones[id] = nil
         zone:destroy()
