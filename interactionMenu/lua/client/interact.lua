@@ -113,6 +113,19 @@ function Interact:Hide()
     scaleform.send("interactionMenu:loading:hide")
 end
 
+local lastTriggerTime = 0
+local triggerInterval = 100
+
+function Interact:fillIndicator(menuData, percent)
+    local currentTime = GetGameTimer()
+
+    -- skip when we set it to zero
+    if percent == 0 or currentTime - lastTriggerTime >= triggerInterval then
+        lastTriggerTime = currentTime
+        scaleform.send("interactionMenu:indicatorFill", percent)
+    end
+end
+
 local function handleMouseWheel(menuData)
     -- not the best way to do it but it works if we add new options on runtime
     -- HideHudComponentThisFrame(19)
@@ -134,14 +147,49 @@ local function handleMouseWheel(menuData)
     end
 end
 
+local holdStart = nil
+local lastHoldTrigger = nil
+
 local function handleKeyPress(menuData)
     -- E
     local padIndex = (menuData.indicator and menuData.indicator.keyPress) and menuData.indicator.keyPress.padIndex or 0
     local control = (menuData.indicator and menuData.indicator.keyPress) and menuData.indicator.keyPress.control or 38
 
-    if not IsControlJustReleased(padIndex, control) then return end
+    if menuData.indicator.hold then
+        if IsControlPressed(padIndex, control) then
+            local currentTime = GetGameTimer()
+            if lastHoldTrigger then
+                if (currentTime - lastHoldTrigger) >= 1000 then
+                    lastHoldTrigger = nil
+                else
+                    return
+                end
+            end
+            if not holdStart then
+                holdStart = currentTime
+            end
+            local holdDuration = menuData.indicator.hold
+            local elapsedTime = currentTime - holdStart
+            local percentage = (elapsedTime / holdDuration) * 100
+            Interact:fillIndicator(menuData, percentage)
 
-    Container.keyPress(menuData)
+            if elapsedTime >= holdDuration then
+                holdStart = nil
+                lastHoldTrigger = currentTime
+                Container.keyPress(menuData)
+                Interact:fillIndicator(menuData, 0)
+            end
+        else
+            if holdStart then
+                Util.print_debug("Player stopped holding the key early")
+                Interact:fillIndicator(menuData, 0)
+                holdStart = nil
+            end
+        end
+    else
+        if not IsControlJustReleased(padIndex, control) then return end
+        Container.keyPress(menuData)
+    end
 end
 
 local function isPlayerWithinDistance(maxDistance)
@@ -456,7 +504,7 @@ function Render.onZone(currentMenuId)
     CreateThread(function()
         while running do
             Container.syncData(scaleform, data, true)
-            Wait(1000)
+            Wait(250)
         end
     end)
 
