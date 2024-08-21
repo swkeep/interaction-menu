@@ -237,18 +237,6 @@ local function transformJobData(data)
     end
 end
 
-local function AddBoxZone(o)
-    local z = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
-        name = o.name,
-        heading = o.heading,
-        debugPoly = o.debugPoly,
-        minZ = o.minZ,
-        maxZ = o.maxZ,
-    })
-
-    return z
-end
-
 function Container.create(t)
     local invokingResource = GetInvokingResource() or 'interactionMenu'
     local id = t.id or Util.createUniqueId(Container.data)
@@ -346,7 +334,14 @@ function Container.create(t)
 
             instance.rotation = t.rotation
             instance.zone = t.zone
-            Container.zones[id] = AddBoxZone(t.zone)
+
+            if instance.zone then
+                t.zone.name = id
+                Container.zones[id] = Util.addZone(t.zone)
+                if not Container.zones[id] then
+                    return
+                end
+            end
             zone_grid:insert(instance.position)
         else
             warn('Could not find `PolyZone`. Make sure it is started before interactionMenu.')
@@ -674,7 +669,7 @@ function Container.getMenuType(t)
             local globals = Container.indexes.globals
             local bones = Container.indexes.bones
 
-            if bones[entity][closestBoneName] then
+            if bones[entity] and bones[entity][closestBoneName] then
                 return MenuTypes['ON_ENTITY']
             end
             if not globals.bones[closestBoneName] then
@@ -878,10 +873,16 @@ function Container.keyPress(menuData)
     if interaction.action then
         if not Container.runningInteractions[interaction.func] then
             Container.runningInteractions[interaction.func] = true
+            PlaySoundFrontend(-1, 'Highlight_Cancel', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', true)
 
             CreateThread(function()
-                local success, result = pcall(interaction.func, menuData.entity, menuData.distance, menuData.coords,
-                    menuData.name, menuData.bone)
+                local success, result
+                if menuData.type == 'zone' then
+                    success, result = pcall(interaction.func, menuData.zone)
+                else
+                    success, result = pcall(interaction.func, menuData.entity, menuData.distance, menuData.coords,
+                        menuData.name, menuData.bone)
+                end
 
                 Container.runningInteractions[interaction.func] = nil
             end)
@@ -902,10 +903,21 @@ local function is_daytime()
     return hour >= 6 and hour < 19
 end
 
-local function evaluateDynamicValue(updatedElements, menuId, option)
+local function evaluateDynamicValue(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
     if not option.flags.dynamic then return false end
 
     local updated = false
+    local value = menuOriginalData.interactions[optionIndex]
+    if value and value.func then
+        local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords,
+            passThrough.name, passThrough.bone)
+
+        if success and res ~= option.label_cache then
+            option.label_cache = res
+            option.label = res
+            updated = true
+        end
+    end
     if option.progress and option.progress.value ~= option.cached_value then
         option.cached_value = option.progress.value
         updated = true
@@ -917,6 +929,7 @@ local function evaluateDynamicValue(updatedElements, menuId, option)
     if updated then
         table.insert(updatedElements, { menuId = menuId, option = option })
     end
+
     return updated
 end
 
@@ -989,7 +1002,8 @@ function Container.syncData(scaleform, menuData, refreshUI)
             for optionIndex, option in ipairs(menu.options) do
                 local already_inserted = false
 
-                already_inserted = evaluateDynamicValue(updatedElements, menuId, option)
+                already_inserted = evaluateDynamicValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
+                    passThrough)
                 already_inserted = evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
                     passThrough)
                 already_inserted = updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData,

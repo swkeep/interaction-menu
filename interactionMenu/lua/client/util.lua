@@ -103,9 +103,10 @@ end
 -- end
 
 function Util.isPointWithinScreenBounds(screenX, screenY)
-    local squaredDistance = (screenX - centerX) ^ 2 + (screenY - centerY) ^ 2
+    return true
+    -- local squaredDistance = (screenX - centerX) ^ 2 + (screenY - centerY) ^ 2
 
-    return Util.isPointWithinScreen(screenX, screenY) and squaredDistance <= radius
+    -- return Util.isPointWithinScreen(screenX, screenY) and squaredDistance <= radius
 end
 
 function Util.filterVisiblePointsWithinRange(playerPosition, inputPoints)
@@ -514,6 +515,169 @@ function Util.spawnPed(hash, pos)
     FreezeEntityPosition(object[id], true)
 
     return object[id]
+end
+
+-- validation zone data (it still needs more work it wrote it for PolyZone only ox have some differences)
+local function validateZoneData(o)
+    if type(o) ~= "table" then
+        error("Zone data must be a table")
+    end
+
+    -- common
+    assert(type(o.type) == "string", "Zone type must be a string")
+
+    -- validate position
+    if o.position then
+        local t = type(o.position)
+        if not (t == 'vector3' or t == 'vector4') then
+            assert(type(o.position) == "table" and o.position.x and o.position.y and o.position.z,
+                "Position must be a table with x, y, z coordinates")
+            assert(type(o.position.x) == "number" and type(o.position.y) == "number" and type(o.position.z) == "number",
+                "Position coordinates must be numbers")
+        end
+    end
+
+    -- type things
+    if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
+        assert(type(o.radius) == "number", "Radius must be a number")
+    elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+        assert(type(o.length) == "number", "Length must be a number")
+        assert(type(o.width) == "number", "Width must be a number")
+        assert(o.heading == nil or type(o.heading) == "number", "Heading must be a number if provided")
+        assert(o.minZ == nil or type(o.minZ) == "number", "minZ must be a number if provided")
+        assert(o.maxZ == nil or type(o.maxZ) == "number", "maxZ must be a number if provided")
+    elseif o.type == 'polyZone' or o.type == 'poly' then
+        assert(type(o.points) == "table", "Points must be a table of coordinates")
+        for _, point in ipairs(o.points) do
+            assert(type(point.x) == "number" and type(point.y) == "number" and type(point.z) == "number",
+                "Each point must have numeric x, y, z coordinates")
+        end
+    elseif o.type == 'comboZone' or o.type == 'combo' then
+        assert(type(o.zones) == "table", "Zones must be a table of zone definitions")
+        for _, zoneData in ipairs(o.zones) do
+            validateZoneData(zoneData) -- recursive
+        end
+    else
+        error("Unsupported zone type: " .. tostring(o.type))
+    end
+end
+
+-- flag to choose between PolyZone and ox_lib
+local triggerZoneScriptName = Config.triggerZoneScript or "PolyZone"
+local onPlayerIn = function(name)
+    TriggerEvent('interactionMenu:zoneTracker', name, true)
+end
+local onPlayerOut = function(name)
+    TriggerEvent('interactionMenu:zoneTracker', name, false)
+end
+
+function Util.addZone(o)
+    validateZoneData(o)
+
+    local z
+    if triggerZoneScriptName == 'ox_lib' then
+        -- Using ox_lib for zone creation
+        if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
+            z = lib.zones.sphere({
+                coords = vec3(o.position.x, o.position.y, o.position.z),
+                radius = o.radius or 2,
+                debug = o.debugPoly,
+                inside = o.inside,
+                onEnter = function() onPlayerIn(o.name) end,
+                onExit = function() onPlayerOut(o.name) end
+            })
+        elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+            z = lib.zones.box({
+                coords = vec3(o.position.x, o.position.y, o.position.z),
+                size = o.size or vec3(o.length, o.width, o.maxZ - o.minZ),
+                rotation = o.heading or 0,
+                debug = o.debugPoly,
+                inside = o.inside,
+                onEnter = function() onPlayerIn(o.name) end,
+                onExit = function() onPlayerOut(o.name) end
+            })
+        elseif o.type == 'polyZone' or o.type == 'poly' then
+            z = lib.zones.poly({
+                points = o.points,
+                thickness = o.thickness or 4,
+                debug = o.debugPoly,
+                inside = o.inside,
+                onEnter = function() onPlayerIn(o.name) end,
+                onExit = function() onPlayerOut(o.name) end
+            })
+        elseif o.type == 'comboZone' or o.type == 'combo' then
+            warn("Unsupported zone with ox: " .. tostring(o.type))
+        else
+            error("Unsupported zone type: " .. tostring(o.type))
+        end
+    else
+        -- Using PolyZone for zone creation
+        if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
+            z = CircleZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.radius or 1.0, {
+                name = o.name,
+                debugPoly = o.debugPoly,
+                useZ = o.useZ or false,
+            })
+            z:onPlayerInOut(function(isPointInside)
+                if isPointInside then
+                    onPlayerIn(o.name)
+                else
+                    onPlayerOut(o.name)
+                end
+            end)
+        elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+            z = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
+                name = o.name,
+                heading = o.heading,
+                debugPoly = o.debugPoly,
+                minZ = o.minZ,
+                maxZ = o.maxZ,
+            })
+            z:onPlayerInOut(function(isPointInside)
+                if isPointInside then
+                    onPlayerIn(o.name)
+                else
+                    onPlayerOut(o.name)
+                end
+            end)
+        elseif o.type == 'polyZone' or o.type == 'poly' then
+            z = PolyZone:Create(o.points, {
+                name = o.name,
+                minZ = o.minZ,
+                maxZ = o.maxZ,
+                debugPoly = o.debugPoly,
+            })
+            z:onPlayerInOut(function(isPointInside)
+                if isPointInside then
+                    onPlayerIn(o.name)
+                else
+                    onPlayerOut(o.name)
+                end
+            end)
+        elseif o.type == 'comboZone' or o.type == 'combo' then
+            local zones = {}
+            for _, zoneData in ipairs(o.zones) do
+                if zoneData.type ~= 'comboZone' then
+                    table.insert(zones, Util.addZone(zoneData))
+                end
+            end
+            z = ComboZone:Create(zones, {
+                name = o.name,
+                debugPoly = o.debugPoly,
+            })
+            z:onPlayerInOut(function(isPointInside)
+                if isPointInside then
+                    onPlayerIn(o.name)
+                else
+                    onPlayerOut(o.name)
+                end
+            end)
+        else
+            error("Unsupported zone type: " .. tostring(o.type))
+        end
+    end
+
+    return z
 end
 
 -- #endregion

@@ -27,8 +27,7 @@ local scaleform_initialized = false
 local scaleform
 local SpatialHashGrid = Util.SpatialHashGrid
 --
-
-local grid_zone = SpatialHashGrid:new('zone', 100)
+local closestZoneId
 local grid_position = SpatialHashGrid:new('position', 100)
 
 local visiblePoints = {}
@@ -236,18 +235,6 @@ local function waitForScaleform()
     return scaleform_initialized
 end
 
-local function findClosestZone(playerPosition, range)
-    local zonesInRange = grid_zone:queryRange(playerPosition, 25)
-
-    for index, value in ipairs(zonesInRange) do
-        if Container.zones[value.id] and Util.isPointInside(Container.zones[value.id], playerPosition) then
-            return value.id
-        end
-    end
-
-    return nil
-end
-
 CreateThread(function()
     if not waitForScaleform() then return end
     -- We can bump it up to 1000 for better performance, but it looks better with 500/600 ms
@@ -277,7 +264,7 @@ CreateThread(function()
             local entityType = 0
 
             local hitPosition, playerDistance, entity
-            if not StateManager.get("disableRayCast") or isInVehicle ~= 1 then
+            if closestZoneId == nil and (not StateManager.get("disableRayCast") or isInVehicle ~= 1) then
                 hitPosition, entity, playerDistance = Util.rayCast(10, playerPed)
 
                 if entity then
@@ -293,17 +280,14 @@ CreateThread(function()
                 playerPosition = playerPosition
             }, true, true)
 
-            local nearPoints        = grid_position:queryRange(playerPosition, 25)
-            visiblePoints           = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
-            -- onZone
-            local closestZoneMenuId = findClosestZone(playerPosition)
-
-            local menuType          = Container.getMenuType {
+            local nearPoints = grid_position:queryRange(playerPosition, 25)
+            visiblePoints    = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
+            local menuType   = Container.getMenuType {
                 model = model,
                 entity = entity,
                 entityType = entityType,
                 closestPoint = visiblePoints.closest,
-                zone = closestZoneMenuId
+                zone = closestZoneId
             }
 
             if menuType == MenuTypes['ON_ENTITY'] then
@@ -311,7 +295,7 @@ CreateThread(function()
             elseif menuType == MenuTypes['ON_POSITION'] then
                 handlePositionBasedInteraction()
             elseif menuType == MenuTypes['ON_ZONE'] then
-                handleZoneBasedInteraction(closestZoneMenuId)
+                handleZoneBasedInteraction(closestZoneId)
             elseif menuType == MenuTypes['DISABLED'] then
                 StateManager.reset()
             end
@@ -320,6 +304,15 @@ CreateThread(function()
         end
 
         Wait(interval)
+    end
+end)
+
+AddEventHandler("interactionMenu:zoneTracker", function(zone_name, state)
+    print(zone_name, state)
+    if zone_name and state then
+        closestZoneId = zone_name
+    else
+        closestZoneId = nil
     end
 end)
 
