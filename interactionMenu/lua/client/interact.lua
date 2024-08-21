@@ -119,6 +119,14 @@ local function handleMouseWheel(menuData)
     -- HideHudComponentThisFrame(19)
 
     -- Mouse Wheel Down / Arrow Down
+    DisableControlAction(0, 85, true) -- INPUT_VEH_RADIO_WHEEL (Mouse scroll wheel)
+    DisableControlAction(0, 86, true) -- INPUT_VEH_NEXT_RADIO (Mouse wheel up)
+    DisableControlAction(0, 81, true) -- INPUT_VEH_PREV_RADIO (Mouse wheel down)
+    -- DisableControlAction(0, 82, true) -- INPUT_VEH_SELECT_NEXT_WEAPON (Keyboard R)
+    -- DisableControlAction(0, 83, true) -- INPUT_VEH_SELECT_PREV_WEAPON (Keyboard E)
+
+    DisableControlAction(0, 14, true)
+    DisableControlAction(0, 15, true)
     if IsDisabledControlJustReleased(0, 14) or IsControlJustReleased(0, 173) then
         Container.changeMenuItem(scaleform, menuData, true)
         -- Mouse Wheel Up / Arrow Up
@@ -232,7 +240,7 @@ local function findClosestZone(playerPosition, range)
     local zonesInRange = grid_zone:queryRange(playerPosition, 25)
 
     for index, value in ipairs(zonesInRange) do
-        if Container.zones[value.id] and Container.zones[value.id]:isPointInside(playerPosition) then
+        if Container.zones[value.id] and Util.isPointInside(Container.zones[value.id], playerPosition) then
             return value.id
         end
     end
@@ -254,21 +262,22 @@ CreateThread(function()
     while true do
         local playerPed = PlayerPedId()
         local isInVehicle = IsPedInAnyVehicle(playerPed, true)
-        local nuiFocused = IsNuiFocused() ~= 1
-        local pauseMenuState = GetPauseMenuState() == 0
+        local isNuiFocused = IsNuiFocused()
+        local isPauseMenuState = GetPauseMenuState()
 
         StateManager.set({
             playerIsInVehicle = isInVehicle,
-            IsNuiFocused = nuiFocused
+            isNuiFocused = isNuiFocused,
+            isPauseMenuState = isPauseMenuState
         }, true, true)
 
-        if pauseMenuState and nuiFocused and not isInVehicle then
+        if isPauseMenuState == 0 and isNuiFocused ~= 1 then
             local playerPosition = GetEntityCoords(playerPed)
             local model = 0
             local entityType = 0
 
             local hitPosition, playerDistance, entity
-            if not StateManager.get("disableRayCast") then
+            if not StateManager.get("disableRayCast") or isInVehicle ~= 1 then
                 hitPosition, entity, playerDistance = Util.rayCast(10, playerPed)
 
                 if entity then
@@ -475,7 +484,8 @@ end
 -- Handle the rendering logic based on the current state
 local function RenderMenu()
     if pause then return end
-    if StateManager.get('playerIsInVehicle') then return end
+    if StateManager.get('isNuiFocused') == 1 then return end
+    if StateManager.get('isPauseMenuState') ~= 0 then return end
 
     local currentMenuId = StateManager.get('id')
     if not currentMenuId then return end
