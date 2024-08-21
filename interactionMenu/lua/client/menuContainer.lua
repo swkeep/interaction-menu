@@ -164,6 +164,7 @@ local function buildOption(data, instance)
             label = option.label,
             picture = option.picture,
             video = option.video,
+            audio = option.audio,
             style = option.style,
             progress = option.progress,
             icon = option.icon,

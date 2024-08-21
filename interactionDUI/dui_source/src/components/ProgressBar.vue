@@ -25,7 +25,7 @@ const progress_type = computed(() => {
 
 <template>
     <div class="container">
-        <div v-if="label !== null" class="container__label">
+        <div v-if="label !== undefined" class="container__label">
             {{ label }}
         </div>
 

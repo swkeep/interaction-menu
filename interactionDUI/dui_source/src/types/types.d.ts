@@ -23,7 +23,7 @@ export interface OptionsStyle {
     };
 }
 
-interface Video {
+interface VideoData {
     url: string;
     currentTime?: number;
     autoplay?: boolean;
@@ -33,6 +33,17 @@ interface Video {
     timecycle?: boolean;
     volume?: number;
     opacity?: number;
+}
+
+export interface AudioData {
+    url: string;
+    currentTime?: number;
+    autoplay?: boolean;
+    loop?: boolean;
+    volume?: number;
+    progress?: boolean;
+    percent?: boolean;
+    timecycle?: boolean;
 }
 
 type BorderType = 'dash' | 'solid' | 'double' | 'none' | null | undefined;
@@ -87,7 +98,8 @@ export interface Option {
     label: string;
     description: string;
     icon: string;
-    video?: Video;
+    video?: VideoData;
+    audio?: AudioData;
     picture?: Picture;
     style?: OptionsStyle;
     progress?: Progress;

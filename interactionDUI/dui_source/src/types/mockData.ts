@@ -30,6 +30,21 @@ export const menuMockData = [
                             hide: false,
                         },
                     },
+                    {
+                        vid: 3,
+                        audio: {
+                            url: 'http://127.0.0.1:8080/Seven-Pounds-Energy-Complextro.mp3',
+                            volume: 1.0,
+                            progress: true,
+                            // percent: true,
+                            // loop: true,
+                            timecycle: true,
+                        },
+                        flags: {
+                            update: true,
+                            hide: false,
+                        },
+                    },
                 ],
             },
         ],

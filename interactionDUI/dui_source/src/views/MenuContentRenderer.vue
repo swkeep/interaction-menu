@@ -25,6 +25,8 @@ import { FocusTracker, FocusTrackerT, InteractionMenu, Option } from '../types/t
 
 const menuComponents = {
     // @ts-ignore
+    audioPlayer: defineAsyncComponent(() => import('../components/AudioPlayer.vue')),
+    // @ts-ignore
     videoPlayer: defineAsyncComponent(() => import('../components/VideoRenderer.vue')),
     // @ts-ignore
     pictureViewer: defineAsyncComponent(() => import('../components/ImageRenderer.vue')),
@@ -46,6 +48,7 @@ const getFieldComponent = computed(() => (item: Option) => {
     if (item.flags.hide) return;
 
     if (item.video) return menuComponents.videoPlayer;
+    if (item.audio) return menuComponents.audioPlayer;
     if (item.picture) return menuComponents.pictureViewer;
     if (item.progress) return menuComponents.progressbar;
 
