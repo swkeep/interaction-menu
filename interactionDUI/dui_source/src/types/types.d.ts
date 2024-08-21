@@ -90,6 +90,7 @@ interface OptionFlags {
     disable: boolean;
     dynamic?: boolean;
     hide: boolean;
+    canInteract: boolean;
 }
 
 export interface Option {

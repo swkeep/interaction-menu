@@ -1,6 +1,80 @@
+<script lang="ts" setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import Progressbar from './ProgressBar.vue';
+import { Option } from '../types/types';
+import { formatTime } from '../util';
+
+const props = defineProps<{ item: Option }>();
+const audioId = `audio-${Math.random().toString(36).substr(2, 9)}`;
+
+let audioElement: HTMLAudioElement | null = null;
+
+const percentage = ref(0);
+const timecycle = ref('');
+
+function updateProgressBar() {
+    if (!audioElement || !props.item.audio) return;
+    const { currentTime, duration } = audioElement;
+    if (duration === 0) return;
+
+    const percentageCompleted = (currentTime / duration) * 100;
+    percentage.value = percentageCompleted;
+
+    if (props.item.audio.percent) {
+        timecycle.value = `${percentageCompleted.toFixed(2)}%`;
+    } else {
+        timecycle.value = formatTime(Math.floor(currentTime));
+    }
+}
+
+function onLoadStart() {
+    if (!audioElement || !props.item.audio) return;
+
+    audioElement.currentTime = props.item.audio.currentTime || 0;
+    audioElement.autoplay = props.item.audio.autoplay ?? true;
+    audioElement.loop = props.item.audio.loop ?? false;
+
+    if (typeof props.item.audio.volume === 'number') {
+        audioElement.volume = props.item.audio.volume;
+    }
+
+    if (props.item.audio.progress) {
+        audioElement.ontimeupdate = updateProgressBar;
+    }
+
+    setTimeout(() => {
+        audioElement?.play();
+    }, 150);
+}
+
+const isActive = computed(() => {
+    if (!props.item.audio) return false;
+    if (props.item.flags?.hide) return false;
+
+    return props.item.flags?.canInteract ?? true;
+});
+
+onMounted(() => {
+    audioElement = document.getElementById(audioId) as HTMLAudioElement;
+    if (audioElement) {
+        audioElement.addEventListener('loadstart', onLoadStart);
+    }
+});
+
+onUnmounted(() => {
+    if (audioElement) {
+        audioElement.pause();
+        audioElement.ontimeupdate = null;
+        audioElement.onended = null;
+        audioElement.removeEventListener('loadstart', onLoadStart);
+        audioElement = null;
+    }
+});
+</script>
+
 <template>
-    <div v-if="item.audio" class="audio-container">
-        <audio ref="audioRef" class="audio-container__audio" :src="item.audio.url" @loadstart="onLoadStart"></audio>
+    <div v-if="item.audio && isActive" class="audio-container">
+        <audio :id="audioId" class="audio-container__audio" :src="item.audio.url"></audio>
         <div class="audio-container__metadata">
             <div v-if="item.label" class="audio-container__label">
                 {{ item.label }}
@@ -11,56 +85,7 @@
         </div>
     </div>
 </template>
-<script lang="ts" setup>
-import { ref } from 'vue';
-import Progressbar from './ProgressBar.vue';
-import { Option } from '../types/types';
-import { formatTime } from '../util';
 
-const props = defineProps<{ item: Option }>();
-
-const percentage = ref(0);
-const timecycle = ref('');
-const audioRef = ref<HTMLAudioElement | null>(null);
-
-function updateProgressBar() {
-    const audio_element = audioRef.value;
-    const audio_data = props.item.audio;
-    if (!audio_element || !audio_data) return;
-    const { currentTime, duration } = audio_element;
-    if (duration === 0) return;
-
-    const percentageCompleted = (currentTime / duration) * 100;
-    percentage.value = percentageCompleted;
-
-    if (audio_data.percent) {
-        timecycle.value = `${percentageCompleted.toFixed(2)}%`;
-    } else {
-        timecycle.value = formatTime(Math.floor(currentTime));
-    }
-}
-
-function onLoadStart() {
-    const audio_element = audioRef.value;
-    if (!audio_element || !props.item.audio) return;
-
-    audio_element.currentTime = props.item.audio.currentTime || 0;
-    audio_element.autoplay = props.item.audio.autoplay ?? true;
-    audio_element.loop = props.item.audio.loop ?? false;
-
-    if (typeof props.item.audio.volume === 'number') {
-        audio_element.volume = props.item.audio.volume;
-    }
-
-    if (props.item.audio.progress) {
-        audio_element.ontimeupdate = updateProgressBar;
-    }
-
-    setTimeout(() => {
-        audio_element.play();
-    }, 150);
-}
-</script>
 <style lang="scss">
 .audio-container {
     padding: 0.3em 0.7em 0.3em 0.3em;

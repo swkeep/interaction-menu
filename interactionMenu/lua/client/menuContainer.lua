@@ -564,11 +564,11 @@ function Container.getMenu(model, entity, menuId)
     local id
     local combinedIds = {}
     local container = {
-        id, -- value is set in setId function
-        menus = {},
+        id       = id, -- value is set in setId function
+        menus    = {},
         selected = {},
-        glow = false,
-        theme = 'default'
+        glow     = false,
+        theme    = 'default'
     }
 
     local closestBoneId, closestBoneName = Container.boneCheck(entity)
@@ -721,7 +721,7 @@ local function hasValidMenuOption(menuData)
 end
 
 local function firstValidOption(menuData)
-    for _, menu in ipairs(menuData.menus) do -- Use ipairs for ordered traversal
+    for _, menu in ipairs(menuData.menus) do
         for _, option in ipairs(menu.options) do
             if isOptionValid(option) then
                 return option
@@ -787,11 +787,11 @@ local function findCurrentSelectedIndex(menus, selected)
         if currentSelectedIndex then break end
     end
 
-    -- selected first one if we have not selected anything
+    -- selected first one if we don't total have selected anything
     return currentSelectedIndex or 1
 end
 
--- belive me i know we can do it with less interactions but i don't want to think about that right now!
+-- i know we can do it with less code but i don't want to think about that right now!
 function Container.changeMenuItem(scaleform, menuData, wheelDirection)
     if not hasValidMenuOption(menuData) then
         return
