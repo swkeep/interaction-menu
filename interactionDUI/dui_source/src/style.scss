@@ -31,6 +31,7 @@ body {
     align-content: center;
     flex-wrap: wrap;
     overflow: hidden;
+    gap: 1rem;
 
     // yeah that's dark mode xd
     &[data-dark='true'] {
@@ -51,7 +52,6 @@ body {
     justify-content: center;
     flex-direction: column;
     font-size: 2rem;
-    margin-left: 1.5rem;
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: 1em;
     transition: background-color 2.5s ease;
