@@ -335,6 +335,7 @@ function Container.create(t)
 
             instance.rotation = t.rotation
             instance.zone = t.zone
+            instance.scale = t.scale
 
             if instance.zone then
                 t.zone.name = id
@@ -521,6 +522,7 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
             container.zone = data.zone
             container.rotation = data.rotation
             container.icon = data.icon
+            container.scale = data.scale
 
             if data.flags.suppressGlobals then
                 container.selected = {}
