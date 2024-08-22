@@ -44,10 +44,5 @@ Config.icons = {
     'vending'
 }
 
-Config.triggerZoneScript = 'PolyZone'
-if GetResourceState('ox_lib') == 'started' then
-    Config.triggerZoneScript = 'ox_lib'
-elseif GetResourceState('PolyZone') == 'started' then
-    Config.triggerZoneScript = 'PolyZone'
-end
-Config.screenBoundaryShape = 'none' -- circle/rectangle/none
+Config.triggerZoneScript = 'PolyZone' -- ox_lib/PolyZone
+Config.screenBoundaryShape = 'none'   -- circle/rectangle/none

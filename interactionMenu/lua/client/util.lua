@@ -571,9 +571,6 @@ local function validateZoneData(o)
     end
 end
 
--- flag to choose between PolyZone and ox_lib
-local triggerZoneScriptName = Config.triggerZoneScript or "PolyZone"
-
 local onPlayerIn = function(name)
     TriggerEvent('interactionMenu:zoneTracker', name, true)
 end
@@ -583,6 +580,13 @@ local onPlayerOut = function(name)
 end
 
 local function InitAddZone()
+    -- auto detect
+    if GetResourceState('ox_lib') == 'started' and lib then
+        Config.triggerZoneScript = 'ox_lib'
+    elseif GetResourceState('PolyZone') == 'started' then
+        Config.triggerZoneScript = 'PolyZone'
+    end
+
     local zoneFunctions = {
         ox_lib = function(o)
             assert(lib, "ox_lib is not loaded. Uncomment '-- @ox_lib/init.lua' in fxmanifest.lua")
@@ -684,7 +688,7 @@ local function InitAddZone()
         none = function() return end
     }
 
-    return zoneFunctions[triggerZoneScriptName]
+    return zoneFunctions[Config.triggerZoneScript]
 end
 
 Util.addZone = InitAddZone()
