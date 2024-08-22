@@ -1,73 +1,80 @@
--- CreateThread(function()
---     local veh_pos = vector4(-1974.9, 3178.76, 32.81, 59.65)
---     local vehicle = Util.spawnVehicle('adder', veh_pos)
+if true then
+    return
+end
 
---     SetVehicleNumberPlateText(vehicle, 'swkeep')
+CreateThread(function()
+    local veh_pos = vector4(-1974.9, 3178.76, 32.81, 59.65)
+    local vehicle = Util.spawnVehicle('adder', veh_pos)
 
---     exports['interactionMenu']:createGlobal {
---         type = 'bones',
---         bone = 'platelight',
---         offset = vec3(0, 0, 0),
---         maxDistance = 2.0,
---         options = {
---             {
---                 label = '[Debug] On All plates',
---                 icon = 'fa fa-rectangle-ad',
---                 action = {
---                     type = 'sync',
---                     func = function(entity)
---                         print('Plate:', GetVehicleNumberPlateText(entity))
---                     end
---                 }
---             }
---         }
---     }
+    SetVehicleNumberPlateText(vehicle, 'swkeep')
 
---     local pos = vector4(-1973.31, 3181.98, 32.81, 249.84)
---     local ped_ = Util.spawnPed(GetHashKey('cs_brad'), pos)
+    exports['interactionMenu']:createGlobal {
+        type = 'bones',
+        bone = 'platelight',
+        offset = vec3(0, 0, 0),
+        maxDistance = 2.0,
+        options = {
+            {
+                label = '[Debug] On All plates',
+                icon = 'fa fa-rectangle-ad',
+                action = {
+                    type = 'sync',
+                    func = function(entity)
+                        print('Plate:', GetVehicleNumberPlateText(entity))
+                    end
+                }
+            }
+        }
+    }
 
---     exports['interactionMenu']:createGlobal {
---         type = 'peds',
---         offset = vec3(0, 0, 0),
---         maxDistance = 2.0,
---         options = {
---             {
---                 label = '[Debug] On All peds',
---                 icon = 'fa fa-rectangle-ad',
---                 action = {
---                     type = 'sync',
---                     func = function(entity)
---                         print('Plate:', GetVehicleNumberPlateText(entity))
---                     end
---                 }
---             }
---         }
---     }
--- end)
+    local pos = vector4(-1973.31, 3181.98, 32.81, 249.84)
+    local ped_ = Util.spawnPed(GetHashKey('cs_brad'), pos)
 
--- spawn two objects of same model
+    exports['interactionMenu']:createGlobal {
+        type = 'peds',
+        offset = vec3(0, 0, 0),
+        maxDistance = 2.0,
+        options = {
+            {
+                label = '[Debug] On All peds',
+                icon = 'fa fa-rectangle-ad',
+                action = {
+                    type = 'sync',
+                    func = function(entity)
+                        print('Plate:', GetVehicleNumberPlateText(entity))
+                    end
+                }
+            }
+        }
+    }
+end)
+
 local coords = vector4(-1996.28, 3161.06, 31.81, 103.8)
 Util.spawnObject(`xm_prop_crates_sam_01a`, coords)
 
 exports['interactionMenu']:Create {
     type = 'model',
-    id = 'Harmony',
+    id = 'on_mode_test',
     model = `xm_prop_crates_sam_01a`,
     offset = vec3(0, 0, 0.5),
     maxDistance = 2.0,
-    -- indicator = {
-    --     prompt   = 'F',
-    --     keyPress = {
-    --         -- https://docs.fivem.net/docs/game-references/controls/#controls
-    --         padIndex = 0,
-    --         control = 23
-    --     },
-    -- },
+    theme = 'box',
+    indicator = {
+        prompt   = 'F',
+        keyPress = {
+            -- https://docs.fivem.net/docs/game-references/controls/#controls
+            padIndex = 0,
+            control = 23
+        },
+    },
     options = {
         {
             label = "Open",
             action = function(e)
                 print('Health')
+            end,
+            canInteract = function()
+                return false
             end
         },
         {
