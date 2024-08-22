@@ -1,11 +1,11 @@
 // [data-theme="default"] {}
 
 [data-theme='box'] {
-    .menu-container {
+    .menus-container {
         border-radius: 0px;
     }
 
-    .menu-option__radio-option {
+    .menu__option__radio-option {
         &:checked + .label {
             &:before {
                 box-shadow: inset 0 0 0 0.4em var(--primary-color);
@@ -13,7 +13,7 @@
         }
     }
 
-    .menu-option {
+    .menu__option {
         .label {
             border-radius: 0px;
 

@@ -1,5 +1,5 @@
 <template>
-    <input v-if="isRadio" class="menu-option__radio" type="radio" :name="radioName" :checked="isSelected" />
+    <input v-if="isRadio" class="menu__option__radio" type="radio" :name="radioName" :checked="isSelected" />
     <div class="label" :class="labelClass" :style="computedItemStyle">
         <i v-if="item.icon" :class="[item.icon, 'label__icon']"></i>
         <span v-if="!isRadio" v-html="item.label"></span>

@@ -1,12 +1,12 @@
 <template>
     <Transition @after-leave="resetData" name="fade" mode="out-in">
-        <div class="menu-container" :class="{ 'menu-container--glow': Data.glow }" v-if="focusTracker.menu">
-            <div v-for="(menu, i) in Data.menus" class="menu" :data-menuId="menu.id" :key="i">
-                <TransitionGroup v-if="menu.flags.hide === false" name="slide" appear>
+        <div class="menus-container" :class="{ 'menus-container--glow': Data.glow }" v-if="focusTracker.menu">
+            <div class="menu" v-for="(menu, i) in Data.menus" :key="i" :data-menuId="menu.id">
+                <TransitionGroup name="slide" appear v-if="menu.flags.hide === false">
                     <template v-for="(item, index) in menu.options" :key="index">
                         <div
-                            class="menu-option"
-                            :class="{ 'menu-option--no-margin': item.flags?.hide }"
+                            class="menu__option"
+                            :class="{ 'menu__option--no-margin': item.flags?.hide }"
                             :data-id="index"
                             :data-vid="item.vid"
                         >
