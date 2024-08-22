@@ -122,6 +122,10 @@ function Interact:fillIndicator(menuData, percent)
     end
 end
 
+function Interact:indicatorStatus(menuData, status)
+    scaleform.send("interactionMenu:indicatorStatus", status)
+end
+
 local function handleMouseWheel(menuData)
     -- not the best way to do it but it works if we add new options on runtime
     -- HideHudComponentThisFrame(19)
@@ -173,11 +177,13 @@ local function handleKeyPress(menuData)
                 holdStart = nil
                 lastHoldTrigger = currentTime
                 Container.keyPress(menuData)
+                Interact:indicatorStatus(menuData, 'success')
                 Interact:fillIndicator(menuData, 0)
             end
         else
             if holdStart then
                 Util.print_debug("Player stopped holding the key early")
+                Interact:indicatorStatus(menuData, 'fail')
                 Interact:fillIndicator(menuData, 0)
                 holdStart = nil
             end

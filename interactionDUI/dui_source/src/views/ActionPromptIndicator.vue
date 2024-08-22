@@ -8,10 +8,12 @@ const defaultState = {
     content: 'E',
     glow: false,
     onHold: false,
+    status: '',
     fill: 0,
 };
 
 const state = ref(defaultState);
+const timeoutRef = ref<NodeJS.Timeout | null>(null);
 
 const emit = defineEmits<{
     (event: 'setVisible', name: FocusTrackerT, value: boolean): void;
@@ -33,11 +35,24 @@ const handleMenuShow = (data: InteractionMenu): void => {
     }
 };
 
+const handleStatusChange = (status: string) => {
+    const state_ref = state.value;
+
+    if (timeoutRef.value !== null) clearTimeout(timeoutRef.value);
+    state_ref.status = status;
+
+    timeoutRef.value = setTimeout(() => {
+        state_ref.status = '';
+        timeoutRef.value = null;
+    }, 350);
+};
+
 subscribe('interactionMenu:indicatorFill', async (params: any) => {
     state.value.fill = params;
 });
 subscribe('interactionMenu:menu:show', handleMenuShow);
 subscribe('interactionMenu:hideMenu', () => setVisible(false));
+subscribe('interactionMenu:indicatorStatus', handleStatusChange);
 
 // dev stuff
 let intervalId: NodeJS.Timeout | null = null;
@@ -52,12 +67,21 @@ dev_run(() => {
 
 onUnmounted(() => {
     if (intervalId !== null) clearInterval(intervalId);
+    if (timeoutRef.value !== null) clearTimeout(timeoutRef.value);
 });
 </script>
 
 <template>
     <Transition name="fade">
-        <div v-if="focusTracker.indicator" class="indicator" :class="{ 'indicator--glow': state.glow }">
+        <div
+            v-if="focusTracker.indicator"
+            class="indicator"
+            :class="{
+                'indicator--glow': state.glow,
+                'indicator--success': state.status === 'success',
+                'indicator--fail': state.status === 'fail',
+            }"
+        >
             <div class="indicator__text" :class="{ 'indicator__text--mix-blend-mode': state.onHold }">
                 {{ state.content }}
             </div>
@@ -80,7 +104,9 @@ onUnmounted(() => {
     justify-content: center;
     align-content: center;
     flex-wrap: wrap;
-    transition: background-color 0.5s ease;
+    transition:
+        background-color 0.4s ease,
+        border-color 350ms ease;
     overflow: hidden;
 
     &__text {
@@ -101,6 +127,14 @@ onUnmounted(() => {
         background-color: var(--primary-color-glow);
         z-index: 0;
         transition: width 0.1s linear;
+    }
+
+    &--success {
+        border-color: rgb(214, 237, 159) !important;
+    }
+
+    &--fail {
+        border-color: rgb(199, 37, 61) !important;
     }
 
     &--glow {
