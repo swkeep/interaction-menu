@@ -443,24 +443,29 @@ function Container.boneCheck(entity)
     end
 end
 
-local function setId(container, bones, closestBoneName, closestBoneId, model, entity, menuId)
+--- assigns an id to a menu container based on its properties
+---@param container any
+---@param bones any
+---@param closestBoneName any
+---@param closestBoneId any
+---@param model any
+---@param entity any
+---@param menuId any
+---@return nil
+local function assignId(container, bones, closestBoneName, closestBoneId, model, entity, menuId)
     local id
 
     if bones and closestBoneName then
         id = entity .. '|' .. closestBoneId
-        container.id = id
     elseif model and entity then
         id = model .. '|' .. entity
-        container.id = id
     elseif model and not entity then
         id = model
-        container.id = id
     elseif menuId then
         id = menuId
-        container.id = id
     end
 
-    return id
+    container.id = id
 end
 
 local function mergeGlobals(combinedIds, entity, model, closestBoneName)
@@ -540,7 +545,7 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
         end
     end
 
-    id = setId(container, bones, closestBoneName, closestBoneId, model, entity, menuId)
+    assignId(container, bones, closestBoneName, closestBoneId, model, entity, menuId)
 
     return container
 end
