@@ -155,7 +155,7 @@ local function handleKeyPress(menuData)
     local padIndex = (menuData.indicator and menuData.indicator.keyPress) and menuData.indicator.keyPress.padIndex or 0
     local control = (menuData.indicator and menuData.indicator.keyPress) and menuData.indicator.keyPress.control or 38
 
-    if menuData.indicator.hold then
+    if menuData.indicator and menuData.indicator.hold then
         if IsControlPressed(padIndex, control) then
             local currentTime = GetGameTimer()
             if lastHoldTrigger then
