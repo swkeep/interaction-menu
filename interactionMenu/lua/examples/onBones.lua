@@ -12,9 +12,6 @@
 
 if not DEVMODE then return end
 
-local progress = 0
-local Zones = {}
-
 local function toggle_door(vehicle, doorId)
     if GetVehicleDoorAngleRatio(vehicle, doorId) > 0.0 then
         SetVehicleDoorShut(vehicle, doorId, false)
@@ -23,17 +20,6 @@ local function toggle_door(vehicle, doorId)
     end
     Wait(650)
 end
-
-CreateThread(function()
-    while true do
-        progress = progress + 1
-
-        if progress >= 100 then
-            progress = 0
-        end
-        Wait(1000)
-    end
-end)
 
 local function createWheelAction(wheelIndex)
     return function(entity)
@@ -165,7 +151,7 @@ local bones = {
             label = "Engine Status",
             icon = "fas fa-cogs",
             action = function(entity)
-                SetVehicleEngineOn(entity, true, false)
+                SetVehicleEngineOn(entity, true, false, false)
             end
         }
     },
@@ -213,11 +199,6 @@ CreateThread(function()
     SetVehicleNumberPlateText(vehicle, 'swkeep')
 
     for boneName, bone in pairs(bones) do
-        -- for key, value in pairs(bone) do
-        --     if value.label then
-        --         value.label = ('%s (%s)'):format(value.label, veh)
-        --     end
-        -- end
         exports['interactionMenu']:Create {
             bone = boneName,
             vehicle = vehicle,

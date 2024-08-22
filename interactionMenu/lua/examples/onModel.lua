@@ -31,27 +31,21 @@ CreateThread(function()
         options = {
             {
                 label = "Open",
-                action = {
-                    type = 'sync',
-                    func = function(e)
-                        Wait(2000)
-                        TriggerServerEvent("inventory:server:OpenInventory", "stash", 'CRATE1', {
-                            slots = 10,
-                            maxweight = 100000
-                        })
-                    end
-                }
+                action = function(e)
+                    Wait(2000)
+                    TriggerServerEvent("inventory:server:OpenInventory", "stash", 'CRATE1', {
+                        slots = 10,
+                        maxweight = 100000
+                    })
+                end
             },
             {
                 icon = "fas fa-spinner",
                 label = "Spinner",
-                action = {
-                    type = 'sync',
-                    func = function(e)
-                        Wait(1000)
-                        print('HEY')
-                    end
-                }
+                action = function(e)
+                    Wait(1000)
+                    print('HEY')
+                end
             },
             {
                 label = "rgb(50,100,50)",
@@ -78,13 +72,10 @@ CreateThread(function()
                         label = 'rgb(0,0,250)',
                     }
                 },
-                action = {
-                    type = 'sync',
-                    func = function(e)
-                        Wait(2000)
-                        print('HEY')
-                    end
-                }
+                action = function(e)
+                    Wait(2000)
+                    print('HEY')
+                end
             }
         }
     }
@@ -106,13 +97,10 @@ CreateThread(function()
             {
                 label = "[Debug] On adder",
                 icon = 'fa fa-car',
-                action = {
-                    type = 'sync',
-                    func = function(e)
-                        Wait(1000)
-                        print('HEY')
-                    end
-                }
+                action = function(e)
+                    Wait(1000)
+                    print('HEY')
+                end
             }
         }
     }
@@ -137,13 +125,10 @@ CreateThread(function()
         options = {
             {
                 label = "Open Door",
-                action = {
-                    type = 'sync',
-                    func = function(entity)
-                        Wait(1000)
-                        print('HEY')
-                    end
-                }
+                action = function(entity)
+                    Wait(1000)
+                    print('HEY')
+                end
             },
         }
     }
@@ -170,11 +155,9 @@ CreateThread(function()
             {
                 label = 'Job Access: Police',
                 icon = 'fa fa-handcuffs',
-                action = {
-                    func = function()
+                action = function()
 
-                    end
-                }
+                end
             }
         }
     }
@@ -196,10 +179,8 @@ CreateThread(function()
             {
                 label = 'First On Model',
                 icon = 'fa fa-book',
-                action = {
-                    func = function(e)
-                    end
-                }
+                action = function(e)
+                end
             }
         }
     }
@@ -213,10 +194,8 @@ CreateThread(function()
             {
                 label = 'Second On Model',
                 icon = 'fa fa-book',
-                action = {
-                    func = function(e)
-                    end
-                },
+                action = function(e)
+                end
             }
         }
     }
@@ -238,28 +217,25 @@ CreateThread(function()
             {
                 label = 'Second On Model',
                 icon = 'fa fa-book',
-                action = {
-                    func = function(e)
-                    end
-                },
+                action = function(e)
+                end
             }
         }
     }
 
-    -- exports['interactionMenu']:Create {
-    --     type = 'model',
-    --     model = `prop_paper_bag_01`,
-    --     offset = vec3(0, 0, 0),
-    --     maxDistance = 3.0,
-    --     options = {
-    --         {
-    --             label = 'Pick',
-    --             icon = 'fa fa-book',
-    --             action = {
-    --                 func = function(e)
-    --                 end
-    --             },
-    --         }
-    --     }
-    -- }
+    exports['interactionMenu']:Create {
+        type = 'model',
+        model = `prop_paper_bag_01`,
+        offset = vec3(0, 0, 0),
+        maxDistance = 3.0,
+        options = {
+            {
+                label = 'Pick',
+                icon = 'fa fa-book',
+                action = function(e)
+                    DeleteEntity(e)
+                end
+            }
+        }
+    }
 end)

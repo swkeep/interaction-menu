@@ -19,12 +19,9 @@ CreateThread(function()
             {
                 label = 'Just On Player Id: 2',
                 icon = 'fa fa-person',
-                action = {
-                    type = 'sync',
-                    func = function(entity)
-                        print(entity)
-                    end
-                }
+                action = function(entity)
+                    print(entity)
+                end
             }
         }
     }
