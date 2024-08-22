@@ -18,29 +18,24 @@ author "swkeep"
 repository 'https://github.com/swkeep/interaction-menu'
 
 shared_scripts {
-     'config.shared.lua'
+     'config.shared.lua',
 }
 
 client_script {
+     -- '@ox_lib/init.lua',
      '@PolyZone/client.lua',
      '@PolyZone/BoxZone.lua',
-     '@PolyZone/EntityZone.lua',
      '@PolyZone/CircleZone.lua',
      '@PolyZone/ComboZone.lua',
-
-     --
-     -- 'lua/frameworks/qb/client.lua',
-     --
-
      'lua/client/util.lua',
      'lua/client/3dDuiMaker.lua',
      'lua/client/menuContainer.lua',
      'lua/client/interact.lua',
      'lua/client/drawIndicator.lua',
+     'lua/client/garbageCollector.lua',
 
      -- examples / tests
      'lua/examples/*.lua',
-     -- 'lua/examples/test.lua',
 }
 
 server_script {
