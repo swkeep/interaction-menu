@@ -7,8 +7,8 @@ export interface FocusTracker {
 export interface Indicator {
     glow?: boolean;
     underline?: boolean;
-    active?: boolean;
     prompt?: string;
+    hold?: number;
 }
 
 export interface OptionsStyle {

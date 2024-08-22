@@ -81,11 +81,7 @@ end
 function Interact:scaleformUpdate(menuData)
     scaleform.send("interactionMenu:loading:hide")
     scaleform.send("interactionMenu:menu:show", {
-        indicator = {
-            prompt = menuData.indicator and menuData.indicator.prompt,
-            active = menuData.indicator and true or false,
-            glow = menuData.indicator and menuData.indicator.glow and true
-        },
+        indicator = menuData.indicator,
         theme = menuData.theme,
         glow = menuData.glow,
         menus = menuData.menus,

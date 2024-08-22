@@ -4,12 +4,14 @@ import { dev_run, subscribe } from '../util';
 import { FocusTracker, FocusTrackerT, InteractionMenu } from '../types/types';
 
 defineProps<{ focusTracker: FocusTracker }>();
-
-const state = ref({
+const defaultState = {
     content: 'E',
     glow: false,
+    onHold: false,
     fill: 0,
-});
+};
+
+const state = ref(defaultState);
 
 const emit = defineEmits<{
     (event: 'setVisible', name: FocusTrackerT, value: boolean): void;
@@ -20,12 +22,14 @@ const setVisible = (val: boolean) => emit('setVisible', 'indicator', val);
 const handleMenuShow = (data: InteractionMenu): void => {
     const { indicator } = data;
 
-    if (indicator?.active) {
+    if (indicator) {
         state.value.content = indicator.prompt || 'E';
         state.value.glow = !!indicator.glow;
+        state.value.onHold = indicator.hold ? true : false;
         setVisible(true);
     } else {
         setVisible(false);
+        state.value = defaultState;
     }
 };
 
@@ -54,7 +58,7 @@ onUnmounted(() => {
 <template>
     <Transition name="fade">
         <div v-if="focusTracker.indicator" class="indicator" :class="{ 'indicator--glow': state.glow }">
-            <div class="indicator__text indicator__text--mix-blend-mode">
+            <div class="indicator__text" :class="{ 'indicator__text--mix-blend-mode': state.onHold }">
                 {{ state.content }}
             </div>
             <div class="indicator__fill" :style="{ width: state.fill + '%' }"></div>
