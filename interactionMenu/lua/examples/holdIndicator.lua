@@ -24,14 +24,14 @@ CreateThread(function()
         scale = 1,
         -- theme = 'box',
         indicator = {
-            prompt = 'Hold E',
+            prompt = 'Hold Enter',
             hold = 1000,
             -- Enter
-            -- keyPress = {
-            --     -- https://docs.fivem.net/docs/game-references/controls/#controls
-            --     padIndex = 0,
-            --     control = 18
-            -- },
+            keyPress = {
+                -- https://docs.fivem.net/docs/game-references/controls/#controls
+                padIndex = 0,
+                control = 18
+            },
         },
         zone = {
             type = 'boxZone',
