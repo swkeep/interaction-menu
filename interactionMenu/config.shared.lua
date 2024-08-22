@@ -43,3 +43,11 @@ Config.icons = {
     'wrench',
     'vending'
 }
+
+Config.triggerZoneScript = 'PolyZone'
+if GetResourceState('ox_lib') == 'started' then
+    Config.triggerZoneScript = 'ox_lib'
+elseif GetResourceState('PolyZone') == 'started' then
+    Config.triggerZoneScript = 'PolyZone'
+end
+Config.screenBoundaryShape = 'none' -- circle/rectangle/none

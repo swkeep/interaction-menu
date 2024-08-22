@@ -97,17 +97,26 @@ function Util.isPointWithinScreen(screenX, screenY)
     return screenX ~= -1.0 or screenY ~= -1.0
 end
 
--- rectangle probably faster!?
--- local function isPointWithinScreenBounds(screenX, screenY)
---     return isPointWithinScreen(screenX, screenY) and screenX < 0.6 and screenY < 0.6 and screenX > 0.3 and screenY > 0.3
--- end
+local function InitIsPointWithinScreenBounds()
+    local shapeCheckFunctions = {
+        rectangle = function(x, y)
+            return x < 0.6 and y < 0.6 and x > 0.3 and y > 0.3
+        end,
+        circle = function(x, y)
+            local squaredDistance = (x - centerX) ^ 2 + (y - centerY) ^ 2
+            -- return squaredDistance <= radius^2
+            return squaredDistance <= radius
+        end,
+        none = function()
+            return true
+        end
+    }
 
-function Util.isPointWithinScreenBounds(screenX, screenY)
-    return true
-    -- local squaredDistance = (screenX - centerX) ^ 2 + (screenY - centerY) ^ 2
-
-    -- return Util.isPointWithinScreen(screenX, screenY) and squaredDistance <= radius
+    if not Config.screenBoundaryShape then return shapeCheckFunctions.none end
+    return shapeCheckFunctions[Config.screenBoundaryShape] or shapeCheckFunctions.none
 end
+
+Util.isPointWithinScreenBounds = InitIsPointWithinScreenBounds()
 
 function Util.filterVisiblePointsWithinRange(playerPosition, inputPoints)
     local closestPointDistance = 15
