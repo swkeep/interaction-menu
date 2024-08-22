@@ -256,6 +256,9 @@ local function handlePositionBasedInteraction()
         StateManager.set('id', visiblePoints.closest.id)
         StateManager.set('menuType', MenuTypes['ON_POSITION'])
         StateManager.set('playerDistance', visiblePoints.closest.distance)
+    else
+        StateManager.set('id', nil)
+        StateManager.set('menuType', nil)
     end
 end
 
