@@ -1,21 +1,32 @@
 {
-  "name": "keep_interact_dui",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --host --config vite.config.prod.js",
-    "build": "vite build --emptyOutDir --config vite.config.prod.js",
-    "watch": "vite build --watch --emptyOutDir --config vite.config.dev.js",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "vue": "^3.3.12"
-  },
-  "devDependencies": {
-    "@types/node": "^20.10.6",
-    "@vitejs/plugin-vue": "^4.5.2",
-    "sass": "^1.69.5",
-    "vite": "^5.0.10"
-  }
+    "name": "keep_interact_dui",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite --host --config vite.config.prod.js",
+        "build": "vite build --emptyOutDir --config vite.config.prod.js",
+        "watch": "vite build --watch --emptyOutDir --config vite.config.dev.js",
+        "preview": "vite preview",
+        "lint": "eslint --quiet",
+        "fix": "eslint --fix",
+        "format": "prettier .  --write"
+    },
+    "dependencies": {
+        "dompurify": "^3.1.6",
+        "vue": "^3.3.12"
+    },
+    "devDependencies": {
+        "@types/dompurify": "^3.0.5",
+        "@types/node": "^20.15.0",
+        "@vitejs/plugin-vue": "^4.5.2",
+        "eslint": "^9.9.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-plugin-prettier": "^5.2.1",
+        "eslint-plugin-vue": "^9.27.0",
+        "prettier": "^3.3.3",
+        "sass": "^1.69.5",
+        "typescript-eslint": "^8.1.0",
+        "vite": "^5.0.10"
+    }
 }

@@ -26,6 +26,7 @@ CreateThread(function()
         entity = entity,
         offset = vec3(0, 0, 0),
         maxDistance = 2.0,
+        icon = 'vending',
         indicator = {
             prompt   = 'F',
             keyPress = {
@@ -40,10 +41,7 @@ CreateThread(function()
             end,
             onExit = function()
                 print('entity on exit')
-            end,
-            job = {
-                police = { 1, 3, 2 }
-            }
+            end
         },
         options = {
             {
@@ -67,13 +65,10 @@ CreateThread(function()
             {
                 label = 'Using Action',
                 icon = 'fa fa-cogs',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        print('nothing')
-                    end
-                }
-            }
+                action = function(e)
+                    print(e, 'nothing')
+                end
+            },
         }
     }
 
@@ -92,8 +87,8 @@ CreateThread(function()
 
     exports['interactionMenu']:Create {
         suppressGlobals = true,
-        theme = 'red',
         entity = entity,
+        icon = 'vending',
         extra = {
             onSeen = function()
                 print('seen')
@@ -159,12 +154,9 @@ CreateThread(function()
             },
             {
                 label = 'Quit Job',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        print('Quitting current job...')
-                    end
-                }
+                action = function()
+                    print('Quitting current job...')
+                end
             }
         }
 
@@ -174,8 +166,8 @@ CreateThread(function()
 
     exports['interactionMenu']:Create {
         suppressGlobals = true,
-        theme = 'cyan',
         entity = entity,
+        icon = 'vending',
         extra = {
             onExit = function()
                 print('exit')
@@ -226,10 +218,10 @@ CreateThread(function()
 
     exports['interactionMenu']:Create {
         suppressGlobals = true,
-        theme = 'cyan',
         entity = entity,
+        icon = 'vending',
         indicator = {
-            prompt = 'Press Enter',
+            prompt = 'Press E',
             glow = true
         },
         extra = {
@@ -245,12 +237,10 @@ CreateThread(function()
 
     local list = {
         {
-            position = positions[5],
             model = 'p_rail_controller_s',
             options = {}
         },
         {
-            position = positions[6],
             model = 'bkr_prop_fakeid_papercutter',
             options = {
                 {
@@ -259,23 +249,18 @@ CreateThread(function()
             }
         },
         {
-            position = positions[7],
             model = 'bkr_prop_fakeid_papercutter',
             options = {
                 {
                     label = 'Print Random Numbers',
-                    action = {
-                        type = 'sync',
-                        func = function()
-                            print(math.random(0, 100))
-                        end
-                    }
+                    action = function()
+                        print(math.random(0, 100))
+                    end
                 },
 
             }
         },
         {
-            position = positions[8],
             model = 'p_rail_controller_s',
             options = {
                 {
@@ -286,8 +271,8 @@ CreateThread(function()
             }
         },
         {
-            position = positions[9],
             model = 'v_ret_fh_kitchtable',
+            icon = 'stove',
             options = {
                 {
                     video = {
@@ -428,9 +413,10 @@ CreateThread(function()
         },
     }
 
+    local startIndex = 5
     for index, value in ipairs(list) do
-        local e = Util.spawnObject(joaat(value.model), value.position)
-
+        local e = Util.spawnObject(joaat(value.model), positions[startIndex])
+        startIndex = startIndex + 1
         exports['interactionMenu']:Create {
             type = 'entity',
             entity = e,
@@ -457,12 +443,9 @@ CreateThread(function()
         options = {
             {
                 label = 'Delete Door',
-                action = {
-                    type = 'sync',
-                    func = function(data)
-                        DeleteEntity(data.entity)
-                    end
-                }
+                action = function(e)
+                    DeleteEntity(e)
+                end
             }
         }
     }
@@ -472,6 +455,7 @@ CreateThread(function()
     exports['interactionMenu']:Create {
         entity = entity,
         offset = vec3(0, 0, 0.3),
+        icon = 'glowingball',
         extra = {
             onExit = function()
                 print('exit')
@@ -484,20 +468,14 @@ CreateThread(function()
             {
                 label = 'Inspect',
                 icon = 'fas fa-search',
-                action = {
-                    type = 'sync',
-                    func = function(data)
-                    end
-                }
+                action = function(data)
+                end
             },
             {
                 label = 'Dig',
                 icon = 'fas fa-search',
-                action = {
-                    type = 'sync',
-                    func = function(data)
-                    end
-                }
+                action = function(data)
+                end
             },
         }
     }
@@ -520,6 +498,7 @@ CreateThread(function()
     exports['interactionMenu']:Create {
         entity = entity,
         offset = vec3(0, 0, 0),
+        icon = 'box',
         extra = {
             onExit = function()
                 print('exit')
@@ -531,39 +510,36 @@ CreateThread(function()
         options = {
             {
                 label = 'Pickup',
-                action = {
-                    type = 'sync',
-                    func = function(data)
-                        local playerPed = PlayerPedId()
+                action = function(data)
+                    local playerPed = PlayerPedId()
 
-                        if not carryingBox then
-                            local boneIndex = GetPedBoneIndex(playerPed, 28422)
-                            AttachEntityToEntity(entity, playerPed, boneIndex, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true,
-                                true, false, true, 1, true)
+                    if not carryingBox then
+                        local boneIndex = GetPedBoneIndex(playerPed, 28422)
+                        AttachEntityToEntity(entity, playerPed, boneIndex, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true,
+                            true, false, true, 1, true)
 
-                            carryingBox = true
-                            attachedBox = entity
+                        carryingBox = true
+                        attachedBox = entity
 
-                            RequestAnimDict("anim@heists@box_carry@")
-                            while not HasAnimDictLoaded("anim@heists@box_carry@") do
-                                Wait(50)
-                            end
-
-                            TaskPlayAnim(playerPed, "anim@heists@box_carry@", "idle", 8.0, -8.0, -1, 1, 0, false, false,
-                                false)
-
-                            Wait(2000)
-                            -- Detach the box from the player
-                            DetachEntity(attachedBox, true, true)
-                            SetEntityCoords(entity, p.x, p.y, p.z, false, false, false, false)
-
-                            carryingBox = false
-                            attachedBox = nil
-
-                            ClearPedTasks(playerPed)
+                        RequestAnimDict("anim@heists@box_carry@")
+                        while not HasAnimDictLoaded("anim@heists@box_carry@") do
+                            Wait(50)
                         end
+
+                        TaskPlayAnim(playerPed, "anim@heists@box_carry@", "idle", 8.0, -8.0, -1, 1, 0, false, false,
+                            false)
+
+                        Wait(2000)
+                        -- Detach the box from the player
+                        DetachEntity(attachedBox, true, true)
+                        SetEntityCoords(entity, p.x, p.y, p.z, false, false, false, false)
+
+                        carryingBox = false
+                        attachedBox = nil
+
+                        ClearPedTasks(playerPed)
                     end
-                }
+                end
             }
         }
     }
@@ -658,17 +634,14 @@ CreateThread(function()
             {
                 label = 'Using Action',
                 icon = 'fa fa-cogs',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        local position = vector4(-1996.36, 3165.28, 31.81, 150.71)
-                        local ent      = Util.spawnObject('m23_1_prop_m31_ghostzombie_01a', position)
+                action = function()
+                    local position = vector4(-1996.36, 3165.28, 31.81, 150.71)
+                    local ent      = Util.spawnObject('m23_1_prop_m31_ghostzombie_01a', position)
 
-                        SetTimeout(2000, function()
-                            DeleteEntity(ent)
-                        end)
-                    end
-                }
+                    SetTimeout(2000, function()
+                        DeleteEntity(ent)
+                    end)
+                end
             }
         }
     }
@@ -680,15 +653,13 @@ CreateThread(function()
         entity = ent,
         offset = vec3(0, 0, 0),
         static = true,
+        icon = "stove2",
         options = {
             {
                 label = 'Cook',
-                action = {
-                    type = 'sync',
-                    func = function(data)
+                action = function(data)
 
-                    end
-                }
+                end
             }
         }
     }
@@ -701,12 +672,9 @@ CreateThread(function()
         options = {
             {
                 label = 'Disabled After 4 Seconds',
-                action = {
-                    type = 'sync',
-                    func = function(data)
+                action = function(data)
 
-                    end
-                }
+                end
             }
         }
     }

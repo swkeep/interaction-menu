@@ -17,17 +17,44 @@ local txnName                = "interaction_txn"  -- texture name
 local SetDrawOrigin          = SetDrawOrigin
 local DrawSprite             = DrawSprite
 local ClearDrawOrigin        = ClearDrawOrigin
+local GetEntityCoords        = GetEntityCoords
+local Wait                   = Wait
 local math_rad               = math.rad
 local math_sin               = math.sin
 local math_cos               = math.cos
+local localRender
+local calculateWorldPosition
 
+local previousPosition       = vec3(0, 0, 0)
+local tracking_interval      = 0
 local scalex, scaley, scalez = 0.07, 0.04, 1
-local rederingIsActive       = false
+local renderingIsActive      = false
+local cachedSx, cachedSy, cachedSz
 
 DUI                          = {
     scaleform = nil,
     status = 1
 }
+
+local function render_sprite(scaleform)
+    -- DrawInteractiveSprite(txdName, txnName, 0.5, 0.5, 0.21, 0.55, 0.0, 255, 255, 255, 255)
+    -- DrawSprite(txdName, txnName, 0.5, 0.5, 0.21, 0.55, 0.0, 255, 255, 255, 255) --draw in middle of screen
+    SetDrawOrigin(scaleform.position.x, scaleform.position.y, scaleform.position.z, 0)
+    DrawSprite(txdName, txnName, 0.0, 0.0, 0.21, 0.55, 0.0, 255, 255, 255, 255)
+    ClearDrawOrigin()
+end
+
+local function cache3dScale(scale)
+    cachedSx = scalex * (scale or 1)
+    cachedSy = scaley * (scale or 1)
+    cachedSz = scalez * (scale or 1)
+end
+
+local function render_3d(scaleform)
+    DrawScaleformMovie_3dSolid(scaleform.sfHandle, scaleform.position.x, scaleform.position.y,
+        scaleform.position.z + 1, scaleform.rotation.x, scaleform.rotation.y, scaleform.rotation.z, 2.0, 2.0, 1.0,
+        cachedSx, cachedSy, cachedSz, 2)
+end
 
 local function loadScaleform(scaleformName, timeout)
     local scaleformHandle = RequestScaleformMovie(scaleformName)
@@ -87,10 +114,24 @@ end
 
 local function setScale(value)
     DUI.scaleform['scale'] = value
+    cache3dScale(value)
 end
 
 local function setStatus(status)
-    rederingIsActive = status
+    local ref = DUI.scaleform.attached
+    if status then
+        localRender = render_sprite
+        if DUI.scaleform['3d'] then
+            localRender = render_3d
+        end
+    else
+        localRender = nil
+    end
+
+    if ref and status == true then
+        calculateWorldPosition(ref)
+    end
+    renderingIsActive = status
 end
 
 local function attach(t)
@@ -170,22 +211,8 @@ end
 
 function DUI.Render()
     local scaleform = DUI.scaleform
-    if not scaleform then return end
-
-    if not scaleform['3d'] then
-        SetDrawOrigin(scaleform.position.x, scaleform.position.y, scaleform.position.z, 0)
-        DrawSprite(txdName, txnName, 0.0, 0.0, 0.21, 0.55, 0.0, 255, 255, 255, 255)
-        ClearDrawOrigin()
-    else
-        -- #TODO: we should calculate these once
-        local sx = scalex * (scaleform.scale or 1)
-        local sy = scaley * (scaleform.scale or 1)
-        local sz = scalez * (scaleform.scale or 1)
-
-        DrawScaleformMovie_3dSolid(scaleform.sfHandle, scaleform.position.x, scaleform.position.y,
-            scaleform.position.z + 1, scaleform.rotation.x, scaleform.rotation.y, scaleform.rotation.z, 2.0, 2.0, 1.0,
-            sx, sy,
-            sz, 2)
+    if scaleform and localRender then
+        localRender(scaleform)
     end
 end
 
@@ -207,39 +234,52 @@ local function getRotatedOffset(rotation, offset)
     return x, y, offset.z
 end
 
-local function calculateWorldPosition(ref)
+local function calculatePosition(entity, offset)
+    local eRotation = GetEntityHeading(entity)
+    local ro_x, ro_y, ro_z = getRotatedOffset(eRotation, offset)
+    local currentPosition = GetEntityCoords(entity)
+    local pos = vector3(currentPosition.x + ro_x, currentPosition.y + ro_y, currentPosition.z + ro_z)
+    setPosition(pos)
+    return pos
+end
+
+calculateWorldPosition = function(ref)
     if not DoesEntityExist(ref.entity) then
-        rederingIsActive = false
+        renderingIsActive = false
         return
     end
 
     local entity = ref.entity
     local offset = ref.offset
 
+    local currentPosition = GetEntityCoords(entity)
+
+    -- Detect if the entity is static and set dynamic interval
+    if previousPosition == vec3(0, 0, 0) then
+        previousPosition = currentPosition
+    elseif currentPosition == previousPosition then
+        ref.static = true
+        tracking_interval = 500
+    else
+        ref.static = false
+        previousPosition = currentPosition
+        tracking_interval = 0
+    end
+
+    -- If the entity is static and position not calculated yet -> update the position
     if ref.static and not ref.positionCalculated then
-        local ePos, eRotation = GetEntityCoords(entity), GetEntityHeading(entity)
-
-        local ro_x, ro_y, ro_z = getRotatedOffset(eRotation, offset)
-        local pos = vec3(ePos.x + offset.x, ePos.y + offset.y, ePos.z + offset.z)
-        pos = vector3(ePos.x + ro_x, ePos.y + ro_y, ePos.z + ro_z)
-        setPosition(pos)
-
+        local pos = calculatePosition(entity, offset)
         ref.positionCalculated = pos
     end
 
-    if ref.static then
-        return
-    elseif ref.bone then
-        local bonePos = GetWorldPositionOfEntityBone(entity, ref.bone)
-
-        setPosition(bonePos)
-    else
-        local ePos, eRotation = GetEntityCoords(entity), GetEntityHeading(entity)
-
-        local ro_x, ro_y, ro_z = getRotatedOffset(eRotation, offset)
-        local pos = vec3(ePos.x + offset.x, ePos.y + offset.y, ePos.z + offset.z)
-        pos = vector3(ePos.x + ro_x, ePos.y + ro_y, ePos.z + ro_z)
-        setPosition(pos)
+    -- If the entity is not static -> update the position
+    if not ref.static then
+        if ref.bone then
+            local bonePos = GetWorldPositionOfEntityBone(entity, ref.bone)
+            setPosition(bonePos)
+        else
+            calculatePosition(entity, offset)
+        end
     end
 end
 
@@ -252,21 +292,21 @@ CreateThread(function()
     CreateThread(function()
         local ref = DUI.scaleform.attached
         while true do
-            if rederingIsActive and ref.entity then
+            if renderingIsActive and ref.entity then
                 calculateWorldPosition(ref)
-                Wait(30)
+                Wait(tracking_interval)
             else
-                Wait(350)
+                Wait(500)
             end
         end
     end)
 
     while true do
-        if rederingIsActive then
+        if renderingIsActive then
             render()
             Wait(0)
         else
-            Wait(350)
+            Wait(500)
         end
     end
 end)

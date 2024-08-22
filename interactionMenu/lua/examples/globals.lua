@@ -8,12 +8,9 @@ exports['interactionMenu']:createGlobal {
         {
             label = '[Debug] On All Entities',
             icon = 'fa fa-bug',
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    print(entity)
-                end
-            }
+            action = function(entity)
+                print(entity)
+            end
         }
     }
 }
@@ -26,12 +23,9 @@ exports['interactionMenu']:createGlobal {
         {
             label = '[Debug] On All Peds',
             icon = 'fa fa-person',
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    print(entity)
-                end
-            }
+            action = function(entity)
+                print(entity)
+            end
         }
     }
 }
@@ -44,12 +38,9 @@ exports['interactionMenu']:createGlobal {
         {
             label = '[Debug] On All Vehicles',
             icon = 'fa fa-car',
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    print(entity)
-                end
-            }
+            action = function(entity)
+                print(entity)
+            end
         }
     }
 }
@@ -63,16 +54,12 @@ exports['interactionMenu']:createGlobal {
         {
             label = '[Debug] On All plates',
             icon = 'fa fa-rectangle-ad',
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    print('Plate:', GetVehicleNumberPlateText(entity))
-                end
-            }
+            action = function(entity)
+                print('Plate:', GetVehicleNumberPlateText(entity))
+            end
         }
     }
 }
-
 
 exports['interactionMenu']:createGlobal {
     type = 'players',
@@ -82,27 +69,22 @@ exports['interactionMenu']:createGlobal {
         {
             label = '[Debug] On All Players',
             icon = 'fa fa-person',
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    print(entity)
-                    -- TriggerServerEvent('interaction-menu:server:syncAnimation', player.serverId)
-                end
-            }
+            action = function(entity)
+                print(entity)
+            end
         }
     }
 }
 
-local function playAnimation(ped, dict, name)
-    RequestAnimDict(dict)
-    while not HasAnimDictLoaded(dict) do
-        Wait(50)
-    end
-    TaskPlayAnim(ped, dict, name, 8.0, -8.0, -1, 0, 0, false, false, false)
-end
-
-RegisterNetEvent('interaction-menu:client:syncAnimation', function()
-    playAnimation(PlayerPedId(), "random@mugging3", "handsup_standing_base")
-    Wait(4000)
-    ClearPedTasks(PlayerPedId())
-end)
+exports['interactionMenu']:createGlobal {
+    type = 'zones',
+    options = {
+        {
+            label = '[Debug] On All Zones',
+            icon = 'fa fa-person',
+            action = function(data)
+                Util.print_table(data)
+            end
+        }
+    }
+}

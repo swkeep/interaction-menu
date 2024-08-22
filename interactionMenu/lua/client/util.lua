@@ -97,16 +97,26 @@ function Util.isPointWithinScreen(screenX, screenY)
     return screenX ~= -1.0 or screenY ~= -1.0
 end
 
--- rectangle probably faster!?
--- local function isPointWithinScreenBounds(screenX, screenY)
---     return isPointWithinScreen(screenX, screenY) and screenX < 0.6 and screenY < 0.6 and screenX > 0.3 and screenY > 0.3
--- end
+local function InitIsPointWithinScreenBounds()
+    local shapeCheckFunctions = {
+        rectangle = function(x, y)
+            return x < 0.6 and y < 0.6 and x > 0.3 and y > 0.3
+        end,
+        circle = function(x, y)
+            local squaredDistance = (x - centerX) ^ 2 + (y - centerY) ^ 2
+            -- return squaredDistance <= radius^2
+            return squaredDistance <= radius
+        end,
+        none = function()
+            return true
+        end
+    }
 
-function Util.isPointWithinScreenBounds(screenX, screenY)
-    local squaredDistance = (screenX - centerX) ^ 2 + (screenY - centerY) ^ 2
-
-    return Util.isPointWithinScreen(screenX, screenY) and squaredDistance <= radius
+    if not Config.screenBoundaryShape then return shapeCheckFunctions.none end
+    return shapeCheckFunctions[Config.screenBoundaryShape] or shapeCheckFunctions.none
 end
+
+Util.isPointWithinScreenBounds = InitIsPointWithinScreenBounds()
 
 function Util.filterVisiblePointsWithinRange(playerPosition, inputPoints)
     local closestPointDistance = 15
@@ -325,6 +335,10 @@ function SpatialHashGrid:queryRange(position, rangeRadius)
     return results, #results
 end
 
+function SpatialHashGrid:get(name)
+    return self.data[name]
+end
+
 Util.SpatialHashGrid = SpatialHashGrid
 
 -- #region PersistentData
@@ -424,7 +438,7 @@ function Util.createUniqueId(table, len)
         uniqueId = randomId(len)
     end
 
-    return uniqueId
+    return GetGameTimer() .. uniqueId
 end
 
 --- Checks the job data
@@ -511,6 +525,173 @@ function Util.spawnPed(hash, pos)
 
     return object[id]
 end
+
+-- validation zone data (it still needs more work it wrote it for PolyZone only ox have some differences)
+local function validateZoneData(o)
+    if type(o) ~= "table" then
+        error("Zone data must be a table")
+    end
+
+    -- common
+    assert(type(o.type) == "string", "Zone type must be a string")
+
+    -- validate position
+    if o.position then
+        local t = type(o.position)
+        if not (t == 'vector3' or t == 'vector4') then
+            assert(type(o.position) == "table" and o.position.x and o.position.y and o.position.z,
+                "Position must be a table with x, y, z coordinates")
+            assert(type(o.position.x) == "number" and type(o.position.y) == "number" and type(o.position.z) == "number",
+                "Position coordinates must be numbers")
+        end
+    end
+
+    -- type things
+    if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
+        assert(type(o.radius) == "number", "Radius must be a number")
+    elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+        assert(type(o.length) == "number", "Length must be a number")
+        assert(type(o.width) == "number", "Width must be a number")
+        assert(o.heading == nil or type(o.heading) == "number", "Heading must be a number if provided")
+        assert(o.minZ == nil or type(o.minZ) == "number", "minZ must be a number if provided")
+        assert(o.maxZ == nil or type(o.maxZ) == "number", "maxZ must be a number if provided")
+    elseif o.type == 'polyZone' or o.type == 'poly' then
+        assert(type(o.points) == "table", "Points must be a table of coordinates")
+        for _, point in ipairs(o.points) do
+            assert(type(point.x) == "number" and type(point.y) == "number" and type(point.z) == "number",
+                "Each point must have numeric x, y, z coordinates")
+        end
+    elseif o.type == 'comboZone' or o.type == 'combo' then
+        assert(type(o.zones) == "table", "Zones must be a table of zone definitions")
+        for _, zoneData in ipairs(o.zones) do
+            validateZoneData(zoneData) -- recursive
+        end
+    else
+        error("Unsupported zone type: " .. tostring(o.type))
+    end
+end
+
+local onPlayerIn = function(name)
+    TriggerEvent('interactionMenu:zoneTracker', name, true)
+end
+
+local onPlayerOut = function(name)
+    TriggerEvent('interactionMenu:zoneTracker', name, false)
+end
+
+local function InitAddZone()
+    -- auto detect
+    if GetResourceState('ox_lib') == 'started' and lib then
+        Config.triggerZoneScript = 'ox_lib'
+    elseif GetResourceState('PolyZone') == 'started' then
+        Config.triggerZoneScript = 'PolyZone'
+    end
+
+    local zoneFunctions = {
+        ox_lib = function(o)
+            assert(lib, "ox_lib is not loaded. Uncomment '-- @ox_lib/init.lua' in fxmanifest.lua")
+            validateZoneData(o)
+
+            local z
+            if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
+                z = lib.zones.sphere({
+                    coords = vec3(o.position.x, o.position.y, o.position.z),
+                    radius = o.radius or 2,
+                    debug = o.debugPoly,
+                    inside = o.inside,
+                })
+            elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+                z = lib.zones.box({
+                    coords = vec3(o.position.x, o.position.y, o.position.z),
+                    size = o.size or vec3(o.length, o.width, o.maxZ - o.minZ),
+                    rotation = o.heading or 0,
+                    debug = o.debugPoly,
+                    inside = o.inside,
+                })
+            elseif o.type == 'polyZone' or o.type == 'poly' then
+                z = lib.zones.poly({
+                    points = o.points,
+                    thickness = o.thickness or 4,
+                    debug = o.debugPoly,
+                    inside = o.inside,
+                })
+            elseif o.type == 'comboZone' or o.type == 'combo' then
+                warn("Unsupported zone type with ox_lib: " .. tostring(o.type))
+            else
+                error("Unsupported zone type: " .. tostring(o.type))
+            end
+            if z then
+                z.onEnter = function() onPlayerIn(o.name) end
+                z.onExit = function() onPlayerOut(o.name) end
+            end
+            return z
+        end,
+        PolyZone = function(o)
+            validateZoneData(o)
+            local z
+            -- Using PolyZone for zone creation
+            if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
+                assert(CircleZone,
+                    "PolyZone CircleZone is not loaded. Uncomment '@PolyZone/CircleZone.lua' in fxmanifest.lua")
+                z = CircleZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.radius or 1.0, {
+                    name = o.name,
+                    debugPoly = o.debugPoly,
+                    useZ = o.useZ or false,
+                })
+            elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+                assert(BoxZone,
+                    "PolyZone BoxZone is not loaded. Uncomment '@PolyZone/BoxZone.lua' in fxmanifest.lua")
+                z = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
+                    name = o.name,
+                    heading = o.heading,
+                    debugPoly = o.debugPoly,
+                    minZ = o.minZ,
+                    maxZ = o.maxZ,
+                })
+            elseif o.type == 'polyZone' or o.type == 'poly' then
+                assert(PolyZone,
+                    "PolyZone is not loaded. Uncomment '@PolyZone/client.lua' in fxmanifest.lua")
+                z = PolyZone:Create(o.points, {
+                    name = o.name,
+                    minZ = o.minZ,
+                    maxZ = o.maxZ,
+                    debugPoly = o.debugPoly,
+                })
+            elseif o.type == 'comboZone' or o.type == 'combo' then
+                assert(ComboZone,
+                    "PolyZone ComboZone is not loaded. Uncomment '@PolyZone/ComboZone.lua' in fxmanifest.lua")
+                local zones = {}
+                for _, zoneData in ipairs(o.zones) do
+                    if zoneData.type ~= 'comboZone' then
+                        table.insert(zones, Util.addZone(zoneData))
+                    end
+                end
+                z = ComboZone:Create(zones, {
+                    name = o.name,
+                    debugPoly = o.debugPoly,
+                })
+            else
+                error("Unsupported zone type: " .. tostring(o.type))
+            end
+
+            if z then
+                z:onPlayerInOut(function(isPointInside)
+                    if isPointInside then
+                        onPlayerIn(o.name)
+                    else
+                        onPlayerOut(o.name)
+                    end
+                end)
+            end
+            return z
+        end,
+        none = function() return end
+    }
+
+    return zoneFunctions[Config.triggerZoneScript]
+end
+
+Util.addZone = InitAddZone()
 
 -- #endregion
 

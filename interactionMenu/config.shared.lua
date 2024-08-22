@@ -10,7 +10,6 @@
 
 Config = {}
 
-Config.framework = 'qb'
 Config.devMode = true
 
 Config.interactionAudio = {
@@ -24,7 +23,26 @@ Config.interactionAudio = {
     }
 }
 
+Config.intervals = {
+    detection = 500
+}
+
 Config.features = {
     positionCorrection = true,
-    time_based_theme_switch = true
+    timeBasedTheme = true,
+    drawIndicator = {
+        active = true
+    }
 }
+
+Config.icons = {
+    'stove',
+    'stove2',
+    'glowingball',
+    'box',
+    'wrench',
+    'vending'
+}
+
+Config.triggerZoneScript = 'PolyZone' -- ox_lib/PolyZone
+Config.screenBoundaryShape = 'none'   -- circle/rectangle/none

@@ -25,13 +25,10 @@ CreateThread(function()
             options[#options + 1] = {
                 icon   = "fas fa-sign-in-alt",
                 label  = randomName,
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(5000)
-                        print(randomName)
-                    end
-                }
+                action = function()
+                    Wait(5000)
+                    print(randomName)
+                end
             }
         end
 
@@ -151,13 +148,10 @@ CreateThread(function()
             {
                 label = 'Delete All Vehicles',
                 icon = 'fas fa-trash-alt',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(1000)
-                        DeleteAllSpawnedVehicles()
-                    end
-                },
+                action = function()
+                    Wait(1000)
+                    DeleteAllSpawnedVehicles()
+                end,
                 canInteract = function()
                     return toggle
                 end
@@ -165,24 +159,18 @@ CreateThread(function()
             {
                 label = 'Vehicles Toward Center',
                 icon = 'fas fa-long-arrow-alt-up',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(1000)
-                        buildSpawnPoints(true)
-                    end
-                }
+                action = function()
+                    Wait(1000)
+                    buildSpawnPoints(true)
+                end
             },
             {
                 label = 'Vehicles Outward from Center',
                 icon = 'fas fa-long-arrow-alt-down',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(1000)
-                        buildSpawnPoints(false)
-                    end
-                }
+                action = function()
+                    Wait(1000)
+                    buildSpawnPoints(false)
+                end
             }
         }
     }
@@ -190,66 +178,55 @@ CreateThread(function()
     local id = exports['interactionMenu']:Create {
         type = 'position',
         position = vec3(controlPoint.x, controlPoint.y, controlPoint.z),
-        maxDistance = 2.0,
+        -- maxDistance = 2.0,
         options = {
-            {
-                video = {
-                    url = 'http://127.0.0.1:8080/AMV The Garden of Words Stay.mp4',
-                    loop = true,
-                    autoplay = true,
-                    volume = 0.1
-                }
-            },
+            -- {
+            --     video = {
+            --         url = 'http://127.0.0.1:8080/AMV The Garden of Words Stay.mp4',
+            --         loop = true,
+            --         autoplay = true,
+            --         volume = 0.1
+            --     }
+            -- },
             {
                 label = 'Spawn Vehicles',
                 icon = 'fas fa-car',
                 canInteract = function()
                     return toggle
                 end,
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(500)
-                        SpawnVehiclesAtAllPoints()
-                    end
-                }
+                action = function()
+                    Wait(500)
+                    SpawnVehiclesAtAllPoints()
+                end
             },
             {
                 label = 'Delete All Vehicles',
                 icon = 'fas fa-trash-alt',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(1000)
-                        DeleteAllSpawnedVehicles()
-                    end
-                }
+                action = function()
+                    Wait(1000)
+                    DeleteAllSpawnedVehicles()
+                end
             },
             {
                 label = 'Vehicles Toward Center',
                 icon = 'fas fa-long-arrow-alt-up',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(1000)
-                        buildSpawnPoints(true)
-                    end
-                }
+                action = function()
+                    Wait(1000)
+                    buildSpawnPoints(true)
+                end
             },
             {
                 label = 'Vehicles Outward from Center',
                 icon = 'fas fa-long-arrow-alt-down',
-                action = {
-                    type = 'sync',
-                    func = function()
-                        Wait(1000)
-                        buildSpawnPoints(false)
-                    end
-                }
+                action = function()
+                    Wait(1000)
+                    buildSpawnPoints(false)
+                end
             },
         }
     }
 
+    -- move position of menu to another place
     SetTimeout(2000, function()
         exports['interactionMenu']:set {
             menuId = id,
@@ -257,8 +234,4 @@ CreateThread(function()
             value = vector4(-1981.69, 3188.51, 32.81, 111.91)
         }
     end)
-
-    -- SetTimeout(6000, function()
-    --     exports['interactionMenu']:remove(id)
-    -- end)
 end)

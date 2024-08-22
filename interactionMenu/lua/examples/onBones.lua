@@ -12,9 +12,6 @@
 
 if not DEVMODE then return end
 
-local progress = 0
-local Zones = {}
-
 local function toggle_door(vehicle, doorId)
     if GetVehicleDoorAngleRatio(vehicle, doorId) > 0.0 then
         SetVehicleDoorShut(vehicle, doorId, false)
@@ -24,24 +21,10 @@ local function toggle_door(vehicle, doorId)
     Wait(650)
 end
 
-CreateThread(function()
-    while true do
-        progress = progress + 1
-
-        if progress >= 100 then
-            progress = 0
-        end
-        Wait(1000)
-    end
-end)
-
 local function createWheelAction(wheelIndex)
-    return {
-        type = 'sync',
-        func = function(data)
-            SetVehicleTyreBurst(data.entity, wheelIndex, true, 1000.0)
-        end
-    }
+    return function(entity)
+        SetVehicleTyreBurst(entity, wheelIndex, true, 1000.0)
+    end
 end
 
 local bones = {
@@ -49,14 +32,11 @@ local bones = {
         {
             label = "Switch Plate",
             icon = "fas fa-toggle-on",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    Wait(1000)
-                    SetVehicleNumberPlateText(data.entity, 'swkeep' .. math.random(0, 9))
-                    Wait(500)
-                end
-            },
+            action = function(entity)
+                Wait(1000)
+                SetVehicleNumberPlateText(entity, 'swkeep' .. math.random(0, 9))
+                Wait(500)
+            end
         },
     },
 
@@ -93,21 +73,15 @@ local bones = {
         {
             label = "Driver Seat",
             icon = "fas fa-user",
-            action = {
-                type = 'sync',
-                func = function(e)
-                end
-            }
+            action = function(e)
+            end
         },
         {
             label = "Passenger Seat",
             icon = "fas fa-user",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    TaskEnterVehicle(PlayerPedId(), data.entity, 2000, 0, 2.0, 1, 0)
-                end
-            }
+            action = function(entity)
+                TaskEnterVehicle(PlayerPedId(), entity, 2000, 0, 2.0, 1, 0)
+            end
         },
     },
 
@@ -115,22 +89,16 @@ local bones = {
         {
             label = "Passenger Seat",
             icon = "fas fa-user",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    TaskEnterVehicle(PlayerPedId(), data.entity, 2000, 0, 2.0, 1, 0)
-                end
-            }
+            action = function(entity)
+                TaskEnterVehicle(PlayerPedId(), entity, 2000, 0, 2.0, 1, 0)
+            end
         },
         {
             label = "Driver Seat",
             icon = "fas fa-user",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    TaskEnterVehicle(PlayerPedId(), data.entity, 2000, -1, 1.0, 16, 0)
-                end
-            }
+            action = function(entity)
+                TaskEnterVehicle(PlayerPedId(), entity, 2000, -1, 1.0, 16, 0)
+            end
         },
     },
 
@@ -138,12 +106,9 @@ local bones = {
         {
             label = "Front Left Door",
             icon = "fas fa-door-open",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    toggle_door(data.entity, 0)
-                end
-            }
+            action = function(entity)
+                toggle_door(entity, 0)
+            end
         },
     },
 
@@ -151,12 +116,9 @@ local bones = {
         {
             label = "Front Left Window",
             icon = "fas fa-window-close",
-            action = {
-                type = 'sync',
-                func = function(data)
-                    toggle_door(data.entity, 0)
-                end
-            }
+            action = function(entity)
+                toggle_door(entity, 0)
+            end
         }
     },
 
@@ -170,11 +132,9 @@ local bones = {
                 value = 30,
                 percent = true
             },
-            bind = {
-                func = function(entity)
-                    return GetVehicleEngineHealth(entity) / 10
-                end
-            }
+            bind = function(entity)
+                return GetVehicleEngineHealth(entity) / 10
+            end
         },
         {
             label = "Body Health",
@@ -183,21 +143,16 @@ local bones = {
                 type = "info",
                 value = 70
             },
-            bind = {
-                func = function(entity)
-                    return GetVehicleBodyHealth(entity) / 10
-                end
-            }
+            bind = function(entity)
+                return GetVehicleBodyHealth(entity) / 10
+            end
         },
         {
             label = "Engine Status",
             icon = "fas fa-cogs",
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    SetVehicleEngineOn(entity, true, false)
-                end
-            }
+            action = function(entity)
+                SetVehicleEngineOn(entity, true, false, false)
+            end
         }
     },
 
@@ -205,12 +160,9 @@ local bones = {
         {
             label = "Hood",
             icon = "fas fa-car",
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    toggle_door(entity, 4)
-                end
-            }
+            action = function(entity)
+                toggle_door(entity, 4)
+            end
         }
     },
 
@@ -218,23 +170,17 @@ local bones = {
         {
             label = "Exhaust",
             icon = "fas fa-smog",
-            action = {
-                type = 'sync',
-                func = function()
-                end
-            }
+            action = function()
+            end
         }
     },
 
     boot    = {
         {
             label = "Trunk",
-            action = {
-                type = 'sync',
-                func = function(entity)
-                    toggle_door(entity, 5)
-                end
-            }
+            action = function(entity)
+                toggle_door(entity, 5)
+            end
         }
     },
 }
@@ -253,11 +199,6 @@ CreateThread(function()
     SetVehicleNumberPlateText(vehicle, 'swkeep')
 
     for boneName, bone in pairs(bones) do
-        -- for key, value in pairs(bone) do
-        --     if value.label then
-        --         value.label = ('%s (%s)'):format(value.label, veh)
-        --     end
-        -- end
         exports['interactionMenu']:Create {
             bone = boneName,
             vehicle = vehicle,

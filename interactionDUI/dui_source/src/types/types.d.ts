@@ -1,14 +1,14 @@
+export type FocusTrackerT = 'indicator' | 'menu';
 export interface FocusTracker {
     indicator: boolean;
     menu: boolean;
-    loading: boolean;
 }
 
 export interface Indicator {
     glow?: boolean;
     underline?: boolean;
-    active?: boolean;
     prompt?: string;
+    hold?: number;
 }
 
 export interface OptionsStyle {
@@ -23,7 +23,7 @@ export interface OptionsStyle {
     };
 }
 
-interface Video {
+interface VideoData {
     url: string;
     currentTime?: number;
     autoplay?: boolean;
@@ -35,10 +35,42 @@ interface Video {
     opacity?: number;
 }
 
+export interface AudioData {
+    url: string;
+    currentTime?: number;
+    autoplay?: boolean;
+    loop?: boolean;
+    volume?: number;
+    progress?: boolean;
+    percent?: boolean;
+    timecycle?: boolean;
+}
+
 type BorderType = 'dash' | 'solid' | 'double' | 'none' | null | undefined;
+
+declare enum TransitionType {
+    LEFT = 'slide-left',
+    UP = 'slide-up',
+    RIGHT = 'slide-right',
+    DOWN = 'slide-down',
+}
+
+export interface Filters {
+    brightness?: number; // percentage 0-100
+    contrast?: number; // percentage 0-100
+    saturation?: number; // percentage 0-100
+    hue?: number; // degrees
+    blur?: number; // pixels
+    grayscale?: number; // percentage 0-100
+    sepia?: number; // percentage 0-100
+    invert?: number; // percentage 0-100
+}
 
 interface Picture {
     url: string;
+    interval?: number;
+    filters?: Filters;
+    transition?: TransitionType;
     opacity?: number;
     width?: number;
     height?: number;
@@ -58,6 +90,7 @@ interface OptionFlags {
     disable: boolean;
     dynamic?: boolean;
     hide: boolean;
+    canInteract: boolean;
 }
 
 export interface Option {
@@ -66,16 +99,18 @@ export interface Option {
     label: string;
     description: string;
     icon: string;
-    video?: Video;
+    video?: VideoData;
+    audio?: AudioData;
     picture?: Picture;
     style?: OptionsStyle;
     progress?: Progress;
     flags: OptionFlags;
+    checked?: boolean;
 }
 
 export interface Menu {
     id: string | number;
-    options: Option[];
+    options: { [key: string]: Option };
     selected: Array<boolean>;
     flags: OptionFlags;
 }

@@ -16,9 +16,6 @@ MenuTypes = Util.ENUM {
 }
 
 local Wait = Wait
-local SetDrawOrigin = SetDrawOrigin
-local DrawSprite = DrawSprite
-local ClearDrawOrigin = ClearDrawOrigin
 local PlayerPedId = PlayerPedId
 local GetEntityCoords = GetEntityCoords
 local SetScriptGfxDrawBehindPausemenu = SetScriptGfxDrawBehindPausemenu
@@ -29,16 +26,12 @@ local pause = false
 local scaleform_initialized = false
 local scaleform
 local SpatialHashGrid = Util.SpatialHashGrid
-
-local grid_zone = SpatialHashGrid:new('zone', 100)
+--
+local closestZoneId
 local grid_position = SpatialHashGrid:new('position', 100)
 
 local visiblePoints = {}
-local visiblePointCount = 0
 -- Render
-local isTargetSpritesActive = false
-local isSpriteThreadRunning = false
-local PersistentData = Util.PersistentData()
 local StateManager = Util.StateManager()
 
 local Render = {}
@@ -79,31 +72,21 @@ CreateThread(function()
 end)
 
 function Interact:getSelectedIndex(menuData)
-    local data = PersistentData.get(menuData.id)
-    for index, value in ipairs(data.selected) do
+    for index, value in ipairs(menuData.selected) do
         if value then return index end
     end
     return 1
 end
 
-function Interact:scaleformUpdate(menuData, persistentData)
-    if persistentData.loading then
-        scaleform.send("interactionMenu:loading:show")
-        scaleform.send("interactionMenu:hideMenu")
-    else
-        scaleform.send("interactionMenu:loading:hide")
-        scaleform.send("interactionMenu:menu:show", {
-            indicator = {
-                prompt = menuData.indicator and menuData.indicator.prompt,
-                active = menuData.indicator and true or false,
-                glow = menuData.indicator and menuData.indicator.glow and true
-            },
-            theme = menuData.theme,
-            glow = menuData.glow,
-            menus = menuData.menus,
-            selected = Interact:getSelectedIndex(menuData)
-        })
-    end
+function Interact:scaleformUpdate(menuData)
+    scaleform.send("interactionMenu:loading:hide")
+    scaleform.send("interactionMenu:menu:show", {
+        indicator = menuData.indicator,
+        theme = menuData.theme,
+        glow = menuData.glow,
+        menus = menuData.menus,
+        selected = Interact:getSelectedIndex(menuData)
+    })
 end
 
 --- set menu visibility
@@ -117,7 +100,7 @@ function Interact:setVisibility(id, value)
     scaleform.send("interactionMenu:menu:setVisibility", { id = id, visibility = value })
 end
 
-function Interact:SetDarkMode(value)
+function Interact:setDarkMode(value)
     scaleform.send("interactionMenu:darkMode", value)
 end
 
@@ -126,11 +109,36 @@ function Interact:Hide()
     scaleform.send("interactionMenu:loading:hide")
 end
 
+local lastTriggerTime = 0
+local triggerInterval = 100
+
+function Interact:fillIndicator(menuData, percent)
+    local currentTime = GetGameTimer()
+
+    -- skip when we set it to zero
+    if percent == 0 or currentTime - lastTriggerTime >= triggerInterval then
+        lastTriggerTime = currentTime
+        scaleform.send("interactionMenu:indicatorFill", percent)
+    end
+end
+
+function Interact:indicatorStatus(menuData, status)
+    scaleform.send("interactionMenu:indicatorStatus", status)
+end
+
 local function handleMouseWheel(menuData)
     -- not the best way to do it but it works if we add new options on runtime
     -- HideHudComponentThisFrame(19)
 
     -- Mouse Wheel Down / Arrow Down
+    DisableControlAction(0, 85, true) -- INPUT_VEH_RADIO_WHEEL (Mouse scroll wheel)
+    DisableControlAction(0, 86, true) -- INPUT_VEH_NEXT_RADIO (Mouse wheel up)
+    DisableControlAction(0, 81, true) -- INPUT_VEH_PREV_RADIO (Mouse wheel down)
+    -- DisableControlAction(0, 82, true) -- INPUT_VEH_SELECT_NEXT_WEAPON (Keyboard R)
+    -- DisableControlAction(0, 83, true) -- INPUT_VEH_SELECT_PREV_WEAPON (Keyboard E)
+
+    DisableControlAction(0, 14, true)
+    DisableControlAction(0, 15, true)
     if IsDisabledControlJustReleased(0, 14) or IsControlJustReleased(0, 173) then
         Container.changeMenuItem(scaleform, menuData, true)
         -- Mouse Wheel Up / Arrow Up
@@ -139,14 +147,51 @@ local function handleMouseWheel(menuData)
     end
 end
 
+local holdStart = nil
+local lastHoldTrigger = nil
+
 local function handleKeyPress(menuData)
     -- E
     local padIndex = (menuData.indicator and menuData.indicator.keyPress) and menuData.indicator.keyPress.padIndex or 0
     local control = (menuData.indicator and menuData.indicator.keyPress) and menuData.indicator.keyPress.control or 38
 
-    if not IsControlJustReleased(padIndex, control) then return end
+    if menuData.indicator and menuData.indicator.hold then
+        if IsControlPressed(padIndex, control) then
+            local currentTime = GetGameTimer()
+            if lastHoldTrigger then
+                if (currentTime - lastHoldTrigger) >= 1000 then
+                    lastHoldTrigger = nil
+                else
+                    return
+                end
+            end
+            if not holdStart then
+                holdStart = currentTime
+            end
+            local holdDuration = menuData.indicator.hold
+            local elapsedTime = currentTime - holdStart
+            local percentage = (elapsedTime / holdDuration) * 100
+            Interact:fillIndicator(menuData, percentage)
 
-    Container.keyPress(menuData)
+            if elapsedTime >= holdDuration then
+                holdStart = nil
+                lastHoldTrigger = currentTime
+                Container.keyPress(menuData)
+                Interact:indicatorStatus(menuData, 'success')
+                Interact:fillIndicator(menuData, 0)
+            end
+        else
+            if holdStart then
+                Util.print_debug("Player stopped holding the key early")
+                Interact:indicatorStatus(menuData, 'fail')
+                Interact:fillIndicator(menuData, 0)
+                holdStart = nil
+            end
+        end
+    else
+        if not IsControlJustReleased(padIndex, control) then return end
+        Container.keyPress(menuData)
+    end
 end
 
 local function isPlayerWithinDistance(maxDistance)
@@ -163,18 +208,18 @@ local function isMatchingEntity(model, entity)
     return stateId and matched and stateId == entity
 end
 
-local function setOpen(menuData, persistentData)
-    Wait(150) -- a lazy fix flicker issue
-    StateManager.set('isOpen', true)
+local function setOpen(menuData)
+    Wait(0)
     scaleform.setStatus(true)
-    Interact:scaleformUpdate(menuData, persistentData)
+    Interact:scaleformUpdate(menuData)
+    StateManager.set('isOpen', true)
 
     Util.print_debug(('Menu Id [%s] '):format(menuData.id)) -- #DEBUG
 end
 
 local function setClose()
     Interact:Hide()
-    Wait(300)
+    Wait(150)
     scaleform.setStatus(false)
     StateManager.set('isOpen', false)
 end
@@ -201,100 +246,19 @@ local triggers = {
     end
 }
 
--- #region Show sprite while holding alt
-CreateThread(function()
-    local txd = CreateRuntimeTxd('interaction_txd_indicator')
-    CreateRuntimeTextureFromImage(txd, 'indicator', "indicator.png")
-end)
-
-local function drawSprite(p)
-    if not p then return end
-    SetDrawOrigin(p.x, p.y, p.z, 0)
-    DrawSprite('interaction_txd_indicator', 'indicator', 0, 0, 0.02, 0.035, 0, 255, 255, 255, 255)
-    ClearDrawOrigin()
-end
-
--- local function getNearbyObjects(coords, maxDistance)
---     local objects = GetGamePool('CObject')
---     local nearby = {}
---     local count = 0
---     maxDistance = maxDistance or 2.0
-
---     for i = 1, #objects do
---         local object = objects[i]
-
---         local objectCoords = GetEntityCoords(object)
---         local distance = #(coords - objectCoords)
-
---         if distance < maxDistance then
---             count += 1
---             nearby[count] = {
---                 object = object,
---                 coords = objectCoords
---             }
---         end
---     end
-
---     return nearby
--- end
-
--- CreateThread(function()
---     if not waitForScaleform() then return end
-
---     while true do
---         local entities = getNearbyObjects(StateManager.get('playerPosition'), 10)
-
---         for index, value in ipairs(entities) do
---             drawSprite(value.coords)
---         end
---         Wait(10)
---     end
--- end)
-
-local function StartSpriteThread()
-    if isSpriteThreadRunning then return end
-    isSpriteThreadRunning = true
-
-    CreateThread(function()
-        while isTargetSpritesActive do
-            if visiblePointCount > 0 then
-                for _, value in ipairs(visiblePoints.inView) do
-                    drawSprite(value.point)
-                end
-
-                if visiblePoints.closest.id ~= StateManager.get('id') and not StateManager.get('active') then
-                    drawSprite(visiblePoints.closest.point)
-                end
-            end
-
-            Wait(10)
-        end
-        isSpriteThreadRunning = false
-    end)
-end
-
-RegisterCommand('+toggleTargetSprites', function()
-    isTargetSpritesActive = true
-    StartSpriteThread()
-end, false)
-
-RegisterCommand('-toggleTargetSprites', function()
-    isTargetSpritesActive = false
-end, false)
-
-RegisterKeyMapping('+toggleTargetSprites', 'Toggle Target Sprites', 'keyboard', 'LMENU')
-RegisterKeyMapping('~!+toggleTargetSprites', 'Toggle Target Sprites - Alternate Key', 'keyboard', 'RMENU')
-
--- #endregion
-
 -- #region process data
 -- detect the menu type and set menu data and pass rest to render thread
 
 local function handlePositionBasedInteraction()
-    if visiblePoints.closest.distance and visiblePoints.closest.distance < 3 then
+    local maxDistance = visiblePoints.closest.maxDistance or 3
+
+    if visiblePoints.closest.distance and visiblePoints.closest.distance < maxDistance then
         StateManager.set('id', visiblePoints.closest.id)
         StateManager.set('menuType', MenuTypes['ON_POSITION'])
         StateManager.set('playerDistance', visiblePoints.closest.distance)
+    else
+        StateManager.set('id', nil)
+        StateManager.set('menuType', nil)
     end
 end
 
@@ -303,7 +267,7 @@ local function handleZoneBasedInteraction(closestZoneMenuId)
     StateManager.set('menuType', MenuTypes['ON_ZONE'])
 end
 
-local function handleEntityInteraction(playerDistance, model, entity, hitPosition)
+local function handleEntityInteraction(playerDistance, model, entity)
     SetScriptGfxDrawBehindPausemenu(false)
 
     StateManager.set('id', entity)
@@ -311,7 +275,6 @@ local function handleEntityInteraction(playerDistance, model, entity, hitPositio
     StateManager.set('entityModel', model)
     StateManager.set('entityHandle', entity)
     StateManager.set('playerDistance', playerDistance)
-    StateManager.set('hitPosition', hitPosition)
 end
 
 local function waitForScaleform()
@@ -325,48 +288,36 @@ local function waitForScaleform()
     return scaleform_initialized
 end
 
-local function findClosestZone(playerPosition, range)
-    local zonesInRange = grid_zone:queryRange(playerPosition, 100)
-
-    for index, value in ipairs(zonesInRange) do
-        if Container.zones[value.id] and Container.zones[value.id]:isPointInside(playerPosition) then
-            return value.id
-        end
-    end
-
-    return nil
-end
-
 CreateThread(function()
     if not waitForScaleform() then return end
     -- We can bump it up to 1000 for better performance, but it looks better with 500/600 ms
-    local interval = 600
+    local interval = Config.intervals.detection or 500
     local pid = PlayerId()
 
-    -- give client sometime to actually load
+    -- give client sometime to load
     repeat
         Wait(1000)
     until NetworkIsPlayerActive(pid) == 1
-    Wait(500)
 
     while true do
         local playerPed = PlayerPedId()
         local isInVehicle = IsPedInAnyVehicle(playerPed, true)
-        local nuiFocused = IsNuiFocused() ~= 1
-        local pauseMenuState = GetPauseMenuState() == 0
+        local isNuiFocused = IsNuiFocused()
+        local isPauseMenuState = GetPauseMenuState()
 
         StateManager.set({
             playerIsInVehicle = isInVehicle,
-            IsNuiFocused = nuiFocused
+            isNuiFocused = isNuiFocused,
+            isPauseMenuState = isPauseMenuState
         }, true, true)
 
-        if pauseMenuState and nuiFocused and not isInVehicle then
+        if isPauseMenuState == 0 and isNuiFocused ~= 1 then
             local playerPosition = GetEntityCoords(playerPed)
             local model = 0
             local entityType = 0
 
             local hitPosition, playerDistance, entity
-            if not StateManager.get("disableRayCast") then
+            if closestZoneId == nil and (not StateManager.get("disableRayCast") or isInVehicle ~= 1) then
                 hitPosition, entity, playerDistance = Util.rayCast(10, playerPed)
 
                 if entity then
@@ -376,31 +327,28 @@ CreateThread(function()
                     end
                 end
             end
-
+            StateManager.set('hitPosition', hitPosition)
             StateManager.set({
                 playerPed = playerPed,
                 playerPosition = playerPosition
             }, true, true)
 
-            local nearPoints, totalNearPoints = grid_position:queryRange(playerPosition, 100)
-            visiblePoints, visiblePointCount  = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
-            -- onZone
-            local closestZoneMenuId           = findClosestZone(playerPosition)
-
-            local menuType                    = Container.getMenuType {
+            local nearPoints = grid_position:queryRange(playerPosition, 25)
+            visiblePoints    = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
+            local menuType   = Container.getMenuType {
                 model = model,
                 entity = entity,
                 entityType = entityType,
                 closestPoint = visiblePoints.closest,
-                zone = closestZoneMenuId
+                zone = closestZoneId
             }
 
             if menuType == MenuTypes['ON_ENTITY'] then
-                handleEntityInteraction(playerDistance, model, entity, hitPosition)
+                handleEntityInteraction(playerDistance, model, entity)
             elseif menuType == MenuTypes['ON_POSITION'] then
                 handlePositionBasedInteraction()
             elseif menuType == MenuTypes['ON_ZONE'] then
-                handleZoneBasedInteraction(closestZoneMenuId)
+                handleZoneBasedInteraction(closestZoneId)
             elseif menuType == MenuTypes['DISABLED'] then
                 StateManager.reset()
             end
@@ -409,6 +357,15 @@ CreateThread(function()
         end
 
         Wait(interval)
+    end
+end)
+
+AddEventHandler("interactionMenu:zoneTracker", function(zone_name, state)
+    print(zone_name, state)
+    if zone_name and state then
+        closestZoneId = zone_name
+    else
+        closestZoneId = nil
     end
 end)
 
@@ -425,8 +382,7 @@ function Render.onEntity(model, entity)
     if not canInteract(data, nil) then return end
 
     local running = true
-    local persistentData = PersistentData.get(data.id)
-    local closestVehicleBone, closestBoneName, boneDistance = Container.boneCheck(entity)
+    local closestVehicleBone = Container.boneCheck(entity)
     local offset = data.offset or vec3(0, 0, 0)
 
     -- Add entity, model into menu data container
@@ -434,11 +390,11 @@ function Render.onEntity(model, entity)
     data.entity = entity
 
     StateManager.set('active', true)
-    local metadata = Container.constructMetadata2(data)
+    local metadata = Container.constructMetadata(data)
 
     scaleform.set3d(false)
     scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
-    setOpen(data, persistentData)
+    setOpen(data)
     Container.validateAndSyncSelected(scaleform, data)
     triggers.onSeen(data, metadata)
 
@@ -452,14 +408,12 @@ function Render.onEntity(model, entity)
     CreateThread(function()
         while running do
             local nclosestVehicleBone = Container.boneCheck(entity)
-            Container.loadingState(scaleform, data)
 
             if closestVehicleBone ~= nclosestVehicleBone then
                 running = false
             end
 
             running = running and canInteract(data, nil)
-
             Wait(250)
         end
     end)
@@ -472,7 +426,6 @@ function Render.onEntity(model, entity)
     end
 
     running = false
-    persistentData.showingLoading = nil
     setClose()
     scaleform.dettach()
     metadata.position = GetEntityCoords(entity)
@@ -483,14 +436,13 @@ end
 function Render.onPosition(currentMenuId)
     local data = Container.getMenu(nil, nil, currentMenuId)
     if not data then return end
-    local persistentData = PersistentData.get(currentMenuId)
 
     if not canInteract(data, nil) then return end
     StateManager.set('active', true)
     StateManager.set('disableRayCast', true)
 
     local running = true
-    local metadata = Container.constructMetadata2(data)
+    local metadata = Container.constructMetadata(data)
     local position = data.position
     local rotation = data.rotation
 
@@ -504,7 +456,7 @@ function Render.onPosition(currentMenuId)
         scaleform.set3d(false)
     end
 
-    setOpen(data, persistentData)
+    setOpen(data)
     Container.validateAndSyncSelected(scaleform, data)
     triggers.onSeen(data, metadata)
 
@@ -515,13 +467,6 @@ function Render.onPosition(currentMenuId)
         end
     end)
 
-    CreateThread(function()
-        while running do
-            Container.loadingState(scaleform, data)
-            Wait(250)
-        end
-    end)
-
     while canInteract(data, nil) and StateManager.get('id') == currentMenuId do
         Wait(0)
         handleMouseWheel(data)
@@ -529,7 +474,6 @@ function Render.onPosition(currentMenuId)
     end
 
     running = false
-    persistentData.showingLoading = nil
     setClose()
     StateManager.set('disableRayCast', false)
     StateManager.set('active', false)
@@ -540,10 +484,9 @@ end
 function Render.onZone(currentMenuId)
     local data = Container.getMenu(nil, nil, currentMenuId)
     if not data then return end
-    local persistentData = PersistentData.get(currentMenuId)
 
     local running = true
-    local metadata = Container.constructMetadata2(data)
+    local metadata = Container.constructMetadata(data)
     local position = data.position
     local rotation = data.rotation
     if not position then return end -- probably deleted or just missing position
@@ -559,20 +502,13 @@ function Render.onZone(currentMenuId)
     StateManager.set('active', true)
     StateManager.set('disableRayCast', true)
 
-    setOpen(data, persistentData)
+    setOpen(data)
     Container.validateAndSyncSelected(scaleform, data)
     triggers.onSeen(data, metadata)
 
     CreateThread(function()
         while running do
             Container.syncData(scaleform, data, true)
-            Wait(1000)
-        end
-    end)
-
-    CreateThread(function()
-        while running do
-            Container.loadingState(scaleform, data)
             Wait(250)
         end
     end)
@@ -584,7 +520,6 @@ function Render.onZone(currentMenuId)
     end
 
     running = false
-    persistentData.showingLoading = nil
     StateManager.set('disableRayCast', false)
     StateManager.set('active', false)
     triggers.onExit(data, metadata)
@@ -595,7 +530,8 @@ end
 -- Handle the rendering logic based on the current state
 local function RenderMenu()
     if pause then return end
-    if StateManager.get('playerIsInVehicle') then return end
+    if StateManager.get('isNuiFocused') == 1 then return end
+    if StateManager.get('isPauseMenuState') ~= 0 then return end
 
     local currentMenuId = StateManager.get('id')
     if not currentMenuId then return end
