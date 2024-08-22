@@ -22,7 +22,7 @@ local math_sin               = math.sin
 local math_cos               = math.cos
 
 local scalex, scaley, scalez = 0.07, 0.04, 1
-local rederingIsActive       = false
+local renderingIsActive      = false
 
 DUI                          = {
     scaleform = nil,
@@ -96,7 +96,7 @@ local function setStatus(status)
     if ref and status == true then
         calculateWorldPosition(ref)
     end
-    rederingIsActive = status
+    renderingIsActive = status
 end
 
 local function attach(t)
@@ -215,7 +215,7 @@ end
 
 calculateWorldPosition = function(ref)
     if not DoesEntityExist(ref.entity) then
-        rederingIsActive = false
+        renderingIsActive = false
         return
     end
 
@@ -258,7 +258,7 @@ CreateThread(function()
     CreateThread(function()
         local ref = DUI.scaleform.attached
         while true do
-            if rederingIsActive and ref.entity then
+            if renderingIsActive and ref.entity then
                 calculateWorldPosition(ref)
                 Wait(30)
             else
@@ -268,7 +268,7 @@ CreateThread(function()
     end)
 
     while true do
-        if rederingIsActive then
+        if renderingIsActive then
             render()
             Wait(0)
         else
