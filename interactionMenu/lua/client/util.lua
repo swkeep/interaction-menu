@@ -573,121 +573,121 @@ end
 
 -- flag to choose between PolyZone and ox_lib
 local triggerZoneScriptName = Config.triggerZoneScript or "PolyZone"
+
 local onPlayerIn = function(name)
     TriggerEvent('interactionMenu:zoneTracker', name, true)
 end
+
 local onPlayerOut = function(name)
     TriggerEvent('interactionMenu:zoneTracker', name, false)
 end
 
-function Util.addZone(o)
-    validateZoneData(o)
+local function InitAddZone()
+    local zoneFunctions = {
+        ox_lib = function(o)
+            assert(lib, "ox_lib is not loaded. Uncomment '-- @ox_lib/init.lua' in fxmanifest.lua")
+            validateZoneData(o)
 
-    local z
-    if triggerZoneScriptName == 'ox_lib' then
-        -- Using ox_lib for zone creation
-        if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
-            z = lib.zones.sphere({
-                coords = vec3(o.position.x, o.position.y, o.position.z),
-                radius = o.radius or 2,
-                debug = o.debugPoly,
-                inside = o.inside,
-                onEnter = function() onPlayerIn(o.name) end,
-                onExit = function() onPlayerOut(o.name) end
-            })
-        elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
-            z = lib.zones.box({
-                coords = vec3(o.position.x, o.position.y, o.position.z),
-                size = o.size or vec3(o.length, o.width, o.maxZ - o.minZ),
-                rotation = o.heading or 0,
-                debug = o.debugPoly,
-                inside = o.inside,
-                onEnter = function() onPlayerIn(o.name) end,
-                onExit = function() onPlayerOut(o.name) end
-            })
-        elseif o.type == 'polyZone' or o.type == 'poly' then
-            z = lib.zones.poly({
-                points = o.points,
-                thickness = o.thickness or 4,
-                debug = o.debugPoly,
-                inside = o.inside,
-                onEnter = function() onPlayerIn(o.name) end,
-                onExit = function() onPlayerOut(o.name) end
-            })
-        elseif o.type == 'comboZone' or o.type == 'combo' then
-            warn("Unsupported zone with ox: " .. tostring(o.type))
-        else
-            error("Unsupported zone type: " .. tostring(o.type))
-        end
-    else
-        -- Using PolyZone for zone creation
-        if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
-            z = CircleZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.radius or 1.0, {
-                name = o.name,
-                debugPoly = o.debugPoly,
-                useZ = o.useZ or false,
-            })
-            z:onPlayerInOut(function(isPointInside)
-                if isPointInside then
-                    onPlayerIn(o.name)
-                else
-                    onPlayerOut(o.name)
-                end
-            end)
-        elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
-            z = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
-                name = o.name,
-                heading = o.heading,
-                debugPoly = o.debugPoly,
-                minZ = o.minZ,
-                maxZ = o.maxZ,
-            })
-            z:onPlayerInOut(function(isPointInside)
-                if isPointInside then
-                    onPlayerIn(o.name)
-                else
-                    onPlayerOut(o.name)
-                end
-            end)
-        elseif o.type == 'polyZone' or o.type == 'poly' then
-            z = PolyZone:Create(o.points, {
-                name = o.name,
-                minZ = o.minZ,
-                maxZ = o.maxZ,
-                debugPoly = o.debugPoly,
-            })
-            z:onPlayerInOut(function(isPointInside)
-                if isPointInside then
-                    onPlayerIn(o.name)
-                else
-                    onPlayerOut(o.name)
-                end
-            end)
-        elseif o.type == 'comboZone' or o.type == 'combo' then
-            local zones = {}
-            for _, zoneData in ipairs(o.zones) do
-                if zoneData.type ~= 'comboZone' then
-                    table.insert(zones, Util.addZone(zoneData))
-                end
+            local z
+            if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
+                z = lib.zones.sphere({
+                    coords = vec3(o.position.x, o.position.y, o.position.z),
+                    radius = o.radius or 2,
+                    debug = o.debugPoly,
+                    inside = o.inside,
+                })
+            elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+                z = lib.zones.box({
+                    coords = vec3(o.position.x, o.position.y, o.position.z),
+                    size = o.size or vec3(o.length, o.width, o.maxZ - o.minZ),
+                    rotation = o.heading or 0,
+                    debug = o.debugPoly,
+                    inside = o.inside,
+                })
+            elseif o.type == 'polyZone' or o.type == 'poly' then
+                z = lib.zones.poly({
+                    points = o.points,
+                    thickness = o.thickness or 4,
+                    debug = o.debugPoly,
+                    inside = o.inside,
+                })
+            elseif o.type == 'comboZone' or o.type == 'combo' then
+                warn("Unsupported zone type with ox_lib: " .. tostring(o.type))
+            else
+                error("Unsupported zone type: " .. tostring(o.type))
             end
-            z = ComboZone:Create(zones, {
-                name = o.name,
-                debugPoly = o.debugPoly,
-            })
-            z:onPlayerInOut(function(isPointInside)
-                if isPointInside then
-                    onPlayerIn(o.name)
-                else
-                    onPlayerOut(o.name)
+            if z then
+                z.onEnter = function() onPlayerIn(o.name) end
+                z.onExit = function() onPlayerOut(o.name) end
+            end
+            return z
+        end,
+        PolyZone = function(o)
+            validateZoneData(o)
+            local z
+            -- Using PolyZone for zone creation
+            if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
+                assert(CircleZone,
+                    "PolyZone CircleZone is not loaded. Uncomment '@PolyZone/CircleZone.lua' in fxmanifest.lua")
+                z = CircleZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.radius or 1.0, {
+                    name = o.name,
+                    debugPoly = o.debugPoly,
+                    useZ = o.useZ or false,
+                })
+            elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+                assert(BoxZone,
+                    "PolyZone BoxZone is not loaded. Uncomment '@PolyZone/BoxZone.lua' in fxmanifest.lua")
+                z = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
+                    name = o.name,
+                    heading = o.heading,
+                    debugPoly = o.debugPoly,
+                    minZ = o.minZ,
+                    maxZ = o.maxZ,
+                })
+            elseif o.type == 'polyZone' or o.type == 'poly' then
+                assert(PolyZone,
+                    "PolyZone is not loaded. Uncomment '@PolyZone/client.lua' in fxmanifest.lua")
+                z = PolyZone:Create(o.points, {
+                    name = o.name,
+                    minZ = o.minZ,
+                    maxZ = o.maxZ,
+                    debugPoly = o.debugPoly,
+                })
+            elseif o.type == 'comboZone' or o.type == 'combo' then
+                assert(ComboZone,
+                    "PolyZone ComboZone is not loaded. Uncomment '@PolyZone/ComboZone.lua' in fxmanifest.lua")
+                local zones = {}
+                for _, zoneData in ipairs(o.zones) do
+                    if zoneData.type ~= 'comboZone' then
+                        table.insert(zones, Util.addZone(zoneData))
+                    end
                 end
-            end)
-        else
-            error("Unsupported zone type: " .. tostring(o.type))
-        end
-    end
+                z = ComboZone:Create(zones, {
+                    name = o.name,
+                    debugPoly = o.debugPoly,
+                })
+            else
+                error("Unsupported zone type: " .. tostring(o.type))
+            end
 
-    return z
+            if z then
+                z:onPlayerInOut(function(isPointInside)
+                    if isPointInside then
+                        onPlayerIn(o.name)
+                    else
+                        onPlayerOut(o.name)
+                    end
+                end)
+            end
+            return z
+        end,
+        none = function() return end
+    }
+
+    return zoneFunctions[triggerZoneScriptName]
 end
+
+Util.addZone = InitAddZone()
 
 -- #endregion
 
