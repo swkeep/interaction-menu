@@ -1048,15 +1048,33 @@ end
 function Container.validateAndSyncSelected(scaleform, menuData)
     if not menuData then return end
 
-    for menuId, menu in pairs(menuData.menus) do
-        for _, option in pairs(menu.options) do
-            if menuData.selected[option.vid] and isOptionValid(option) then
-                scaleform.send("interactionMenu:menu:selectedUpdate", option.vid)
-                return
-            end
+    -- find the first selected option
+    local current_selected = nil
+    for i = 1, #menuData.selected do
+        if menuData.selected[i] then
+            current_selected = i
+            break
         end
     end
 
+    -- can we use current selected option
+    if current_selected then
+        for _, menu in pairs(menuData.menus) do
+            for _, option in pairs(menu.options) do
+                if option.vid == current_selected and isOptionValid(option) then
+                    -- means it's still valid and we don't need to do anything
+                    return
+                end
+            end
+        end
+
+        -- we can't use it, so we reset all and choose first valid one ourself
+        for i = 1, #menuData.selected do
+            menuData.selected[i] = false
+        end
+    end
+
+    -- find something valid
     local validOption = firstValidOption(menuData)
     local vid = validOption and validOption.vid
 
