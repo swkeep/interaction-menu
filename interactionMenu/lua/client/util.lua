@@ -601,9 +601,14 @@ local function InitAddZone()
                     inside = o.inside,
                 })
             elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
+                o.minZ = o.minZ or 0
+                o.maxZ = o.maxZ or 1
+                local useZ = o.useZ or not o.maxZ
+                local sizeZ = useZ and o.position.z or math.abs(o.maxZ - o.minZ)
+
                 z = lib.zones.box({
                     coords = vec3(o.position.x, o.position.y, o.position.z),
-                    size = o.size or vec3(o.length, o.width, o.maxZ - o.minZ),
+                    size = o.size or vec3(o.length, o.width, sizeZ),
                     rotation = o.heading or 0,
                     debug = o.debugPoly,
                     inside = o.inside,
