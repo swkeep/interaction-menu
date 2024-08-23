@@ -1013,7 +1013,7 @@ function Container.syncData(scaleform, menuData, refreshUI)
         elseif deleted and not menuOriginalData.flags.deletion_synced then
             menuOriginalData.flags.deletion_synced = true
             table.insert(updatedElements, { menuId = menuId, option = {} })
-            Interact:setVisibility(menuId, false)
+            Interact:deleteMenu(menuId)
         end
     end
 

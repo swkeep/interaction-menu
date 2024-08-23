@@ -1,8 +1,18 @@
 <template>
     <Transition @after-leave="resetData" name="fade" mode="out-in">
         <div class="menus-container" :class="{ 'menus-container--glow': Data.glow }" v-if="focusTracker.menu">
-            <div class="menu" v-for="(menu, i) in Data.menus" :key="i" :data-menuId="menu.id">
-                <TransitionGroup name="slide" appear v-if="menu.flags.hide === false">
+            <div
+                class="menu"
+                v-for="(menu, i) in Data.menus"
+                :key="i"
+                :data-menuId="menu.id"
+                :data-hide="menu.flags.hide"
+                :data-deleted="menu.flags.deleted"
+                :class="{
+                    'menu--hidden': menu.flags.hide || menu.flags?.deleted,
+                }"
+            >
+                <TransitionGroup name="slide" appear v-if="!menu.flags.hide && !menu.flags?.deleted">
                     <template v-for="(item, index) in menu.options" :key="index">
                         <div
                             class="menu__option"
@@ -102,6 +112,17 @@ const setMenuVisibility = (data: any) => {
     }
 };
 
+const deleteMenu = (ids: (number | string)[]) => {
+    for (const key in Data.value.menus) {
+        const menu = Data.value.menus[key];
+        const menuId = menu.id as number | string;
+
+        if (ids.includes(menuId)) {
+            menu.flags.deleted = true;
+        }
+    }
+};
+
 const handleBatchUpdate = (data: { [key: string]: { menuId: string | number; option: Option } }): void => {
     const menus = Data.value.menus;
     const updatedOptions = new Map<string | number, Option>();
@@ -128,5 +149,6 @@ subscribe('interactionMenu:hideMenu', hideMenu);
 subscribe('interactionMenu:menu:show', showMenu);
 subscribe('interactionMenu:menu:selectedUpdate', updateSelectedMenu);
 subscribe('interactionMenu:menu:setVisibility', setMenuVisibility);
+subscribe('interactionMenu:menu:delete', deleteMenu);
 subscribe('interactionMenu:menu:batchUpdate', handleBatchUpdate);
 </script>
