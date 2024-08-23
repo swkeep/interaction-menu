@@ -717,88 +717,87 @@ local function isOptionValid(option)
     return not option.flags.hide and option.flags.action or option.flags.event
 end
 
+local function collectValidOptions(menuData, sortCon)
+    local validOptions = {}
+
+    for _, menu in ipairs(menuData.menus) do
+        if not menu.flags.deleted then
+            for _, option in ipairs(menu.options) do
+                if isOptionValid(option) then
+                    option.menu_id = menu.id
+                    validOptions[#validOptions + 1] = option
+                end
+            end
+        end
+    end
+
+    if sortCon then
+        table.sort(validOptions, sortCon) -- sort by `vid`
+    end
+
+    return validOptions
+end
+
 local function hasValidMenuOption(menuData)
-    for _, menu in ipairs(menuData.menus) do
-        for _, option in ipairs(menu.options) do
-            if isOptionValid(option) then return true end
-        end
-    end
-
-    return false
+    local validOptions = collectValidOptions(menuData)
+    return #validOptions > 0
 end
 
+-- Returns the first valid option
 local function firstValidOption(menuData)
-    for _, menu in ipairs(menuData.menus) do
-        for _, option in ipairs(menu.options) do
-            if isOptionValid(option) then
-                return option
-            end
-        end
-    end
+    local validOptions = collectValidOptions(menuData)
+    return validOptions[1]
 end
 
+-- Returns the last valid option
 local function lastValidOption(menuData)
-    local lastOption = nil
+    local validOptions = collectValidOptions(menuData)
+    return validOptions[#validOptions]
+end
 
-    for _, menu in ipairs(menuData.menus) do
-        for _, option in ipairs(menu.options) do
-            if isOptionValid(option) then
-                lastOption = option
-            end
+--- scrolls through the valid options based on the wheel direction
+---@param wheelDirection boolean
+---@param menus any
+---@param selected any
+---@return nil
+local function navigateMenu(wheelDirection, menus, selected)
+    local validOptions = collectValidOptions({ menus = menus }, function(a, b) return a.vid < b.vid end)
+
+    -- no valid options (if this happens something is wrong!)
+    if #validOptions == 0 then return nil end
+
+    -- find the `current selected index` and its `position`
+    local _currentSelectedIndex = nil
+    local currentIndex = nil
+    for i, option in ipairs(validOptions) do
+        if selected[option.vid] then
+            _currentSelectedIndex = option.vid
+            currentIndex = i
+            break
         end
     end
 
-    return lastOption
-end
+    -- default to first valid option if current selection is not found
+    if currentIndex == nil then return validOptions[1].vid end
 
-local function scrollMenu(wheelDirection, menus, currentSelectedIndex)
-    local nextSelectedIndex
-
+    -- next index based on the scroll direction
     if wheelDirection then
-        -- Go down
-        for _, menu in pairs(menus) do
-            for _, option in pairs(menu.options) do
-                if option.vid > currentSelectedIndex and isOptionValid(option) then
-                    nextSelectedIndex = option.vid
-                    break
-                end
-            end
-            if nextSelectedIndex then break end
-        end
+        currentIndex = (currentIndex % #validOptions) + 1     -- Go down
     else
-        -- Go up
-        for i = #menus, 1, -1 do
-            for j = #menus[i].options, 1, -1 do
-                local option = menus[i].options[j]
-                if option.vid < currentSelectedIndex and isOptionValid(option) then
-                    nextSelectedIndex = option.vid
-                    break
-                end
-            end
-            if nextSelectedIndex then break end
-        end
+        currentIndex = (currentIndex - 2) % #validOptions + 1 -- Go up
     end
 
-    return nextSelectedIndex
+    return validOptions[currentIndex].vid
 end
 
-local function findCurrentSelectedIndex(menus, selected)
-    local currentSelectedIndex
-    for _, menu in pairs(menus) do
-        for _, option in pairs(menu.options) do
-            if selected[option.vid] then
-                currentSelectedIndex = option.vid
-                break
-            end
+local function updateSelectedItem(menus, selected, nextSelectedIndex)
+    for _, menu in ipairs(menus) do
+        for _, option in ipairs(menu.options) do
+            selected[option.vid] = (option.vid == nextSelectedIndex)
         end
-        if currentSelectedIndex then break end
     end
-
-    -- selected first one if we don't total have selected anything
-    return currentSelectedIndex or 1
 end
 
--- i know we can do it with less code but i don't want to think about that right now!
 function Container.changeMenuItem(scaleform, menuData, wheelDirection)
     if not hasValidMenuOption(menuData) then
         return
@@ -812,35 +811,21 @@ function Container.changeMenuItem(scaleform, menuData, wheelDirection)
         return
     end
 
-    local currentSelectedIndex = findCurrentSelectedIndex(menus, selected)
-    local nextSelectedIndex = scrollMenu(wheelDirection, menus, currentSelectedIndex)
-
-    -- Handle wrapping around
-    if not nextSelectedIndex then
-        if wheelDirection then
-            nextSelectedIndex = firstValidOption(menuData).vid
-        else
-            nextSelectedIndex = lastValidOption(menuData).vid
-        end
-    end
-
-    -- Deselect the current option and select the new one
-    for _, menu in pairs(menus) do
-        for _, option in pairs(menu.options) do
-            selected[option.vid] = option.vid == nextSelectedIndex
-        end
-    end
+    local nextSelectedIndex = navigateMenu(wheelDirection, menus, selected)
+    updateSelectedItem(menus, selected, nextSelectedIndex)
 
     PlaySoundFrontend(-1, interactionAudio.mouseWheel.audioName, interactionAudio.mouseWheel.audioRef, true)
     scaleform.send("interactionMenu:menu:selectedUpdate", nextSelectedIndex)
 end
 
 local function findSelectedOption(menuData, selected)
-    for _, menu in pairs(menuData.menus) do
-        for _, option in pairs(menu.options) do
-            if not option.hide and selected[option.vid] then
-                return menu.id, option.id
-            end
+    local validOptions = collectValidOptions(menuData, function(a, b)
+        return a.vid < b.vid
+    end)
+
+    for _, option in pairs(validOptions) do
+        if not option.hide and selected[option.vid] then
+            return option.menu_id, option.id
         end
     end
 end
@@ -1027,6 +1012,7 @@ function Container.syncData(scaleform, menuData, refreshUI)
             end
         elseif deleted and not menuOriginalData.flags.deletion_synced then
             menuOriginalData.flags.deletion_synced = true
+            table.insert(updatedElements, { menuId = menuId, option = {} })
             Interact:setVisibility(menuId, false)
         end
     end
@@ -1055,38 +1041,51 @@ end
 function Container.validateAndSyncSelected(scaleform, menuData)
     if not menuData then return end
 
-    -- find the first selected option
-    local current_selected = nil
-    for i = 1, #menuData.selected do
-        if menuData.selected[i] then
-            current_selected = i
+    local selected = menuData.selected
+
+    -- Early exit if no valid menu options are present
+    if not hasValidMenuOption(menuData) then
+        return
+    end
+
+    -- Find the current selected option
+    local currentSelectedVid = nil
+    for vid, isSelected in pairs(selected) do
+        if isSelected then
+            currentSelectedVid = vid
             break
         end
     end
 
-    -- can we use current selected option
-    if current_selected then
-        for _, menu in pairs(menuData.menus) do
-            for _, option in pairs(menu.options) do
-                if option.vid == current_selected and isOptionValid(option) then
-                    -- means it's still valid and we don't need to do anything
-                    return
-                end
+    -- validate the current selected option
+    if currentSelectedVid then
+        local isValid = false
+        local validOptions = collectValidOptions(menuData, function(a, b)
+            return a.vid < b.vid
+        end)
+
+        for index, option in ipairs(validOptions) do
+            if option.vid == currentSelectedVid then
+                isValid = true
+                break
             end
         end
 
-        -- we can't use it, so we reset all and choose first valid one ourself
-        for i = 1, #menuData.selected do
-            menuData.selected[i] = false
+        -- current selection is valid, no need to update
+        if isValid then return end
+
+        -- Current selection is not valid, reset all and select a new valid option
+        for vid in pairs(selected) do
+            selected[vid] = false
         end
     end
 
-    -- find something valid
+    -- find and select the first valid option
     local validOption = firstValidOption(menuData)
     local vid = validOption and validOption.vid
 
     if vid then
-        menuData.selected[vid] = true
+        selected[vid] = true
         scaleform.send("interactionMenu:menu:selectedUpdate", vid)
     else
         Util.print_debug('probably trigger only menu')
