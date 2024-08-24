@@ -39,7 +39,7 @@ CreateThread(function()
             heading = p.w,
             width = 10.0,
             length = 6.0,
-            debugPoly = true,
+            debugPoly = Config.debugPoly,
             minZ = p.z - 1,
             maxZ = p.z + 8,
         },
