@@ -33,9 +33,15 @@ client_script {
      'lua/client/util.lua',
      'lua/client/3dDuiMaker.lua',
      'lua/client/menuContainer.lua',
+     'lua/client/userInputManager.lua',
      'lua/client/interact.lua',
      'lua/client/drawIndicator.lua',
      'lua/client/garbageCollector.lua',
+
+     -- providers
+     -- 'lua/providers/qb-target.lua',
+     -- 'lua/providers/qb-target_test.lua',
+     -- 'lua/providers/qb-target_debug.lua',
 
      -- examples / tests
      'lua/examples/*.lua',
@@ -48,5 +54,7 @@ server_script {
 files {
      'lua/client/icons/*.*',
 }
+
+-- provide 'qb-target'
 
 lua54 'yes'

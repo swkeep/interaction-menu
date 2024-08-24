@@ -10,7 +10,8 @@
 
 Config = {}
 
-Config.devMode = true
+Config.devMode = false
+Config.debugPoly = false
 
 Config.interactionAudio = {
     mouseWheel = {
@@ -46,3 +47,16 @@ Config.icons = {
 
 Config.triggerZoneScript = 'PolyZone' -- ox_lib/PolyZone
 Config.screenBoundaryShape = 'none'   -- circle/rectangle/none
+Config.controls = {
+    -- Note: Player have to to reset their key bindings to default for changes to take effect.
+
+    -- What is this?
+    -- This setting allows us to define controls for all menus.
+    -- Enabling this feature, significantly improves performance (0.04ms to 0.01ms).
+    enforce = true,
+    interact = {
+        -- https://docs.fivem.net/docs/game-references/input-mapper-parameter-ids/keyboard/
+        defaultMapper    = 'KEYBOARD',
+        defaultParameter = 'E'
+    }
+}
