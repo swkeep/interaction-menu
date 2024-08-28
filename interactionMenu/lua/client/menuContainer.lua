@@ -257,6 +257,7 @@ function Container.create(t)
             offset = t.offset,
             maxDistance = t.maxDistance or 2
         },
+        tracker = t.tracker or 'raycast',
         flags = {
             deleted = false,
             disable = false,
@@ -300,6 +301,14 @@ function Container.create(t)
 
         if instance.entity.networked then
             instance.entity.netId = NetworkGetNetworkIdFromEntity(t.entity)
+        end
+
+        if instance.tracker == 'boundingBox' then
+            EntityDetector.watch(t.entity, {
+                name = t.entity,
+                useZ = true,
+                dimensions = t.dimensions or { vec3(-1, -1, -1), vec3(1, 1, 1) }
+            })
         end
     elseif t.model then
         instance.type = 'model'

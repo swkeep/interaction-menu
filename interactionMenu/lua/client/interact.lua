@@ -26,6 +26,7 @@ local scaleform_initialized = false
 local scaleform
 local SpatialHashGrid = Util.SpatialHashGrid
 --
+local closestEntity -- entity detector
 local closestZoneId
 local grid_position = SpatialHashGrid:new('position', 100)
 
@@ -251,45 +252,53 @@ CreateThread(function()
         }, true, true)
 
         if isPauseMenuState == 0 and isNuiFocused ~= 1 then
-            local playerPosition = GetEntityCoords(playerPed)
-            local model = 0
-            local entityType = 0
+            if not closestEntity then
+                local playerPosition = GetEntityCoords(playerPed)
+                local model = 0
+                local entityType = 0
 
-            local hitPosition, playerDistance, entity
-            if closestZoneId == nil and (not StateManager.get("disableRayCast") or isInVehicle ~= 1) then
-                hitPosition, entity, playerDistance = Util.rayCast(10, playerPed)
+                local hitPosition, playerDistance, entity
+                if closestZoneId == nil and (not StateManager.get("disableRayCast") or isInVehicle ~= 1) then
+                    hitPosition, entity, playerDistance = Util.rayCast(10, playerPed)
 
-                if entity then
-                    entityType = GetEntityType(entity)
-                    if entityType ~= 0 then
-                        model = GetEntityModel(entity)
+                    if entity then
+                        entityType = GetEntityType(entity)
+                        if entityType ~= 0 then
+                            model = GetEntityModel(entity)
+                        end
                     end
                 end
-            end
-            StateManager.set('hitPosition', hitPosition)
-            StateManager.set({
-                playerPed = playerPed,
-                playerPosition = playerPosition
-            }, true, true)
+                StateManager.set('hitPosition', hitPosition)
+                StateManager.set({
+                    playerPed = playerPed,
+                    playerPosition = playerPosition
+                }, true, true)
 
-            local nearPoints = grid_position:queryRange(playerPosition, 25)
-            visiblePoints    = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
-            local menuType   = Container.getMenuType {
-                model = model,
-                entity = entity,
-                entityType = entityType,
-                closestPoint = visiblePoints.closest,
-                zone = closestZoneId
-            }
+                local nearPoints = grid_position:queryRange(playerPosition, 25)
+                visiblePoints    = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
+                local menuType   = Container.getMenuType {
+                    model = model,
+                    entity = entity,
+                    entityType = entityType,
+                    closestPoint = visiblePoints.closest,
+                    zone = closestZoneId
+                }
 
-            if menuType == MenuTypes['ON_ENTITY'] then
-                handleEntityInteraction(playerDistance, model, entity)
-            elseif menuType == MenuTypes['ON_POSITION'] then
-                handlePositionBasedInteraction()
-            elseif menuType == MenuTypes['ON_ZONE'] then
-                handleZoneBasedInteraction(closestZoneId)
-            elseif menuType == MenuTypes['DISABLED'] then
-                StateManager.reset()
+                if menuType == MenuTypes['ON_ENTITY'] then
+                    handleEntityInteraction(playerDistance, model, entity)
+                elseif menuType == MenuTypes['ON_POSITION'] then
+                    handlePositionBasedInteraction()
+                elseif menuType == MenuTypes['ON_ZONE'] then
+                    handleZoneBasedInteraction(closestZoneId)
+                elseif menuType == MenuTypes['DISABLED'] then
+                    StateManager.reset()
+                end
+            else
+                -- #NOTE: We could add this to `entityZone:client:entered`, but sometimes the `exited` event takes effect after `entered`.
+                -- Which removes the states of the menu (if the colliding zones are really close to each other).
+                local model = GetEntityModel(closestEntity)
+                -- we're ingoring `max distance`
+                handleEntityInteraction(1.0, model, closestEntity)
             end
         else
             StateManager.reset()
@@ -305,6 +314,14 @@ AddEventHandler("interactionMenu:zoneTracker", function(zone_name, state)
     else
         closestZoneId = nil
     end
+end)
+
+AddEventHandler('interactionMenu:client:entityZone:exited', function()
+    closestEntity = nil
+end)
+
+AddEventHandler('interactionMenu:client:entityZone:entered', function(data)
+    closestEntity = data.entity
 end)
 
 -- #endregion
