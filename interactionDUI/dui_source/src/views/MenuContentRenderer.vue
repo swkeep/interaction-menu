@@ -1,5 +1,5 @@
 <template>
-    <Transition @after-leave="resetData" name="fade" mode="out-in">
+    <Transition name="fade" mode="out-in">
         <div class="menus-container" :class="{ 'menus-container--glow': Data.glow }" v-if="focusTracker.menu">
             <div
                 class="menu"
