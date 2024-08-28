@@ -901,7 +901,20 @@ local function detectorDetect(playerPos)
 end
 
 local function detectorUpdateEntityInfo(playerPos)
-    if EntityDetector.lastClosestEntity then return end
+    if EntityDetector.lastClosestEntity then
+        -- just update what is active
+        local instance = EntityDetector.zones[EntityDetector.lastClosestEntity.id]
+        if instance and instance.entity then
+            if DoesEntityExist(instance.entity) then
+                instance.position = GetEntityCoords(instance.entity)
+                instance.rotation = GetEntityHeading(instance.entity)
+                if instance.useZ then
+                    instance.minZ, instance.maxZ = calculateMinAndMaxZ(instance.entity, instance.dimensions)
+                end
+            end
+        end
+        return
+    end
 
     for index, grid_ref in ipairs(detectorQueryRange(playerPos)) do
         local instance = EntityDetector.zones[grid_ref.id]
@@ -924,18 +937,21 @@ CreateThread(function()
     -- update information of entity
     CreateThread(function()
         while true do
+            local interval = EntityDetector.lastClosestEntity and 250 or 1000
             playerPed = PlayerPedId()
             detectorUpdateEntityInfo(playerPos)
-            Wait(1000)
+            Wait(interval)
         end
     end)
 
     -- detection tread
     CreateThread(function()
         while true do
+            local interval = EntityDetector.lastClosestEntity and 250 or 1000
+
             playerPos = GetEntityCoords(playerPed)
             detectorDetect(playerPos)
-            Wait(500)
+            Wait(interval)
         end
     end)
 
