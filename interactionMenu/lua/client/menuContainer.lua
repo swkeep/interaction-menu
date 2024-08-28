@@ -92,6 +92,14 @@ local function constructInteractionData(option, instance, index, formatted)
             name = option.event.name
         }
         interactionType = 'event'
+    elseif option.command then
+        interaction = {
+            event = true,
+            type = 'command',
+            name = option.command
+        }
+        -- #TODO: add proper `command` type
+        interactionType = 'event'
     elseif option.update then
         interaction = {
             update = true,
@@ -103,7 +111,6 @@ local function constructInteractionData(option, instance, index, formatted)
             bind = true,
             func = option.bind
         }
-
         interactionType = 'bind'
     end
 
@@ -112,7 +119,6 @@ local function constructInteractionData(option, instance, index, formatted)
             canInteract = true,
             func = option.canInteract
         }
-
         instance.interactions['canInteract|' .. index] = canInteract
         formatted.flags['canInteract'] = true
     end
@@ -258,6 +264,7 @@ function Container.create(t)
             maxDistance = t.maxDistance or 2
         },
         tracker = t.tracker or 'raycast',
+        schemaType = t.schemaType or 'normal',
         flags = {
             deleted = false,
             disable = false,
@@ -392,7 +399,7 @@ function Container.createGlobal(t)
         indicator = t.indicator,
         interactions = {},
         options = {},
-
+        schemaType = t.schemaType or 'normal',
         metadata = {
             invokingResource = invokingResource,
             offset = t.offset,
@@ -861,6 +868,55 @@ function Container.constructMetadata(t)
     return metadata
 end
 
+---@param params table
+local function processData(params)
+    local schemaType = params.schemaType
+    local triggerType = params.triggerType
+    local interaction = params.interaction
+    local menuData = params.menuData
+    local metadata = params.metadata
+    local cb = params.cb
+
+    local data, try_unpack
+
+    if schemaType == "normal" then
+        if triggerType == 'action' then
+            data = {
+                [1] = menuData.entity,
+                [2] = menuData.distance,
+                [3] = menuData.coords,
+                [4] = menuData.name,
+                [5] = menuData.bone
+            }
+            try_unpack = true
+        elseif triggerType == 'event' then
+            data = {}
+            try_unpack = true
+        end
+    elseif schemaType == "qbtarget" then
+        if triggerType == 'action' then
+            data = menuData.entity
+            try_unpack = false
+        elseif triggerType == 'event' then
+            data = {
+                entity = menuData.entity and menuData.entity,
+                coords = menuData.coords,
+                zone = menuData.zone,
+                distance = menuData.distance
+            }
+            try_unpack = false
+        end
+    else
+        error("Unsupported schema type: " .. tostring(schemaType))
+    end
+
+    if try_unpack then
+        cb(table.unpack(data))
+    else
+        cb(data)
+    end
+end
+
 function Container.keyPress(menuData)
     local metadata = Container.constructMetadata(menuData)
 
@@ -870,7 +926,9 @@ function Container.keyPress(menuData)
 
     local menuId, selectedOption = findSelectedOption(menuData, menuData.selected)
     if not selectedOption then return end
-    local interaction = Container.data[menuId].interactions[selectedOption]
+    local menuOriginalData = Container.get(menuId)
+    local interaction = menuOriginalData.interactions[selectedOption]
+    local schemaType = menuOriginalData.schemaType
 
     if interaction.action then
         if not Container.runningInteractions[interaction.func] then
@@ -878,12 +936,30 @@ function Container.keyPress(menuData)
             PlaySoundFrontend(-1, 'Highlight_Cancel', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', true)
 
             CreateThread(function()
-                local success, result
                 if menuData.type == 'zone' then
-                    success, result = pcall(interaction.func, menuData.zone)
+                    processData {
+                        schemaType = schemaType,
+                        triggerType = 'zone',
+                        interaction = interaction,
+                        menuData = menuData,
+                        metadata = metadata,
+                        cb = function(...)
+                            local success, result
+                            success, result = pcall(interaction.func, ...)
+                        end
+                    }
                 else
-                    success, result = pcall(interaction.func, menuData.entity, menuData.distance, menuData.coords,
-                        menuData.name, menuData.bone)
+                    processData {
+                        schemaType = schemaType,
+                        triggerType = 'action',
+                        interaction = interaction,
+                        menuData = menuData,
+                        metadata = metadata,
+                        cb = function(...)
+                            local success, result
+                            success, result = pcall(interaction.func, ...)
+                        end
+                    }
                 end
 
                 Container.runningInteractions[interaction.func] = nil
@@ -891,12 +967,23 @@ function Container.keyPress(menuData)
         else
             Util.print_debug("Function is already running, ignoring additional calls to prevent spam.")
         end
-    elseif interaction.event then
-        if interaction.type == 'client' then
-            TriggerEvent(interaction.name, interaction.payload, metadata)
-        elseif interaction.type == 'server' then
-            TriggerServerEvent(interaction.name, interaction.payload, metadata)
-        end
+    elseif interaction.event or interaction.command then
+        processData {
+            schemaType = schemaType,
+            triggerType = 'event',
+            interaction = interaction,
+            menuData = menuData,
+            metadata = metadata,
+            cb = function(...)
+                if interaction.type == 'client' then
+                    TriggerEvent(interaction.name, ...)
+                elseif interaction.type == 'server' then
+                    TriggerServerEvent(interaction.name, ...)
+                elseif interaction.type == 'command' then
+                    ExecuteCommand(interaction.name)
+                end
+            end
+        }
     end
 end
 
