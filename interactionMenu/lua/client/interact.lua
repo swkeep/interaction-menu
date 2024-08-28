@@ -49,7 +49,7 @@ exports('pause', Interact.pause)
 CreateThread(function()
     Util.preloadSharedTextureDict()
 
-    local timeout = 5000
+    local timeout = 15000
     local startTime = GetGameTimer()
 
     repeat
@@ -513,6 +513,17 @@ CreateThread(function()
     while true do
         RenderMenu()
         Wait(500)
+    end
+end)
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+
+    scaleform = exports['interactionDUI']:Get()
+    if scaleform then
+        scaleform.setPosition(vector3(0, 0, 0))
+        scaleform.dettach()
+        scaleform.setStatus(false)
     end
 end)
 
