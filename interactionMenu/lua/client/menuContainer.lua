@@ -78,10 +78,10 @@ local function constructInteractionData(option, instance, index, formatted)
     local interaction = nil
     local interactionType
 
-    if option.action then
+    if option.action or option.onSelect then
         interaction = {
             action = true,
-            func = option.action
+            func = option.action or option.onSelect
         }
         interactionType = 'action'
     elseif option.event then
