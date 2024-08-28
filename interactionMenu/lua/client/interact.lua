@@ -152,18 +152,18 @@ end
 
 local function setOpen(menuData)
     Wait(0)
-    scaleform.setStatus(true)
-    Interact:scaleformUpdate(menuData)
     StateManager.set('isOpen', true)
+    Interact:scaleformUpdate(menuData)
+    scaleform.setStatus(true)
 
     Util.print_debug(('Menu Id [%s] '):format(menuData.id)) -- #DEBUG
 end
 
 local function setClose()
     Interact:Hide()
-    Wait(150)
-    scaleform.setStatus(false)
+    Wait(100) -- to show fade animatnion
     StateManager.set('isOpen', false)
+    scaleform.setStatus(false)
 end
 
 --- Checks if interaction is allowed or not
@@ -415,6 +415,7 @@ function Render.onEntity(model, entity)
         onEnter = function()
             scaleform.set3d(false)
             scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
+            metadata.position = GetEntityCoords(entity)
             return canInteract(data, nil)
         end,
         validate = function()
@@ -425,8 +426,6 @@ function Render.onEntity(model, entity)
             scaleform.dettach()
         end
     })
-
-    metadata.position = GetEntityCoords(entity)
 end
 
 function Render.onPosition(currentMenuId)
@@ -529,7 +528,7 @@ CreateThread(function()
 
     while true do
         RenderMenu()
-        Wait(500)
+        Wait(closestEntity and 100 or 500)
     end
 end)
 
