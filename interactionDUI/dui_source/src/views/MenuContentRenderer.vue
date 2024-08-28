@@ -8,6 +8,7 @@
                 :data-menuId="menu.id"
                 :data-hide="menu.flags.hide"
                 :data-deleted="menu.flags.deleted"
+                :data-invoking-resource="menu.metadata.invokingResource"
                 :class="{
                     'menu--hidden': menu.flags.hide || menu.flags?.deleted,
                 }"

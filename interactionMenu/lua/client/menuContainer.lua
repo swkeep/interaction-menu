@@ -31,6 +31,9 @@ local previous_daytime = false
 local set = { "peds", "vehicles", "objects" }
 EntityTypes = Util.ENUM { 'PED', 'VEHICLE', 'OBJECT' }
 
+-- #TODO: make a err handler
+local dupe_menu = 'Duplicate menu detected | invokingResource: %s -> MenuId: %s'
+
 -- class: menu container
 -- managing menus
 Container = {
@@ -247,6 +250,10 @@ end
 function Container.create(t)
     local invokingResource = GetInvokingResource() or 'interactionMenu'
     local id = t.id or Util.createUniqueId(Container.data)
+    if Container.data[id] then
+        warn(dupe_menu:format(invokingResource, id))
+        return
+    end
 
     local instance = {
         id = id,
@@ -388,6 +395,10 @@ exports('Create', Container.create)
 function Container.createGlobal(t)
     local invokingResource = GetInvokingResource() or 'interactionMenu'
     local id = t.id or Util.createUniqueId(Container.data)
+    if Container.data[id] then
+        warn(dupe_menu:format(invokingResource, id))
+        return
+    end
 
     local instance = {
         id = id,
@@ -558,7 +569,8 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
             container.menus[index] = {
                 id = menu_id,
                 flags = data.flags,
-                options = data.options
+                options = data.options,
+                metadata = data.metadata
             }
         end
     end
@@ -968,6 +980,8 @@ function Container.keyPress(menuData)
             Util.print_debug("Function is already running, ignoring additional calls to prevent spam.")
         end
     elseif interaction.event or interaction.command then
+        PlaySoundFrontend(-1, 'Highlight_Cancel', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', true)
+
         processData {
             schemaType = schemaType,
             triggerType = 'event',

@@ -1,4 +1,10 @@
 // [data-theme="default"] {}
+[data-invoking-resource='keep-test'] {
+    .menus-container {
+        border-radius: 0px;
+        background-color: rgba(255, 121, 121, 0.6);
+    }
+}
 
 [data-theme='box'] {
     .menus-container {
