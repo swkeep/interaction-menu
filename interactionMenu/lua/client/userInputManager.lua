@@ -76,6 +76,7 @@ function UserInputManager:leftEarly()
 end
 
 function UserInputManager:startHoldDetection()
+    if not self.currentMenuData then return end
     if self.holding then return end
     self.holding = true
 
