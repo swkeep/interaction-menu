@@ -179,8 +179,8 @@ RegisterCommand('+interaction:wheel_down', function()
     UserInputManager:handleMouseWheel(true)
 end, false)
 
-RegisterKeyMapping('+interaction:wheel_up', 'Enable targeting', 'MOUSE_WHEEL', "IOM_WHEEL_UP")
-RegisterKeyMapping('+interaction:wheel_down', 'Enable targeting', 'MOUSE_WHEEL', "IOM_WHEEL_DOWN")
+RegisterKeyMapping('+interaction:wheel_up', 'Interaction MouseWheel (up)', 'MOUSE_WHEEL', "IOM_WHEEL_UP")
+RegisterKeyMapping('+interaction:wheel_down', 'Interaction MouseWheel (down)', 'MOUSE_WHEEL', "IOM_WHEEL_DOWN")
 TriggerEvent('chat:removeSuggestion', '/+interaction:wheel_up')
 TriggerEvent('chat:removeSuggestion', '/+interaction:wheel_down')
 
@@ -196,7 +196,8 @@ if Config.controls.enforce then
         UserInputManager:stopHoldDetection()
     end, false)
 
-    RegisterKeyMapping('+interaction_interact', 'Enable targeting', controls.defaultMapper, controls.defaultParameter)
+    RegisterKeyMapping('+interaction_interact', 'Trigger selected interaction option', controls.defaultMapper,
+        controls.defaultParameter)
     TriggerEvent('chat:removeSuggestion', '/+interaction:interact')
     TriggerEvent('chat:removeSuggestion', '/-interaction:interact')
 end
