@@ -232,7 +232,7 @@ end
 
 CreateThread(function()
     if not waitForScaleform() then return end
-    -- We can bump it up to 1000 for better performance, but it looks better with 500/600 ms
+    -- We could bump it up to 1000 for better performance, but it looks better with 500/600 ms
     local interval = Config.intervals.detection or 500
     local pid = PlayerId()
 
@@ -256,6 +256,9 @@ CreateThread(function()
                 local playerPosition = GetEntityCoords(playerPed)
                 local model = 0
                 local entityType = 0
+                -- #TODO: Give onPosition priority?!
+                -- It's going to lower resource usage, BUT if we have two colliding menus, we might not be able to detect them.
+                -- reason: when the player is inside the `entity detector`, we won't be able to use rayCast to detect other menus.
 
                 local hitPosition, playerDistance, entity
                 if closestZoneId == nil and (not StateManager.get("disableRayCast") or isInVehicle ~= 1) then
@@ -294,10 +297,8 @@ CreateThread(function()
                     StateManager.reset()
                 end
             else
-                -- #NOTE: We could add this to `entityZone:client:entered`, but sometimes the `exited` event takes effect after `entered`.
-                -- Which removes the states of the menu (if the colliding zones are really close to each other).
-                local model = GetEntityModel(closestEntity)
                 -- we're ingoring `max distance`
+                local model = GetEntityModel(closestEntity)
                 handleEntityInteraction(1.0, model, closestEntity)
             end
         else
