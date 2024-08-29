@@ -90,6 +90,7 @@ interface OptionFlags {
     disable: boolean;
     dynamic?: boolean;
     hide: boolean;
+    deleted?: boolean;
     canInteract: boolean;
 }
 
@@ -110,6 +111,7 @@ export interface Option {
 
 export interface Menu {
     id: string | number;
+    metadata: { [key: string]: string };
     options: { [key: string]: Option };
     selected: Array<boolean>;
     flags: OptionFlags;

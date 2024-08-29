@@ -79,7 +79,7 @@ local function test_zone_menu()
                 heading = point.w,
                 width = 4.0,
                 length = 6.0,
-                debugPoly = true,
+                debugPoly = Config.debugPoly,
                 minZ = point.z - 1,
                 maxZ = point.z + 1,
             },

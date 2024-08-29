@@ -243,6 +243,20 @@ local function calculatePosition(entity, offset)
     return pos
 end
 
+local function preCalculatePosition(ref, entity, offset)
+    local pos
+
+    if ref.bone then
+        pos = GetWorldPositionOfEntityBone(entity, ref.bone)
+        setPosition(pos)
+        return pos
+    else
+        pos = calculatePosition(entity, offset)
+        -- setPosition(pos)
+        return pos
+    end
+end
+
 calculateWorldPosition = function(ref)
     if not DoesEntityExist(ref.entity) then
         renderingIsActive = false
@@ -268,18 +282,12 @@ calculateWorldPosition = function(ref)
 
     -- If the entity is static and position not calculated yet -> update the position
     if ref.static and not ref.positionCalculated then
-        local pos = calculatePosition(entity, offset)
-        ref.positionCalculated = pos
+        ref.positionCalculated = preCalculatePosition(ref, entity, offset)
     end
 
     -- If the entity is not static -> update the position
     if not ref.static then
-        if ref.bone then
-            local bonePos = GetWorldPositionOfEntityBone(entity, ref.bone)
-            setPosition(bonePos)
-        else
-            calculatePosition(entity, offset)
-        end
+        ref.positionCalculated = preCalculatePosition(ref, entity, offset)
     end
 end
 

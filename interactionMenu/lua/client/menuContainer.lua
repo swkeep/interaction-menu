@@ -31,6 +31,9 @@ local previous_daytime = false
 local set = { "peds", "vehicles", "objects" }
 EntityTypes = Util.ENUM { 'PED', 'VEHICLE', 'OBJECT' }
 
+-- #TODO: make a err handler
+local dupe_menu = 'Duplicate menu detected | invokingResource: %s -> MenuId: %s'
+
 -- class: menu container
 -- managing menus
 Container = {
@@ -78,10 +81,10 @@ local function constructInteractionData(option, instance, index, formatted)
     local interaction = nil
     local interactionType
 
-    if option.action then
+    if option.action or option.onSelect then
         interaction = {
             action = true,
-            func = option.action
+            func = option.action or option.onSelect
         }
         interactionType = 'action'
     elseif option.event then
@@ -91,6 +94,14 @@ local function constructInteractionData(option, instance, index, formatted)
             payload = option.event.payload,
             name = option.event.name
         }
+        interactionType = 'event'
+    elseif option.command then
+        interaction = {
+            event = true,
+            type = 'command',
+            name = option.command
+        }
+        -- #TODO: add proper `command` type
         interactionType = 'event'
     elseif option.update then
         interaction = {
@@ -103,7 +114,6 @@ local function constructInteractionData(option, instance, index, formatted)
             bind = true,
             func = option.bind
         }
-
         interactionType = 'bind'
     end
 
@@ -112,7 +122,6 @@ local function constructInteractionData(option, instance, index, formatted)
             canInteract = true,
             func = option.canInteract
         }
-
         instance.interactions['canInteract|' .. index] = canInteract
         formatted.flags['canInteract'] = true
     end
@@ -157,6 +166,26 @@ end
 ---@field event? string "Event name to trigger when the option is selected"
 ---@field hide boolean "Indicates whether the option should be hidden"
 
+local function transformRestrictions(t)
+    if not Bridge.active then return end
+    if not t then return end
+    if type(t) == 'string' then t = { t } end
+    local transformed = {}
+
+    for index, name in pairs(t) do
+        if type(name) == 'string' then
+            transformed[name] = {}
+        elseif type(name) == 'table' then
+            transformed[index] = {}
+            for key, grade in pairs(name) do
+                transformed[index][grade] = true
+            end
+        end
+    end
+
+    return transformed
+end
+
 local function buildOption(data, instance)
     for i, option in ipairs(data.options or {}) do
         local formatted = {
@@ -168,6 +197,9 @@ local function buildOption(data, instance)
             style = option.style,
             progress = option.progress,
             icon = option.icon,
+            item = option.item,
+            job = option.job and transformRestrictions(option.job),
+            gang = option.gang and transformRestrictions(option.gang),
 
             flags = {
                 dynamic = option.dynamic,
@@ -225,22 +257,13 @@ local function classifyMenuInstance(instance)
     end
 end
 
-local function transformJobData(data)
-    if not (data.extra and data.extra.job) then return end
-
-    for job_name, raw_grades in pairs(data.extra.job) do
-        local job_grades = {}
-
-        for _, grade in pairs(raw_grades) do
-            job_grades[grade] = true
-        end
-        data.extra.job[job_name] = job_grades
-    end
-end
-
 function Container.create(t)
     local invokingResource = GetInvokingResource() or 'interactionMenu'
     local id = t.id or Util.createUniqueId(Container.data)
+    if Container.data[id] then
+        warn(dupe_menu:format(invokingResource, id))
+        return
+    end
 
     local instance = {
         id = id,
@@ -257,6 +280,8 @@ function Container.create(t)
             offset = t.offset,
             maxDistance = t.maxDistance or 2
         },
+        tracker = t.tracker or 'raycast',
+        schemaType = t.schemaType or 'normal',
         flags = {
             deleted = false,
             disable = false,
@@ -300,6 +325,14 @@ function Container.create(t)
 
         if instance.entity.networked then
             instance.entity.netId = NetworkGetNetworkIdFromEntity(t.entity)
+        end
+
+        if instance.tracker == 'boundingBox' then
+            EntityDetector.watch(t.entity, {
+                name = t.entity,
+                useZ = true,
+                dimensions = t.dimensions or { vec3(-1, -1, -1), vec3(1, 1, 1) }
+            })
         end
     elseif t.model then
         instance.type = 'model'
@@ -354,8 +387,6 @@ function Container.create(t)
     end
 
     buildOption(t, instance)
-    transformJobData(instance)
-
     buildInteraction(t, instance.interactions, "onTrigger")
     buildInteraction(t, instance.interactions, "onSeen")
     buildInteraction(t, instance.interactions, "onExit")
@@ -372,6 +403,10 @@ exports('Create', Container.create)
 function Container.createGlobal(t)
     local invokingResource = GetInvokingResource() or 'interactionMenu'
     local id = t.id or Util.createUniqueId(Container.data)
+    if Container.data[id] then
+        warn(dupe_menu:format(invokingResource, id))
+        return
+    end
 
     local instance = {
         id = id,
@@ -383,7 +418,7 @@ function Container.createGlobal(t)
         indicator = t.indicator,
         interactions = {},
         options = {},
-
+        schemaType = t.schemaType or 'normal',
         metadata = {
             invokingResource = invokingResource,
             offset = t.offset,
@@ -397,8 +432,6 @@ function Container.createGlobal(t)
     }
 
     buildOption(t, instance)
-    transformJobData(instance)
-
     buildInteraction(t, instance.interactions, "onTrigger")
     buildInteraction(t, instance.interactions, "onSeen")
     buildInteraction(t, instance.interactions, "onExit")
@@ -542,7 +575,8 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
             container.menus[index] = {
                 id = menu_id,
                 flags = data.flags,
-                options = data.options
+                options = data.options,
+                metadata = data.metadata
             }
         end
     end
@@ -717,88 +751,87 @@ local function isOptionValid(option)
     return not option.flags.hide and option.flags.action or option.flags.event
 end
 
+local function collectValidOptions(menuData, sortCon)
+    local validOptions = {}
+
+    for _, menu in ipairs(menuData.menus) do
+        if not menu.flags.deleted then
+            for _, option in ipairs(menu.options) do
+                if isOptionValid(option) then
+                    option.menu_id = menu.id
+                    validOptions[#validOptions + 1] = option
+                end
+            end
+        end
+    end
+
+    if sortCon then
+        table.sort(validOptions, sortCon) -- sort by `vid`
+    end
+
+    return validOptions
+end
+
 local function hasValidMenuOption(menuData)
-    for _, menu in ipairs(menuData.menus) do
-        for _, option in ipairs(menu.options) do
-            if isOptionValid(option) then return true end
-        end
-    end
-
-    return false
+    local validOptions = collectValidOptions(menuData)
+    return #validOptions > 0
 end
 
+-- Returns the first valid option
 local function firstValidOption(menuData)
-    for _, menu in ipairs(menuData.menus) do
-        for _, option in ipairs(menu.options) do
-            if isOptionValid(option) then
-                return option
-            end
-        end
-    end
+    local validOptions = collectValidOptions(menuData)
+    return validOptions[1]
 end
 
+-- Returns the last valid option
 local function lastValidOption(menuData)
-    local lastOption = nil
+    local validOptions = collectValidOptions(menuData)
+    return validOptions[#validOptions]
+end
 
-    for _, menu in ipairs(menuData.menus) do
-        for _, option in ipairs(menu.options) do
-            if isOptionValid(option) then
-                lastOption = option
-            end
+--- scrolls through the valid options based on the wheel direction
+---@param wheelDirection boolean
+---@param menus any
+---@param selected any
+---@return nil
+local function navigateMenu(wheelDirection, menus, selected)
+    local validOptions = collectValidOptions({ menus = menus }, function(a, b) return a.vid < b.vid end)
+
+    -- no valid options (if this happens something is wrong!)
+    if #validOptions == 0 then return nil end
+
+    -- find the `current selected index` and its `position`
+    local _currentSelectedIndex = nil
+    local currentIndex = nil
+    for i, option in ipairs(validOptions) do
+        if selected[option.vid] then
+            _currentSelectedIndex = option.vid
+            currentIndex = i
+            break
         end
     end
 
-    return lastOption
-end
+    -- default to first valid option if current selection is not found
+    if currentIndex == nil then return validOptions[1].vid end
 
-local function scrollMenu(wheelDirection, menus, currentSelectedIndex)
-    local nextSelectedIndex
-
+    -- next index based on the scroll direction
     if wheelDirection then
-        -- Go down
-        for _, menu in pairs(menus) do
-            for _, option in pairs(menu.options) do
-                if option.vid > currentSelectedIndex and isOptionValid(option) then
-                    nextSelectedIndex = option.vid
-                    break
-                end
-            end
-            if nextSelectedIndex then break end
-        end
+        currentIndex = (currentIndex % #validOptions) + 1     -- Go down
     else
-        -- Go up
-        for i = #menus, 1, -1 do
-            for j = #menus[i].options, 1, -1 do
-                local option = menus[i].options[j]
-                if option.vid < currentSelectedIndex and isOptionValid(option) then
-                    nextSelectedIndex = option.vid
-                    break
-                end
-            end
-            if nextSelectedIndex then break end
-        end
+        currentIndex = (currentIndex - 2) % #validOptions + 1 -- Go up
     end
 
-    return nextSelectedIndex
+    return validOptions[currentIndex].vid
 end
 
-local function findCurrentSelectedIndex(menus, selected)
-    local currentSelectedIndex
-    for _, menu in pairs(menus) do
-        for _, option in pairs(menu.options) do
-            if selected[option.vid] then
-                currentSelectedIndex = option.vid
-                break
-            end
+local function updateSelectedItem(menus, selected, nextSelectedIndex)
+    for _, menu in ipairs(menus) do
+        for _, option in ipairs(menu.options) do
+            selected[option.vid] = (option.vid == nextSelectedIndex)
         end
-        if currentSelectedIndex then break end
     end
-
-    -- selected first one if we don't total have selected anything
-    return currentSelectedIndex or 1
 end
 
--- i know we can do it with less code but i don't want to think about that right now!
 function Container.changeMenuItem(scaleform, menuData, wheelDirection)
     if not hasValidMenuOption(menuData) then
         return
@@ -812,35 +845,21 @@ function Container.changeMenuItem(scaleform, menuData, wheelDirection)
         return
     end
 
-    local currentSelectedIndex = findCurrentSelectedIndex(menus, selected)
-    local nextSelectedIndex = scrollMenu(wheelDirection, menus, currentSelectedIndex)
-
-    -- Handle wrapping around
-    if not nextSelectedIndex then
-        if wheelDirection then
-            nextSelectedIndex = firstValidOption(menuData).vid
-        else
-            nextSelectedIndex = lastValidOption(menuData).vid
-        end
-    end
-
-    -- Deselect the current option and select the new one
-    for _, menu in pairs(menus) do
-        for _, option in pairs(menu.options) do
-            selected[option.vid] = option.vid == nextSelectedIndex
-        end
-    end
+    local nextSelectedIndex = navigateMenu(wheelDirection, menus, selected)
+    updateSelectedItem(menus, selected, nextSelectedIndex)
 
     PlaySoundFrontend(-1, interactionAudio.mouseWheel.audioName, interactionAudio.mouseWheel.audioRef, true)
     scaleform.send("interactionMenu:menu:selectedUpdate", nextSelectedIndex)
 end
 
 local function findSelectedOption(menuData, selected)
-    for _, menu in pairs(menuData.menus) do
-        for _, option in pairs(menu.options) do
-            if not option.hide and selected[option.vid] then
-                return menu.id, option.id
-            end
+    local validOptions = collectValidOptions(menuData, function(a, b)
+        return a.vid < b.vid
+    end)
+
+    for _, option in pairs(validOptions) do
+        if not option.hide and selected[option.vid] then
+            return option.menu_id, option.id
         end
     end
 end
@@ -867,6 +886,60 @@ function Container.constructMetadata(t)
     return metadata
 end
 
+---@param params table
+local function processData(params)
+    local schemaType = params.schemaType
+    local triggerType = params.triggerType
+    local interaction = params.interaction
+    local menuData = params.menuData
+    local metadata = params.metadata
+    local cb = params.cb
+
+    local data, try_unpack
+
+    if schemaType == "normal" then
+        if triggerType == 'action' then
+            data = {
+                [1] = menuData.entity,
+                [2] = menuData.distance,
+                [3] = menuData.coords,
+                [4] = menuData.name,
+                [5] = menuData.bone
+            }
+            try_unpack = true
+        elseif triggerType == 'event' then
+            data = {}
+            try_unpack = true
+        end
+    elseif schemaType == "qbtarget" then
+        if triggerType == 'action' then
+            data = menuData.entity
+            try_unpack = false
+        elseif triggerType == 'event' then
+            data = {
+                entity = menuData.entity and menuData.entity,
+                coords = menuData.coords,
+                zone = menuData.zone,
+                distance = menuData.distance
+            }
+            if interaction.payload then
+                for key, value in pairs(interaction.payload) do
+                    data[key] = value
+                end
+            end
+            try_unpack = false
+        end
+    else
+        error("Unsupported schema type: " .. tostring(schemaType))
+    end
+
+    if try_unpack then
+        cb(table.unpack(data))
+    else
+        cb(data)
+    end
+end
+
 function Container.keyPress(menuData)
     local metadata = Container.constructMetadata(menuData)
 
@@ -876,7 +949,9 @@ function Container.keyPress(menuData)
 
     local menuId, selectedOption = findSelectedOption(menuData, menuData.selected)
     if not selectedOption then return end
-    local interaction = Container.data[menuId].interactions[selectedOption]
+    local menuOriginalData = Container.get(menuId)
+    local interaction = menuOriginalData.interactions[selectedOption]
+    local schemaType = menuOriginalData.schemaType
 
     if interaction.action then
         if not Container.runningInteractions[interaction.func] then
@@ -884,12 +959,30 @@ function Container.keyPress(menuData)
             PlaySoundFrontend(-1, 'Highlight_Cancel', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', true)
 
             CreateThread(function()
-                local success, result
                 if menuData.type == 'zone' then
-                    success, result = pcall(interaction.func, menuData.zone)
+                    processData {
+                        schemaType = schemaType,
+                        triggerType = 'zone',
+                        interaction = interaction,
+                        menuData = menuData,
+                        metadata = metadata,
+                        cb = function(...)
+                            local success, result
+                            success, result = pcall(interaction.func, ...)
+                        end
+                    }
                 else
-                    success, result = pcall(interaction.func, menuData.entity, menuData.distance, menuData.coords,
-                        menuData.name, menuData.bone)
+                    processData {
+                        schemaType = schemaType,
+                        triggerType = 'action',
+                        interaction = interaction,
+                        menuData = menuData,
+                        metadata = metadata,
+                        cb = function(...)
+                            local success, result
+                            success, result = pcall(interaction.func, ...)
+                        end
+                    }
                 end
 
                 Container.runningInteractions[interaction.func] = nil
@@ -897,12 +990,25 @@ function Container.keyPress(menuData)
         else
             Util.print_debug("Function is already running, ignoring additional calls to prevent spam.")
         end
-    elseif interaction.event then
-        if interaction.type == 'client' then
-            TriggerEvent(interaction.name, interaction.payload, metadata)
-        elseif interaction.type == 'server' then
-            TriggerServerEvent(interaction.name, interaction.payload, metadata)
-        end
+    elseif interaction.event or interaction.command then
+        PlaySoundFrontend(-1, 'Highlight_Cancel', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', true)
+
+        processData {
+            schemaType = schemaType,
+            triggerType = 'event',
+            interaction = interaction,
+            menuData = menuData,
+            metadata = metadata,
+            cb = function(...)
+                if interaction.type == 'client' then
+                    TriggerEvent(interaction.name, ...)
+                elseif interaction.type == 'server' then
+                    TriggerServerEvent(interaction.name, ...)
+                elseif interaction.type == 'command' then
+                    ExecuteCommand(interaction.name)
+                end
+            end
+        }
     end
 end
 
@@ -981,6 +1087,49 @@ local function updateOptionVisibility(updatedElements, menuId, option, optionInd
     return false
 end
 
+local function check_restrictions(restrictions)
+    if not Bridge.active then return true end
+
+    local job, job_level = Bridge.getJob()
+    local gang, gang_level = Bridge.getGang()
+
+    if restrictions.job then
+        local allowed_job_levels = restrictions.job[job]
+        if allowed_job_levels and (next(allowed_job_levels) == nil or allowed_job_levels[job_level]) then
+            return true, 'job'
+        end
+    end
+
+    if restrictions.gang then
+        local allowed_gang_levels = restrictions.gang[gang]
+        if allowed_gang_levels and (next(allowed_gang_levels) == nil or allowed_gang_levels[gang_level]) then
+            return true, 'gang'
+        end
+    end
+
+    return false
+end
+
+local function frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, pt)
+    if not Bridge.active then return false end
+
+    local shouldHide = false
+    if option.item then
+        local res = Bridge.hasItem(option.item)
+        shouldHide = type(res) == "boolean" and not res
+    elseif option.job then
+        local res = check_restrictions({
+            job = option.job,
+            gang = option.gang
+        })
+        shouldHide = type(res) == "boolean" and not res
+    end
+
+    option.flags.hide = shouldHide
+
+    return false
+end
+
 --- calculate canInteract and update values and refresh UI
 ---@param scaleform table
 ---@param menuData table
@@ -1009,12 +1158,15 @@ function Container.syncData(scaleform, menuData, refreshUI)
 
             for optionIndex, option in ipairs(menu.options) do
                 local already_inserted = false
-
+                -- #TODO: I think we should pass already_inserted to next step and check so we don't override it!
                 already_inserted = evaluateDynamicValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
                     passThrough)
                 already_inserted = evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
                     passThrough)
                 already_inserted = updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData,
+                    passThrough)
+                already_inserted = frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex,
+                    menuOriginalData,
                     passThrough)
 
                 -- to hide option if its canInteract value has been changed
@@ -1027,7 +1179,8 @@ function Container.syncData(scaleform, menuData, refreshUI)
             end
         elseif deleted and not menuOriginalData.flags.deletion_synced then
             menuOriginalData.flags.deletion_synced = true
-            Interact:setVisibility(menuId, false)
+            table.insert(updatedElements, { menuId = menuId, option = {} })
+            Interact:deleteMenu(menuId)
         end
     end
 
@@ -1055,38 +1208,51 @@ end
 function Container.validateAndSyncSelected(scaleform, menuData)
     if not menuData then return end
 
-    -- find the first selected option
-    local current_selected = nil
-    for i = 1, #menuData.selected do
-        if menuData.selected[i] then
-            current_selected = i
+    local selected = menuData.selected
+
+    -- Early exit if no valid menu options are present
+    if not hasValidMenuOption(menuData) then
+        return
+    end
+
+    -- Find the current selected option
+    local currentSelectedVid = nil
+    for vid, isSelected in pairs(selected) do
+        if isSelected then
+            currentSelectedVid = vid
             break
         end
     end
 
-    -- can we use current selected option
-    if current_selected then
-        for _, menu in pairs(menuData.menus) do
-            for _, option in pairs(menu.options) do
-                if option.vid == current_selected and isOptionValid(option) then
-                    -- means it's still valid and we don't need to do anything
-                    return
-                end
+    -- validate the current selected option
+    if currentSelectedVid then
+        local isValid = false
+        local validOptions = collectValidOptions(menuData, function(a, b)
+            return a.vid < b.vid
+        end)
+
+        for index, option in ipairs(validOptions) do
+            if option.vid == currentSelectedVid then
+                isValid = true
+                break
             end
         end
 
-        -- we can't use it, so we reset all and choose first valid one ourself
-        for i = 1, #menuData.selected do
-            menuData.selected[i] = false
+        -- current selection is valid, no need to update
+        if isValid then return end
+
+        -- Current selection is not valid, reset all and select a new valid option
+        for vid in pairs(selected) do
+            selected[vid] = false
         end
     end
 
-    -- find something valid
+    -- find and select the first valid option
     local validOption = firstValidOption(menuData)
     local vid = validOption and validOption.vid
 
     if vid then
-        menuData.selected[vid] = true
+        selected[vid] = true
         scaleform.send("interactionMenu:menu:selectedUpdate", vid)
     else
         Util.print_debug('probably trigger only menu')

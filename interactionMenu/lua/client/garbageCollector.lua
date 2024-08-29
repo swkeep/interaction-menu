@@ -69,6 +69,8 @@ function Container.remove(id)
         zone:destroy()
     elseif menuRef.type == 'position' then
         grid:remove(menuRef.position)
+    elseif menuRef.type == 'entity' and menuRef.tracker == 'boundingBox' then
+        EntityDetector.unwatch(menuRef.entity.handle)
     end
 
     menuRef.flags.deleted = true

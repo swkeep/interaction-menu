@@ -20,7 +20,7 @@ CreateThread(function()
             heading = p.w,
             width = 4.0,
             length = 6.0,
-            debugPoly = true,
+            debugPoly = Config.debugPoly,
             minZ = p.z - 1,
             maxZ = p.z + 1,
         },
@@ -74,7 +74,7 @@ CreateThread(function()
             position = vector4(-1963.68, 3197.94, 32.81, 229.39),
             radius = 4.0,
             useZ = true,
-            debugPoly = true
+            debugPoly = Config.debugPoly
         },
         options = {
             {
@@ -130,7 +130,7 @@ CreateThread(function()
             },
             minZ = p.z - 1,
             maxZ = p.z + 1,
-            debugPoly = true,
+            debugPoly = Config.debugPoly,
         },
         options = {
             {
@@ -157,21 +157,21 @@ CreateThread(function()
                     position = vector4(-1970.6, 3208.92, 32.81, 327.89),
                     length = 2.0,
                     width = 2.0,
-                    debugPoly = true
+                    debugPoly = Config.debugPoly
                 },
                 {
                     type = 'circleZone',
                     position = vector4(-1965.52, 3212.53, 32.81, 61.94),
                     radius = 2.0,
                     useZ = true,
-                    debugPoly = true
+                    debugPoly = Config.debugPoly
                 },
                 {
                     type = 'circleZone',
                     position = vector4(-1970.43, 3215.39, 32.81, 57.17),
                     radius = 2.0,
                     useZ = true,
-                    debugPoly = true
+                    debugPoly = Config.debugPoly
                 },
             },
         },
