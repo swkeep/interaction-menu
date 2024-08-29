@@ -166,6 +166,26 @@ end
 ---@field event? string "Event name to trigger when the option is selected"
 ---@field hide boolean "Indicates whether the option should be hidden"
 
+local function transformRestrictions(t)
+    if not Bridge.active then return end
+    if not t then return end
+    if type(t) == 'string' then t = { t } end
+    local transformed = {}
+
+    for index, name in pairs(t) do
+        if type(name) == 'string' then
+            transformed[name] = {}
+        elseif type(name) == 'table' then
+            transformed[index] = {}
+            for key, grade in pairs(name) do
+                transformed[index][grade] = true
+            end
+        end
+    end
+
+    return transformed
+end
+
 local function buildOption(data, instance)
     for i, option in ipairs(data.options or {}) do
         local formatted = {
@@ -177,6 +197,9 @@ local function buildOption(data, instance)
             style = option.style,
             progress = option.progress,
             icon = option.icon,
+            item = option.item,
+            job = option.job and transformRestrictions(option.job),
+            gang = option.gang and transformRestrictions(option.gang),
 
             flags = {
                 dynamic = option.dynamic,
@@ -231,19 +254,6 @@ local function classifyMenuInstance(instance)
         players[instance.player] = players[instance.player] or {}
 
         table.insert(players[instance.player], instance.id)
-    end
-end
-
-local function transformJobData(data)
-    if not (data.extra and data.extra.job) then return end
-
-    for job_name, raw_grades in pairs(data.extra.job) do
-        local job_grades = {}
-
-        for _, grade in pairs(raw_grades) do
-            job_grades[grade] = true
-        end
-        data.extra.job[job_name] = job_grades
     end
 end
 
@@ -377,8 +387,6 @@ function Container.create(t)
     end
 
     buildOption(t, instance)
-    transformJobData(instance)
-
     buildInteraction(t, instance.interactions, "onTrigger")
     buildInteraction(t, instance.interactions, "onSeen")
     buildInteraction(t, instance.interactions, "onExit")
@@ -424,8 +432,6 @@ function Container.createGlobal(t)
     }
 
     buildOption(t, instance)
-    transformJobData(instance)
-
     buildInteraction(t, instance.interactions, "onTrigger")
     buildInteraction(t, instance.interactions, "onSeen")
     buildInteraction(t, instance.interactions, "onExit")
@@ -916,6 +922,11 @@ local function processData(params)
                 zone = menuData.zone,
                 distance = menuData.distance
             }
+            if interaction.payload then
+                for key, value in pairs(interaction.payload) do
+                    data[key] = value
+                end
+            end
             try_unpack = false
         end
     else
@@ -1076,6 +1087,49 @@ local function updateOptionVisibility(updatedElements, menuId, option, optionInd
     return false
 end
 
+local function check_restrictions(restrictions)
+    if not Bridge.active then return true end
+
+    local job, job_level = Bridge.getJob()
+    local gang, gang_level = Bridge.getGang()
+
+    if restrictions.job then
+        local allowed_job_levels = restrictions.job[job]
+        if allowed_job_levels and (next(allowed_job_levels) == nil or allowed_job_levels[job_level]) then
+            return true, 'job'
+        end
+    end
+
+    if restrictions.gang then
+        local allowed_gang_levels = restrictions.gang[gang]
+        if allowed_gang_levels and (next(allowed_gang_levels) == nil or allowed_gang_levels[gang_level]) then
+            return true, 'gang'
+        end
+    end
+
+    return false
+end
+
+local function frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, pt)
+    if not Bridge.active then return false end
+
+    local shouldHide = false
+    if option.item then
+        local res = Bridge.hasItem(option.item)
+        shouldHide = type(res) == "boolean" and not res
+    elseif option.job then
+        local res = check_restrictions({
+            job = option.job,
+            gang = option.gang
+        })
+        shouldHide = type(res) == "boolean" and not res
+    end
+
+    option.flags.hide = shouldHide
+
+    return false
+end
+
 --- calculate canInteract and update values and refresh UI
 ---@param scaleform table
 ---@param menuData table
@@ -1104,12 +1158,15 @@ function Container.syncData(scaleform, menuData, refreshUI)
 
             for optionIndex, option in ipairs(menu.options) do
                 local already_inserted = false
-
+                -- #TODO: I think we should pass already_inserted to next step and check so we don't override it!
                 already_inserted = evaluateDynamicValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
                     passThrough)
                 already_inserted = evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
                     passThrough)
                 already_inserted = updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData,
+                    passThrough)
+                already_inserted = frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex,
+                    menuOriginalData,
                     passThrough)
 
                 -- to hide option if its canInteract value has been changed

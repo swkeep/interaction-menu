@@ -29,6 +29,10 @@ client_script {
      '@PolyZone/BoxZone.lua',
      '@PolyZone/CircleZone.lua',
      '@PolyZone/ComboZone.lua',
+
+     -- bridges
+     'lua/bridge/main.lua',
+
      -- core
      'lua/client/util.lua',
      'lua/client/3dDuiMaker.lua',
@@ -39,9 +43,8 @@ client_script {
      'lua/client/garbageCollector.lua',
 
      -- providers
-     -- 'lua/providers/qb-target.lua',
-     -- 'lua/providers/qb-target_test.lua',
-     -- 'lua/providers/qb-target_debug.lua',
+     'lua/providers/qb-target.lua',
+     'lua/providers/qb-target_test.lua',
 
      -- examples / tests
      'lua/examples/*.lua',
@@ -53,8 +56,9 @@ server_script {
 
 files {
      'lua/client/icons/*.*',
+     'lua/bridge/qb.lua',
 }
 
--- provide 'qb-target'
+provide 'qb-target'
 
 lua54 'yes'
