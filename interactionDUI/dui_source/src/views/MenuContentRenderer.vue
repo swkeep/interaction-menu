@@ -8,7 +8,7 @@
                 :data-menuId="menu.id"
                 :data-hide="menu.flags.hide"
                 :data-deleted="menu.flags.deleted"
-                :data-invoking-resource="menu.metadata.invokingResource"
+                :data-invoking-resource="menu?.metadata?.invokingResource"
                 :class="{
                     'menu--hidden': menu.flags.hide || menu.flags?.deleted,
                 }"
@@ -32,7 +32,7 @@
 <script lang="ts" setup>
 import { subscribe } from '../util';
 import { computed, defineAsyncComponent, ref } from 'vue';
-import { FocusTracker, FocusTrackerT, InteractionMenu, Option } from '../types/types';
+import { FocusTracker, FocusTrackerT, InteractionMenu, Menu, Option } from '../types/types';
 
 const menuComponents = {
     // @ts-ignore
