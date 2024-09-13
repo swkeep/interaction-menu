@@ -1111,13 +1111,16 @@ local function check_restrictions(restrictions)
 end
 
 local function frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, pt)
+    -- #TODO: refactor and add new restrictions
     if not Bridge.active then return false end
 
     local shouldHide = false
     if option.item then
         local res = Bridge.hasItem(option.item)
         shouldHide = type(res) == "boolean" and not res
-    elseif option.job then
+    end
+
+    if option.job or option.gang then
         local res = check_restrictions({
             job = option.job,
             gang = option.gang
@@ -1126,8 +1129,11 @@ local function frameworkOptionVisibilityRestrictions(updatedElements, menuId, op
     end
 
     option.flags.hide = shouldHide
-
-    return false
+    if option.flags.hide == shouldHide then
+        return false
+    else
+        return true
+    end
 end
 
 --- calculate canInteract and update values and refresh UI
@@ -1154,20 +1160,19 @@ function Container.syncData(scaleform, menuData, refreshUI)
         local deleted = menuOriginalData.flags.deleted
 
         if not deleted then
-            -- menuOriginalData.flags.hide = Container.triggerInteraction(menuId, 'canInteract') or false
-
             for optionIndex, option in ipairs(menu.options) do
                 local already_inserted = false
-                -- #TODO: I think we should pass already_inserted to next step and check so we don't override it!
-                already_inserted = evaluateDynamicValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
-                    passThrough)
-                already_inserted = evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
-                    passThrough)
-                already_inserted = updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData,
-                    passThrough)
-                already_inserted = frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex,
-                    menuOriginalData,
-                    passThrough)
+                local result = evaluateDynamicValue(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
+                if result then already_inserted = true end
+
+                result = evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
+                if result then already_inserted = true end
+
+                result = updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
+                if result then already_inserted = true end
+
+                result = frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
+                if result then already_inserted = true end
 
                 -- to hide option if its canInteract value has been changed
                 if not already_inserted and option.flags.hide ~= nil and option.flags.hide ~= option.flags.previous_hide then
