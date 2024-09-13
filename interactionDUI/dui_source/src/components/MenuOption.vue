@@ -3,8 +3,10 @@
     <div class="label" :class="labelClass" :style="computedItemStyle">
         <i v-if="item.icon" :class="[item.icon, 'label__icon']"></i>
         <span v-if="!isRadio" v-html="sanitizedHTML"></span>
-        <div v-if="isRadio">
-            {{ item.label }}
+        <div v-if="isRadio" class="label__container">
+            <div class="label__text">
+                {{ item.label }}
+            </div>
         </div>
     </div>
 </template>

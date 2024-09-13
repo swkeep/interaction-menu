@@ -170,3 +170,176 @@
         }
     }
 }
+
+// do not look at this :(
+[data-theme='nopixel'] {
+    &[data-dark='true'] {
+        .menus-container {
+            background-color: transparent;
+        }
+
+        .indicator {
+            background-color: transparent;
+        }
+    }
+
+    .menus-container {
+        background-color: transparent;
+        border-radius: 0px;
+    }
+
+    .menu {
+        &__option {
+            color: #ffffff;
+            overflow: visible;
+
+            &__radio {
+                position: absolute;
+                appearance: none;
+
+                &::before {
+                    content: '';
+                    position: absolute;
+                    top: 0.5em;
+                    left: -0.26em;
+                    width: 4.2em;
+                    height: 4.2em;
+                    border: 0.3em solid rgba(255, 255, 255, 0.5);
+                    border-radius: 50%;
+                    border-top-color: transparent;
+                    border-bottom-color: transparent;
+                    box-shadow: 0 0 0 0em rgba(255, 255, 255, 0.5);
+                }
+
+                &:checked + .label {
+                    background-color: transparent;
+
+                    &__radio {
+                        &::before {
+                            border: 0.3em solid rgba(255, 255, 255, 0.5);
+                        }
+                    }
+
+                    &:before {
+                        content: '';
+                        box-shadow: inset 0 0 0.4em 0.5em rgba(0, 255, 191, 0.5);
+                    }
+
+                    &:after {
+                        position: absolute;
+                        width: 0.5em;
+                        height: 0.5em;
+                        top: 1.05em;
+                        left: 0.81em;
+                        content: '';
+                        background-color: rgba(0, 255, 191, 0.5);
+                        border-radius: 50%;
+                        box-shadow: inset 0 0 0.4em 0.5em rgba(0, 255, 191, 0.5);
+                    }
+                }
+
+                &:checked + .label div {
+                    background-color: rgba(2, 147, 111, 0.9);
+                }
+            }
+
+            .label {
+                border-radius: 0px;
+                background-color: transparent;
+
+                &--radio:before {
+                    box-shadow: inset 0 0 0.4em 0.5em rgba(255, 255, 255, 0.5);
+                }
+
+                .label__container {
+                    position: relative;
+                    width: 80%;
+                    background-color: rgba(255, 255, 255, 0.3);
+                    padding: 0.5rem;
+                    margin-left: 1rem;
+                }
+            }
+
+            .label .label__container {
+                padding: 1rem;
+            }
+
+            .label .label__container {
+                &::after {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 20px;
+                    height: 20px;
+                    content: '';
+                    border-left: 3px solid rgb(255, 255, 255);
+                    border-top: 3px solid rgb(255, 255, 255);
+                }
+
+                &::before {
+                    position: absolute;
+                    right: 0;
+                    bottom: 0;
+                    width: 20px;
+                    height: 20px;
+                    content: '';
+                    border-right: 3px solid rgb(255, 255, 255);
+                    border-bottom: 3px solid rgb(255, 255, 255);
+                }
+            }
+        }
+    }
+
+    .indicator {
+        border: none;
+        background: radial-gradient(circle, rgba(0, 82, 62, 1) 0%, rgba(3, 134, 103, 1) 55%);
+        border-radius: 3px;
+
+        &__inner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80%;
+            height: 80%;
+        }
+
+        &__fill {
+            background-color: rgba(0, 255, 191, 0.4);
+            height: 50%;
+        }
+
+        &--success {
+            border-color: rgb(81, 255, 0) !important;
+        }
+
+        &--fail {
+            border-color: rgb(199, 37, 61) !important;
+        }
+
+        &--glow {
+            box-shadow: none;
+        }
+
+        &::after {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            content: '';
+            border-left: 3px solid rgb(255, 255, 255);
+            border-top: 3px solid rgb(255, 255, 255);
+        }
+
+        &::before {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 20px;
+            height: 20px;
+            content: '';
+            border-right: 3px solid rgb(255, 255, 255);
+            border-bottom: 3px solid rgb(255, 255, 255);
+        }
+    }
+}

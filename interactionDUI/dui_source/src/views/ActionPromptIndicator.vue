@@ -82,10 +82,12 @@ onUnmounted(() => {
                 'indicator--fail': state.status === 'fail',
             }"
         >
-            <div class="indicator__text" :class="{ 'indicator__text--mix-blend-mode': state.onHold }">
-                {{ state.content }}
+            <div class="indicator__inner">
+                <div class="indicator__text" :class="{ 'indicator__text--mix-blend-mode': state.onHold }">
+                    {{ state.content }}
+                </div>
+                <div class="indicator__fill" :style="{ width: state.fill + '%' }"></div>
             </div>
-            <div class="indicator__fill" :style="{ width: state.fill + '%' }"></div>
         </div>
     </Transition>
 </template>

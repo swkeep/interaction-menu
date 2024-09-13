@@ -1,7 +1,7 @@
 export const menuMockData = [
     {
         selected: 1,
-        theme: 'default',
+        theme: 'nopixel',
         indicator: {
             prompt: 'Enter',
             glow: true,
