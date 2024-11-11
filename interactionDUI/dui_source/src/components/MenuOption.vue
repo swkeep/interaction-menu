@@ -23,7 +23,7 @@ const props = defineProps<{
 }>();
 
 const sanitizedHTML = computed(() => {
-    const html = props.item.label;
+    const html = String(props.item.label);
     if (html === undefined) return '';
 
     return DOMPurify.sanitize(html);
