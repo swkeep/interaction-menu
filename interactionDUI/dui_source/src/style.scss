@@ -99,10 +99,13 @@ body {
             border-radius: 99em;
             transition: 0.25s ease;
 
+            &__text {
+                margin-left: 0.375em;
+            }
+
             &__icon {
                 min-width: 1.2em;
                 text-align: center;
-                margin-right: 0.375em;
             }
 
             &--radio:before {
