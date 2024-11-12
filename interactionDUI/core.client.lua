@@ -118,20 +118,21 @@ local function setScale(value)
 end
 
 local function setStatus(status)
-    local ref = DUI.scaleform.attached
-    if status then
-        localRender = render_sprite
-        if DUI.scaleform['3d'] then
-            localRender = render_3d
-        end
-    else
+    if not status then
         localRender = nil
+        TriggerEvent("interaction_menu:stop_render")
+        return
     end
 
-    if ref and status == true then
+    -- set render function type
+    localRender = DUI.scaleform['3d'] and render_3d or render_sprite
+
+    local ref = DUI.scaleform.attached
+    if ref then
         calculateWorldPosition(ref)
     end
-    renderingIsActive = status
+
+    TriggerEvent("interaction_menu:start_render")
 end
 
 local function attach(t)
@@ -293,30 +294,41 @@ end
 
 CreateThread(function()
     DUI:Create()
+end)
 
-    local render = DUI.Render
+AddEventHandler('interaction_menu:stop_render', function()
+    -- just to be sure it's called internaly (for now!)
+    if GetInvokingResource() ~= thisResource then return end
+
+    renderingIsActive = false
+end)
+
+AddEventHandler('interaction_menu:start_render', function()
+    -- just to be sure it's called internaly (for now!)
+    if GetInvokingResource() ~= thisResource then return end
+
+    if renderingIsActive then return end
+    renderingIsActive = true
 
     -- Tracking Thread
     CreateThread(function()
         local ref = DUI.scaleform.attached
-        while true do
-            if renderingIsActive and ref.entity then
-                calculateWorldPosition(ref)
-                Wait(tracking_interval)
-            else
-                Wait(500)
-            end
+
+        while renderingIsActive and ref.entity do
+            calculateWorldPosition(ref)
+            Wait(tracking_interval or 0)
         end
     end)
 
-    while true do
-        if renderingIsActive then
+    -- Render Thread
+    CreateThread(function()
+        local render = DUI.Render
+
+        while renderingIsActive do
             render()
             Wait(0)
-        else
-            Wait(500)
         end
-    end
+    end)
 end)
 
 AddEventHandler('onResourceStop', function(resource)
