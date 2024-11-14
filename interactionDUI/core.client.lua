@@ -309,11 +309,11 @@ AddEventHandler('interaction_menu:start_render', function()
 
     if renderingIsActive then return end
     renderingIsActive = true
+    local ref = DUI.scaleform.attached
+    local render = DUI.Render
 
     -- Tracking Thread
     CreateThread(function()
-        local ref = DUI.scaleform.attached
-
         while renderingIsActive and ref.entity do
             calculateWorldPosition(ref)
             Wait(tracking_interval or 0)
@@ -322,8 +322,6 @@ AddEventHandler('interaction_menu:start_render', function()
 
     -- Render Thread
     CreateThread(function()
-        local render = DUI.Render
-
         while renderingIsActive do
             render()
             Wait(0)
