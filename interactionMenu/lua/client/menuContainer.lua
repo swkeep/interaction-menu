@@ -206,7 +206,7 @@ local function buildOption(data, instance)
                 disable = false,
                 action = nil,
                 event = nil,
-                hide = false
+                hide = option.hide or false
             }
         }
 
@@ -443,6 +443,15 @@ function Container.createGlobal(t)
     if Container.indexes.globals[instance.type] and instance.type ~= 'bones' then
         table.insert(Container.indexes.globals[instance.type], id)
     elseif instance.type == 'bones' then
+        if not instance.bone then
+            warn('When using the global menu on bones, make sure to define the `bone`.')
+            local s = [[exports["interactionMenu"]::createGlobal {
+    type = "bones",
+    bone = "platelight", -- <- here
+    offset = vec3(0, 0, 0),]]
+            print(s)
+            return
+        end
         Container.indexes.globals['bones'][instance.bone] = Container.indexes.globals['bones'][instance.bone] or {}
         table.insert(Container.indexes.globals['bones'][instance.bone], id)
     end
@@ -1200,7 +1209,7 @@ function Container.syncData(scaleform, menuData, refreshUI)
                 modified_something = modified_something or updateOptionVisibility(option, optionIndex, menuOriginalData, passThrough)
                 modified_something = modified_something or frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
 
-                if modified_something then
+                if modified_something or option.flags.previous_hide ~= option.flags.hide then
                     option.flags.previous_hide = option.flags.hide
                     table.insert(updatedElements, { menuId = menuId, option = option })
                 end
