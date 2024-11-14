@@ -5,8 +5,9 @@ end
 -- #region Show sprite while holding alt
 
 local SpatialHashGrid = Util.SpatialHashGrid
-local isTargetSpritesActive = false
+local currentSpriteThreadHash = nil
 local isSpriteThreadRunning = false
+local isTargetSpritesActive = false
 local StateManager = Util.StateManager()
 local grid_position = SpatialHashGrid:new('position', 100)
 local visiblePoints = {}
@@ -36,7 +37,7 @@ local maxScaleY = minScaleY * 5
 -- Distance thresholds
 local minDistance = 2.0
 local maxDistance = 20.0
-
+local maxEntities = 10
 -- Function to draw the sprite with scaling based on distance
 local function drawSprite(p, player_position, icon)
     if not p then return end
@@ -62,8 +63,7 @@ local function drawSprite(p, player_position, icon)
     ClearDrawOrigin()
 end
 
-
-local function getNearbyObjects(coords)
+local function getNearbyObjects(isActive, currentMenu, coords)
     local objects = GetGamePool('CObject')
     local nearby = {}
     local count = 0
@@ -84,26 +84,24 @@ local function getNearbyObjects(coords)
                 entityType = entity_type
             }
 
-            local menu = Container.getMenu(model, object, nil)
-            local id = StateManager.get('id')
-            local menuId
-
-            if id then
-                menuId = StateManager.get('entityModel') .. "|" .. StateManager.get('id')
-            end
-
-            if menuType ~= 1 and not menuId or menuId ~= menu.id then
+            if menuType > 1 and StateManager.get('entityHandle') ~= object then
+                local menu = Container.getMenu(model, object, nil)
                 count += 1
 
                 nearby[count] = {
                     object = object,
                     coords = objectCoords,
                     type = entity_type,
-                    icon = menu and menu.icon
+                    icon = menu and menu.icon,
+                    distance = distance
                 }
             end
         end
     end
+
+    table.sort(nearby, function(a, b)
+        return a.distance < b.distance
+    end)
 
     return nearby
 end
@@ -113,25 +111,30 @@ local entities = {}
 local function StartSpriteThread()
     if isSpriteThreadRunning then return end
     isSpriteThreadRunning = true
-    local player          = PlayerPedId()
-    local playerPosition  = StateManager.get('playerPosition')
-    local currentMenu     = StateManager.get('id')
-    local isActive        = StateManager.get('active')
+    local player = PlayerPedId()
+    local playerPosition = StateManager.get('playerPosition')
+    local currentMenu = StateManager.get('id')
+    local isActive = StateManager.get('active')
+
+    -- This is kinda overkill, but in my testing, sometimes one of these threads would stay alive,
+    -- causing flickering and performance drops.
+    local threadHash = math.random(1000000)
+    currentSpriteThreadHash = threadHash
 
     CreateThread(function()
-        while isSpriteThreadRunning do
-            isActive                          = StateManager.get('active')
-            currentMenu                       = StateManager.get('id')
-            entities                          = getNearbyObjects(playerPosition)
+        while isSpriteThreadRunning and currentSpriteThreadHash == threadHash do
+            isActive = StateManager.get('active')
+            currentMenu = StateManager.get('id')
+            entities = getNearbyObjects(isActive, currentMenu, playerPosition)
             local nearPoints, totalNearPoints = grid_position:queryRange(playerPosition, 20)
-            visiblePoints, visiblePointCount  = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
+            visiblePoints, visiblePointCount = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
 
             Wait(1000)
         end
     end)
 
     CreateThread(function()
-        while isTargetSpritesActive do
+        while isTargetSpritesActive and currentSpriteThreadHash == threadHash do
             playerPosition = GetEntityCoords(player)
 
             if visiblePointCount > 0 then
@@ -147,10 +150,11 @@ local function StartSpriteThread()
             end
 
             for index, value in ipairs(entities) do
+                if index > maxEntities then break end
                 drawSprite(value.coords, playerPosition, value.icon)
             end
 
-            Wait(10)
+            Wait(0)
         end
         isSpriteThreadRunning = false
     end)
@@ -163,6 +167,7 @@ end, false)
 
 RegisterCommand('-toggleTargetSprites', function()
     isTargetSpritesActive = false
+    isSpriteThreadRunning = false
 end, false)
 
 RegisterKeyMapping('+toggleTargetSprites', 'Toggle Target Sprites', 'keyboard', 'LMENU')
