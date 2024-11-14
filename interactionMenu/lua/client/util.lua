@@ -1053,21 +1053,21 @@ CreateThread(function()
         end
 
         CreateThread(function()
-            local sphereRadius = 1.0
+            local size = 1.0
             while true do
                 if EntityDetector.lastClosestEntity and EntityDetector.lastClosestEntity.entity then
                     local instance = EntityDetector.zones[EntityDetector.lastClosestEntity.id]
                     local entityCoords = GetEntityCoords(instance.entity)
 
                     if entityCoords then
-                        DrawMarker(1, entityCoords.x, entityCoords.y, entityCoords.z + 0.5, 0.0, 0.0, 0.0, 0.0, 180.0,
+                        DrawMarker(1, entityCoords.x, entityCoords.y, entityCoords.z - 0.5, 0.0, 0.0, 0.0, 0.0, 0.0,
                             0.0,
-                            sphereRadius
-                            , sphereRadius,
-                            sphereRadius, 255, 128, 0, 150, false, true, 2, nil, nil, false, false)
+                            size
+                            , size,
+                            size, 255, 128, 0, 150, false, true, 2, nil, nil, false, false)
                     end
                 end
-                Wait(10)
+                Wait(0)
             end
         end)
         CreateThread(function()
