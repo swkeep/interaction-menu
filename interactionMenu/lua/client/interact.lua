@@ -84,8 +84,9 @@ function Interact:scaleformUpdate(menuData)
         indicator = menuData.indicator,
         theme = menuData.theme,
         glow = menuData.glow,
+        width = menuData.width,
         menus = menuData.menus,
-        selected = Interact:getSelectedIndex(menuData)
+        selected = Interact:getSelectedIndex(menuData),
     })
 end
 
@@ -328,6 +329,15 @@ end)
 -- #endregion
 
 -- #region Render Threads
+local activeMenuRef
+
+local function refresh()
+    Container.syncData(scaleform, activeMenuRef, true)
+end
+
+exports("Refresh", refresh)
+exports("refresh", refresh)
+
 function Render.generic(data, metadata, callbacks)
     if not data then return end
 
@@ -346,6 +356,7 @@ function Render.generic(data, metadata, callbacks)
     triggers.onSeen(data, metadata)
 
     local running = true
+    activeMenuRef = data
 
     CreateThread(function()
         while running do
@@ -381,7 +392,9 @@ function Render.generic(data, metadata, callbacks)
     end
 
     running = false
+    activeMenuRef = nil
     setClose()
+    triggers.onExit(data, metadata)
 
     --onExit callback
     if callbacks.onExit then callbacks.onExit(data, metadata) end
@@ -424,6 +437,8 @@ function Render.onEntity(model, entity)
         end,
         validateSlow = validateSlow,
         onExit = function()
+            StateManager.set('entityModel', nil)
+            StateManager.set('entityHandle', nil)
             scaleform.dettach()
         end
     })
