@@ -125,6 +125,7 @@ export interface InteractionMenu {
     selected: Array<boolean>;
     theme: string;
     glow: boolean;
+    width: number | string;
 }
 
 export interface MenuOption {
