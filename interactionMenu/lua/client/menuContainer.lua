@@ -206,7 +206,8 @@ local function buildOption(data, instance)
                 disable = false,
                 action = nil,
                 event = nil,
-                hide = false
+                hide = option.hide or false,
+                subMenu = option.subMenu or false,
             }
         }
 
@@ -270,6 +271,7 @@ function Container.create(t)
         type = nil,
         theme = t.theme,
         glow = t.glow,
+        width = t.width,
         extra = t.extra or {},
         indicator = t.indicator,
         icon = t.icon,
@@ -414,6 +416,7 @@ function Container.createGlobal(t)
         bone = t.bone,
         theme = t.theme,
         glow = t.glow,
+        width = t.width,
         extra = t.extra or {},
         indicator = t.indicator,
         interactions = {},
@@ -441,6 +444,15 @@ function Container.createGlobal(t)
     if Container.indexes.globals[instance.type] and instance.type ~= 'bones' then
         table.insert(Container.indexes.globals[instance.type], id)
     elseif instance.type == 'bones' then
+        if not instance.bone then
+            warn('When using the global menu on bones, make sure to define the `bone`.')
+            local s = [[exports["interactionMenu"]::createGlobal {
+    type = "bones",
+    bone = "platelight", -- <- here
+    offset = vec3(0, 0, 0),]]
+            print(s)
+            return
+        end
         Container.indexes.globals['bones'][instance.bone] = Container.indexes.globals['bones'][instance.bone] or {}
         table.insert(Container.indexes.globals['bones'][instance.bone], id)
     end
@@ -545,14 +557,15 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
         if data and not deleted then
             local index = #container.menus + 1
             container.type = data.type and data.type or container.type
-            container.position = data.position and data.position or container.position
             container.offset = data.metadata and data.metadata.offset or container.offset
             container.indicator = data.indicator and data.indicator or container.indicator
             container.theme = data.theme and data.theme or container.theme
             container.glow = data.glow and data.glow or container.glow
+            container.width = data.width and data.width or container.width
             container.maxDistance = data.metadata and data.metadata.maxDistance
             container.static = data.flags and data.flags.static
             container.zone = data.zone
+            container.position = data.position and data.position or container.position
             container.rotation = data.rotation
             container.icon = data.icon
             container.scale = data.scale
@@ -601,7 +614,6 @@ function Container.getMenu(model, entity, menuId)
         if is_deleted then return end
     end
 
-
     local id
     local combinedIds = {}
     local container = {
@@ -609,6 +621,7 @@ function Container.getMenu(model, entity, menuId)
         menus    = {},
         selected = {},
         glow     = false,
+        width    = 'fit-content',
         theme    = 'default'
     }
 
@@ -683,45 +696,71 @@ local function globalsExistsCheck(entity, entityType)
     return false
 end
 
+local entitiesIndex = Container.indexes.entities
+local modelsIndex = Container.indexes.models
+local playersIndex = Container.indexes.players
+local netIdsIndex = Container.indexes.netIds
+local globalsIndex = Container.indexes.globals
+local bonesIndex = Container.indexes.bones
+
 function Container.getMenuType(t)
     local model = t.model
     local entity = t.entity
     local entityType = t.entityType
-    local entities = Container.indexes.entities
-    local models = Container.indexes.models
-    local players = Container.indexes.players
-    local netIds = Container.indexes.netIds
+
     local playerId = IdentifyPlayerServerId(entityType, entity)
-    local networked = NetworkGetEntityIsNetworked(entity)
-    local netId
+    local isNetworked = NetworkGetEntityIsNetworked(entity)
+    local netId = isNetworked and NetworkGetNetworkIdFromEntity(entity) or nil
 
-    if networked then
-        netId = NetworkGetNetworkIdFromEntity(entity)
-    end
-
+    -- ON_ZONE
     if t.zone then
         return MenuTypes['ON_ZONE']
-    elseif t.closestPoint and next(t.closestPoint) then
-        -- onPosition
-        return MenuTypes['ON_POSITION']
-    elseif (entityType == 3 or entityType == 2) and models[model] or entities[entity] or players[playerId] or globalsExistsCheck(entity, entityType) or netIds[netId] then
-        -- onModel / onEntity / onBone
-        if entityType == 2 and globalsExistsCheck(entity, entityType) then
-            local _, closestBoneName = Container.boneCheck(entity)
-            local globals = Container.indexes.globals
-            local bones = Container.indexes.bones
+    end
 
-            if bones[entity] and bones[entity][closestBoneName] then
+    -- ON_POSITION
+    if t.closestPoint and next(t.closestPoint) then
+        return MenuTypes['ON_POSITION']
+    end
+
+    -- ON_ENTITY
+    local isEntityIndexed = false
+    local hasGlobalEntry = globalsExistsCheck(entity, entityType)
+
+    if entityType == 1 then
+        -- PED
+        -- ON_ENTITY -> ON_PED -> normal
+        -- ON_ENTITY -> ON_PED -> player
+        -- ON_ENTITY -> ON_PED -> netId
+        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or playersIndex[playerId] or netIdsIndex[netId]
+        if isEntityIndexed or hasGlobalEntry then
+            return MenuTypes['ON_ENTITY']
+        end
+    elseif entityType == 2 then
+        -- VEHICLE
+        -- ON_ENTITY -> ON_VEHICLE -> normal
+        -- ON_ENTITY -> ON_VEHICLE -> bone
+        -- ON_ENTITY -> ON_VEHICLE -> netId
+        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or netIdsIndex[netId]
+        if isEntityIndexed or hasGlobalEntry then
+            return MenuTypes['ON_ENTITY']
+        else
+            local _, closestBoneName = Container.boneCheck(entity)
+
+            if bonesIndex[entity] and bonesIndex[entity][closestBoneName] then
                 return MenuTypes['ON_ENTITY']
             end
-            if not globals.bones[closestBoneName] then
-                return 1
-            end
         end
-        return MenuTypes['ON_ENTITY']
-    else
-        return 1
+    elseif entityType == 3 then
+        -- OBJECT
+        -- ON_ENTITY -> ON_OBJECT -> normal
+        -- ON_ENTITY -> ON_OBJECT -> netId
+        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or netIdsIndex[netId]
+        if isEntityIndexed or hasGlobalEntry then
+            return MenuTypes['ON_ENTITY']
+        end
     end
+
+    return MenuTypes['DISABLED']
 end
 
 function Container.get(id)
@@ -878,6 +917,10 @@ function Container.constructMetadata(t)
 
     if t.type == 'entity' or t.type == 'model' or t.type == 'peds' then
         metadata.entity = t.entity
+    elseif t.type == 'zone' then
+        local pos = t.position
+        pos = vec3(pos.x, pos.y, pos.z)
+        metadata.distance = #(metadata.coords - pos)
     elseif t.type == 'bone' then
         metadata.entity = t.entity
         metadata.bone = t.boneId
@@ -908,7 +951,16 @@ local function processData(params)
             }
             try_unpack = true
         elseif triggerType == 'event' then
-            data = {}
+            data = {
+                interaction.payload or {},
+                {
+                    ["entity"] = menuData.entity,
+                    ["distance"] = menuData.distance,
+                    ["coords"] = menuData.coords,
+                    ["name"] = menuData.name,
+                    ["bone"] = menuData.bone
+                }
+            }
             try_unpack = true
         end
     elseif schemaType == "qbtarget" then
@@ -1017,74 +1069,69 @@ local function is_daytime()
     return hour >= 6 and hour < 19
 end
 
-local function evaluateDynamicValue(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
-    if not option.flags.dynamic then return false end
-
-    local updated = false
+local function evaluateBindValue(option, optionIndex, menuOriginalData, pt)
     local value = menuOriginalData.interactions[optionIndex]
-    if value and value.func then
-        local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords,
-            passThrough.name, passThrough.bone)
 
-        if success and res ~= option.label_cache then
-            option.label_cache = res
-            option.label = res
-            updated = true
+    local function callFunction()
+        if value and value.func then
+            return pcall(value.func, pt.entity, pt.distance, pt.coords, pt.name, pt.bone)
         end
-    end
-    if option.progress and option.progress.value ~= option.cached_value then
-        option.cached_value = option.progress.value
-        updated = true
-    end
-    if option.label_cache ~= option.label then
-        option.label_cache = option.label
-        updated = true
-    end
-    if updated then
-        table.insert(updatedElements, { menuId = menuId, option = option })
+        return false, nil
     end
 
-    return updated
-end
+    if option.flags.bind then
+        -- Handle 'bind'
+        local success, res = callFunction()
 
-local function evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
-    if not option.flags.bind then return false end
+        if success then
+            if option.progress and option.progress.value ~= res then
+                option.progress.value = res
+                return true
+            elseif not option.progress and option.label ~= res then
+                option.label = res
+                return true
+            end
+        end
+    elseif option.flags.dynamic then
+        -- Handle 'dynamic'
+        local success, res = callFunction()
 
-    local value = menuOriginalData.interactions[optionIndex]
-    local success, res = pcall(value.func, passThrough.entity, passThrough.distance, passThrough.coords, passThrough
-        .name, passThrough.bone)
-
-    if success and option.progress and option.progress.value ~= res then
-        option.cached_value = option.progress.value
-        option.progress.value = res
-        table.insert(updatedElements, { menuId = menuId, option = option })
-        return true
+        if success then
+            if res ~= option.label then
+                option.label = res
+                return true
+            end
+        elseif option.label_cache ~= option.label then
+            option.label_cache = option.label
+            return true
+        end
+    else
+        return false
     end
-
-    return false
 end
 
 --- check canInteract passed by user and update option's visibility
----@param updatedElements any
----@param menuId any
 ---@param option any
 ---@param optionIndex any
 ---@param menuOriginalData any
 ---@param pt any "passThrough"
----@return boolean
-local function updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData, pt)
+---@return boolean "modified"
+local function updateOptionVisibility(option, optionIndex, menuOriginalData, pt)
     if not option.flags.canInteract then return false end
 
     local value = menuOriginalData.interactions['canInteract|' .. optionIndex]
     local success, res = pcall(value.func, pt.entity, pt.distance, pt.coords, pt.name, pt.bone)
 
+    if success and res == nil then res = false end
     if success and type(res) == "boolean" then
+        if option.flags.hide == not res then return false end
         option.flags.hide = not res
+        return true
     else
+        if option.flags.hide == false then return false end
         option.flags.hide = false
+        return true
     end
-
-    return false
 end
 
 local function check_restrictions(restrictions)
@@ -1111,13 +1158,19 @@ local function check_restrictions(restrictions)
 end
 
 local function frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, pt)
+    -- #TODO: refactor and add new restrictions
     if not Bridge.active then return false end
+    if option.item == nil and option.job == nil and option.gang == nil then
+        return false
+    end
 
     local shouldHide = false
     if option.item then
         local res = Bridge.hasItem(option.item)
         shouldHide = type(res) == "boolean" and not res
-    elseif option.job then
+    end
+
+    if option.job or option.gang then
         local res = check_restrictions({
             job = option.job,
             gang = option.gang
@@ -1126,8 +1179,11 @@ local function frameworkOptionVisibilityRestrictions(updatedElements, menuId, op
     end
 
     option.flags.hide = shouldHide
-
-    return false
+    if option.flags.hide == shouldHide then
+        return false
+    else
+        return true
+    end
 end
 
 --- calculate canInteract and update values and refresh UI
@@ -1154,26 +1210,15 @@ function Container.syncData(scaleform, menuData, refreshUI)
         local deleted = menuOriginalData.flags.deleted
 
         if not deleted then
-            -- menuOriginalData.flags.hide = Container.triggerInteraction(menuId, 'canInteract') or false
-
             for optionIndex, option in ipairs(menu.options) do
-                local already_inserted = false
-                -- #TODO: I think we should pass already_inserted to next step and check so we don't override it!
-                already_inserted = evaluateDynamicValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
-                    passThrough)
-                already_inserted = evaluateBindValue(updatedElements, menuId, option, optionIndex, menuOriginalData,
-                    passThrough)
-                already_inserted = updateOptionVisibility(updatedElements, menuId, option, optionIndex, menuOriginalData,
-                    passThrough)
-                already_inserted = frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex,
-                    menuOriginalData,
-                    passThrough)
+                local modified_something = false
 
-                -- to hide option if its canInteract value has been changed
-                if not already_inserted and option.flags.hide ~= nil and option.flags.hide ~= option.flags.previous_hide then
-                    already_inserted = true
+                modified_something = modified_something or evaluateBindValue(option, optionIndex, menuOriginalData, passThrough)
+                modified_something = modified_something or updateOptionVisibility(option, optionIndex, menuOriginalData, passThrough)
+                modified_something = modified_something or frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
+
+                if modified_something or option.flags.previous_hide ~= option.flags.hide then
                     option.flags.previous_hide = option.flags.hide
-
                     table.insert(updatedElements, { menuId = menuId, option = option })
                 end
             end
@@ -1184,7 +1229,7 @@ function Container.syncData(scaleform, menuData, refreshUI)
         end
     end
 
-    if refreshUI and #updatedElements > 0 then
+    if refreshUI or #updatedElements > 0 then
         scaleform.send("interactionMenu:menu:batchUpdate", updatedElements)
     end
 

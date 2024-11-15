@@ -84,8 +84,9 @@ function Interact:scaleformUpdate(menuData)
         indicator = menuData.indicator,
         theme = menuData.theme,
         glow = menuData.glow,
+        width = menuData.width,
         menus = menuData.menus,
-        selected = Interact:getSelectedIndex(menuData)
+        selected = Interact:getSelectedIndex(menuData),
     })
 end
 
@@ -328,15 +329,23 @@ end)
 -- #endregion
 
 -- #region Render Threads
+local activeMenuRef
+
+local function refresh()
+    Container.syncData(scaleform, activeMenuRef, true)
+end
+
+exports("Refresh", refresh)
+exports("refresh", refresh)
+
 function Render.generic(data, metadata, callbacks)
     if not data then return end
+    StateManager.set('active', true)
 
     -- onEnter callback
     if callbacks.onEnter then
         if not callbacks.onEnter(data, metadata) then return end
     end
-
-    StateManager.set('active', true)
 
     -- afterStart callback
     if callbacks.afterStart then callbacks.afterStart(data, metadata) end
@@ -346,6 +355,7 @@ function Render.generic(data, metadata, callbacks)
     triggers.onSeen(data, metadata)
 
     local running = true
+    activeMenuRef = data
 
     CreateThread(function()
         while running do
@@ -381,7 +391,9 @@ function Render.generic(data, metadata, callbacks)
     end
 
     running = false
+    activeMenuRef = nil
     setClose()
+    triggers.onExit(data, metadata)
 
     --onExit callback
     if callbacks.onExit then callbacks.onExit(data, metadata) end
@@ -391,6 +403,7 @@ end
 function Render.onEntity(model, entity)
     local data = Container.getMenu(model, entity)
     if not data then return end
+    if not canInteract(data, nil) then return end
 
     local closestVehicleBone = Container.boneCheck(entity)
     local offset = data.offset or vec3(0, 0, 0)
@@ -417,6 +430,7 @@ function Render.onEntity(model, entity)
             scaleform.set3d(false)
             scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
             metadata.position = GetEntityCoords(entity)
+            UpdateNearbyObjects()
             return canInteract(data, nil)
         end,
         validate = function()
@@ -424,6 +438,8 @@ function Render.onEntity(model, entity)
         end,
         validateSlow = validateSlow,
         onExit = function()
+            StateManager.set('entityModel', nil)
+            StateManager.set('entityHandle', nil)
             scaleform.dettach()
         end
     })
@@ -432,6 +448,7 @@ end
 function Render.onPosition(currentMenuId)
     local data = Container.getMenu(nil, nil, currentMenuId)
     if not data then return end
+    if not canInteract(data, nil) then return end
 
     local metadata = Container.constructMetadata(data)
     local position = data.position

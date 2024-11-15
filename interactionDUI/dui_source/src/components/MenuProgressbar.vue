@@ -1,7 +1,7 @@
 <template>
     <div class="label--center" :style="itemStyle(item)">
         <ProgressBar
-            v-if="item.progress && item.progress.value"
+            v-if="item.progress && item.progress.value !== undefined"
             :value="item.progress.value"
             :label="item.label"
             :type="item.progress?.type"

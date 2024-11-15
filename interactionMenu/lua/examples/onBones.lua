@@ -8,9 +8,24 @@
 --                             |_|
 -- https://github.com/swkeep
 -- https://docs.fivem.net/natives/?_0xFB71170B7E76ACBA
--- pastebin.com/D7JMnX1g
+-- Bone indices -> pastebin.com/D7JMnX1g
 
 if not DEVMODE then return end
+local positions = {
+    vector4(794.00, -2997.10, -70.00, 0),
+    vector4(796.50, -2997.10, -70.00, 0),
+    vector4(799.00, -2997.10, -70.00, 0),
+    vector4(801.50, -2997.10, -70.00, 0),
+    vector4(804.00, -2997.10, -70.00, 0),
+    vector4(807.00, -2997.10, -70.00, 0),
+
+    vector4(794.54, -3002.94, -70.00, 180),
+    vector4(798.54, -3002.94, -70.00, 180),
+    vector4(801.04, -3002.94, -70.00, 180),
+    vector4(803.54, -3002.94, -70.00, 180),
+    vector4(806.04, -3002.94, -70.00, 180),
+    vector4(808.54, -3002.94, -70.00, 180),
+}
 
 local function toggle_door(vehicle, doorId)
     if GetVehicleDoorAngleRatio(vehicle, doorId) > 0.0 then
@@ -185,34 +200,51 @@ local bones = {
     },
 }
 
-local vehicle
+local menus = {}
+local entities = {}
+
+local function init()
+    entities[#entities + 1] = Util.spawnVehicle('adder', positions[1])
+    entities[#entities + 1] = Util.spawnVehicle('adder', positions[2])
+    entities[#entities + 1] = Util.spawnVehicle('adder', positions[7])
+    entities[#entities + 1] = Util.spawnVehicle('adder', positions[8])
+    entities[#entities + 1] = Util.spawnVehicle('adder', positions[9])
+
+    for index, vehicle in ipairs(entities) do
+        SetVehicleNumberPlateText(vehicle, 'swkeep-' .. index)
+
+        for boneName, bone in pairs(bones) do
+            menus[#menus + 1] = exports['interactionMenu']:Create {
+                bone = boneName,
+                vehicle = vehicle,
+                offset = vec3(0, 0, 0),
+                maxDistance = 2.0,
+                indicator = {
+                    prompt = 'E',
+                },
+                options = bone or {}
+            }
+        end
+    end
+
+    local index = #entities + 1
+    entities[index] = Util.spawnVehicle('adder', positions[3])
+    SetVehicleNumberPlateText(entities[index], 'no menu')
+end
+
+local function cleanup()
+    for index, menu_id in ipairs(menus) do
+        exports['interactionMenu']:remove(menu_id)
+    end
+    for index, entity in ipairs(entities) do
+        if DoesEntityExist(entity) then
+            DeleteEntity(entity)
+        end
+    end
+    menus = {}
+    entities = {}
+end
 
 CreateThread(function()
-    Wait(50)
-
-    local veh_pos = vector4(-1974.9, 3178.76, 32.81, 59.65)
-    local veh_pos2 = vector4(-1973.78, 3180.58, 32.4, 58.78)
-
-    vehicle = Util.spawnVehicle('adder', veh_pos)
-    Util.spawnVehicle('adder', veh_pos2)
-
-    SetVehicleNumberPlateText(vehicle, 'swkeep')
-
-    for boneName, bone in pairs(bones) do
-        exports['interactionMenu']:Create {
-            bone = boneName,
-            vehicle = vehicle,
-            offset = vec3(0, 0, 0),
-            maxDistance = 2.0,
-            indicator = {
-                prompt   = 'E',
-                keyPress = {
-                    -- https://docs.fivem.net/docs/game-references/controls/#controls
-                    padIndex = 0,
-                    control = 38
-                }
-            },
-            options = bone or {}
-        }
-    end
+    InternalRegisterTest(init, cleanup, "on_bones", "On Vehicle Boens", "fa-solid fa-border-none")
 end)

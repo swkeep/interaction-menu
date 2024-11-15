@@ -92,6 +92,7 @@ interface OptionFlags {
     hide: boolean;
     deleted?: boolean;
     canInteract: boolean;
+    subMenu: boolean;
 }
 
 export interface Option {
@@ -125,6 +126,7 @@ export interface InteractionMenu {
     selected: Array<boolean>;
     theme: string;
     glow: boolean;
+    width: number | string;
 }
 
 export interface MenuOption {

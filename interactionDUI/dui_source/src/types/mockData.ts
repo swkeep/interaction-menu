@@ -30,6 +30,15 @@ export const menuMockData = [
                             hide: false,
                         },
                     },
+                    {
+                        vid: 3,
+                        label: 'Sub Menu',
+                        flags: {
+                            update: true,
+                            hide: false,
+                            subMenu: true
+                        },
+                    },
                 ],
             },
         ],

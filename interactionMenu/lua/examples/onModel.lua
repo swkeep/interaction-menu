@@ -8,43 +8,65 @@
 --                             |_|
 -- https://github.com/swkeep
 if not DEVMODE then return end
+local positions = {
+    vector4(794.00, -2997.10, -70.00, 0),
+    vector4(796.50, -2997.10, -70.00, 0),
+    vector4(799.00, -2997.10, -70.00, 0),
+    vector4(801.50, -2997.10, -70.00, 0),
+    vector4(804.00, -2997.10, -70.00, 0),
+    vector4(806.50, -2997.10, -70.00, 0),
+    vector4(809.00, -2997.10, -70.00, 0),
 
-CreateThread(function()
-    -- spawn two objects of same model
-    local coords = vector4(-1996.28, 3161.06, 31.81, 103.8)
-    Util.spawnObject(`xm_prop_crates_sam_01a`, coords)
+    vector4(794.54, -3002.94, -70.00, 180),
+    vector4(796.54, -3002.94, -70.00, 180),
+    vector4(798.54, -3002.94, -70.00, 180),
+    vector4(801.04, -3002.94, -70.00, 180),
+    vector4(803.54, -3002.94, -70.00, 180),
+    vector4(806.04, -3002.94, -70.00, 180),
+    vector4(808.54, -3002.94, -70.00, 180),
 
-    exports['interactionMenu']:Create {
+    vector4(794.00, -3008.70, -70.00, 180),
+    vector4(796.50, -3008.70, -70.00, 180),
+    vector4(799.00, -3008.70, -70.00, 180),
+    vector4(801.50, -3008.70, -70.00, 180),
+    vector4(804.00, -3008.70, -70.00, 180),
+    vector4(806.50, -3008.70, -70.00, 180),
+    vector4(809.00, -3008.70, -70.00, 180),
+}
+
+local menus = {}
+local entities = {}
+
+local function init()
+    local objects = {
+        { model = `xm_prop_crates_sam_01a`, start = 1,  finish = 7 },
+        { model = `prop_vend_snak_01`,      start = 8,  finish = 14 },
+        { model = `prop_paper_bag_01`,      start = 15, finish = 19 }
+    }
+
+    for _, object in ipairs(objects) do
+        for i = object.start, object.finish do
+            entities[#entities + 1] = Util.spawnObject(object.model, positions[i])
+        end
+    end
+
+    menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
-        id = 'Harmony',
         model = `xm_prop_crates_sam_01a`,
         offset = vec3(0, 0, 0.5),
         maxDistance = 2.0,
-        indicator = {
-            prompt   = 'F',
-            keyPress = {
-                -- https://docs.fivem.net/docs/game-references/controls/#controls
-                padIndex = 0,
-                control = 23
-            },
-        },
         options = {
             {
                 label = "Open",
                 action = function(e)
-                    Wait(2000)
-                    TriggerServerEvent("inventory:server:OpenInventory", "stash", 'CRATE1', {
-                        slots = 10,
-                        maxweight = 100000
-                    })
+
                 end
             },
             {
                 icon = "fas fa-spinner",
                 label = "Spinner",
                 action = function(e)
-                    Wait(1000)
-                    print('HEY')
+
                 end
             },
             {
@@ -73,67 +95,13 @@ CreateThread(function()
                     }
                 },
                 action = function(e)
-                    Wait(2000)
-                    print('HEY')
+
                 end
             }
         }
     }
 
-    exports['interactionMenu']:Create {
-        type = 'model',
-        model = `adder`,
-        offset = vec3(0, 0, 0),
-        maxDistance = 2.0,
-        indicator = {
-            prompt   = 'E',
-            keyPress = {
-                -- https://docs.fivem.net/docs/game-references/controls/#controls
-                padIndex = 0,
-                control = 38
-            },
-        },
-        options = {
-            {
-                label = "[Debug] On adder",
-                icon = 'fa fa-car',
-                action = function(e)
-                    Wait(1000)
-                    print('HEY')
-                end
-            }
-        }
-    }
-
-    exports['interactionMenu']:Create {
-        type = 'model',
-        model = `v_ilev_ph_cellgate`,
-        offset = vec3(-0.6, 0, 0),
-        maxDistance = 4.0,
-        extra = {
-            onSeen = function(e)
-            end
-        },
-        indicator = {
-            prompt   = 'E',
-            keyPress = {
-                -- https://docs.fivem.net/docs/game-references/controls/#controls
-                padIndex = 0,
-                control = 38
-            },
-        },
-        options = {
-            {
-                label = "Open Door",
-                action = function(entity)
-                    Wait(1000)
-                    print('HEY')
-                end
-            },
-        }
-    }
-
-    exports['interactionMenu']:Create {
+    menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_vend_snak_01`,
         offset = vec3(0, 0, 0),
@@ -141,14 +109,6 @@ CreateThread(function()
         extra = {
             job = {
                 ['police'] = { 1, 3, 2 }
-            },
-        },
-        indicator = {
-            prompt   = 'F',
-            keyPress = {
-                -- https://docs.fivem.net/docs/game-references/controls/#controls
-                padIndex = 0,
-                control = 23
             },
         },
         options = {
@@ -162,19 +122,11 @@ CreateThread(function()
         }
     }
 
-    local id = exports['interactionMenu']:Create {
+    menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_vend_snak_01`,
         offset = vec3(0, 0, 0),
         maxDistance = 2.0,
-        indicator = {
-            prompt   = 'F',
-            keyPress = {
-                -- https://docs.fivem.net/docs/game-references/controls/#controls
-                padIndex = 0,
-                control = 23
-            },
-        },
         options = {
             {
                 label = 'First On Model',
@@ -185,7 +137,7 @@ CreateThread(function()
         }
     }
 
-    exports['interactionMenu']:Create {
+    menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_vend_snak_01`,
         offset = vec3(0, 0, 0),
@@ -200,15 +152,7 @@ CreateThread(function()
         }
     }
 
-
-    coords = vector4(-1999.05, 3178.58, 31.81, 147.54)
-    Util.spawnObject(`prop_paper_bag_01`, coords)
-    coords = vector4(-1999.05, 3179.58, 31.81, 147.54)
-    Util.spawnObject(`prop_paper_bag_01`, coords)
-    coords = vector4(-1998.05, 3178.58, 31.81, 147.54)
-    Util.spawnObject(`prop_paper_bag_01`, coords)
-
-    exports['interactionMenu']:Create {
+    menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_paper_bag_01`,
         offset = vec3(0, 0, 0),
@@ -223,7 +167,7 @@ CreateThread(function()
         }
     }
 
-    exports['interactionMenu']:Create {
+    menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_paper_bag_01`,
         offset = vec3(0, 0, 0),
@@ -238,4 +182,40 @@ CreateThread(function()
             }
         }
     }
+
+    menus[#menus + 1] = exports['interactionMenu']:Create {
+        type = 'model',
+        model = `adder`,
+        offset = vec3(0, 0, 0),
+        maxDistance = 2.0,
+        indicator = {
+            prompt = 'E',
+        },
+        options = {
+            {
+                label = "[Debug] On adder",
+                icon = 'fa fa-car',
+                action = function(e)
+                    print(e)
+                end
+            }
+        }
+    }
+end
+
+local function cleanup()
+    for index, menu_id in ipairs(menus) do
+        exports['interactionMenu']:remove(menu_id)
+    end
+    for index, entity in ipairs(entities) do
+        if DoesEntityExist(entity) then
+            DeleteEntity(entity)
+        end
+    end
+    menus = {}
+    entities = {}
+end
+
+CreateThread(function()
+    InternalRegisterTest(init, cleanup, "on_model", "On Models", "fa-solid fa-tent-arrows-down")
 end)

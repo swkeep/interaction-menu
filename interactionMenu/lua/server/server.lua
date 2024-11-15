@@ -14,5 +14,6 @@ RegisterCommand("interactionMenu", function(source, args, rawCommand)
 end, false)
 
 RegisterNetEvent('testEvent:server', function(payload, information)
+    print_table(payload)
     print_table(information)
 end)

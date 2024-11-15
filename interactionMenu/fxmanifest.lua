@@ -41,6 +41,7 @@ client_script {
      'lua/client/interact.lua',
      'lua/client/drawIndicator.lua',
      'lua/client/garbageCollector.lua',
+     'lua/client/extends/*.lua',
 
      -- providers
      'lua/providers/qb-target.lua',

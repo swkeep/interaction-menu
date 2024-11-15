@@ -73,6 +73,26 @@ function Container.remove(id)
         EntityDetector.unwatch(menuRef.entity.handle)
     end
 
+    if menuRef.type == "bones" or menuRef.type == "entities" or menuRef.type == "zones" or menuRef.type == 'peds' then
+        if menuRef.type == 'bones' then
+            for index, value in ipairs(Container.indexes.globals['bones'][menuRef.bone]) do
+                if value == id then
+                    table.remove(Container.indexes.globals['bones'][menuRef.bone], index)
+                    CleanNearbyObjects()
+                    break
+                end
+            end
+        else
+            for index, value in pairs(Container.indexes.globals[menuRef.type]) do
+                if value == id then
+                    table.remove(Container.indexes.globals[menuRef.type], index)
+                    CleanNearbyObjects()
+                    break
+                end
+            end
+        end
+    end
+
     menuRef.flags.deleted = true
     menuRef.deletedAt = GetGameTimer() / 1000
     Container.total = Container.total - 1
@@ -86,7 +106,7 @@ CreateThread(function()
         Wait(COLLECTOR_CONFIG.INTERVAL)
 
         local currentTime = GetGameTimer() / 1000
-        local chunkSize = 5000
+        local chunkSize = 500
         local processed = 0
 
         for key, value in pairs(Container.data) do

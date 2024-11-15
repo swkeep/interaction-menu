@@ -1,6 +1,11 @@
 <template>
     <Transition name="fade" mode="out-in">
-        <div class="menus-container" :class="{ 'menus-container--glow': Data.glow }" v-if="focusTracker.menu">
+        <div
+            class="menus-container"
+            :class="{ 'menus-container--glow': Data.glow }"
+            :style="{ width: Data.width || 'fit-content' }"
+            v-if="focusTracker.menu"
+        >
             <div
                 class="menu"
                 v-for="(menu, i) in Data.menus"
@@ -8,23 +13,18 @@
                 :data-menuId="menu.id"
                 :data-hide="menu.flags.hide"
                 :data-deleted="menu.flags.deleted"
-                :data-invoking-resource="menu.metadata.invokingResource"
+                :data-invoking-resource="menu?.metadata?.invokingResource"
                 :class="{
                     'menu--hidden': menu.flags.hide || menu.flags?.deleted,
                 }"
             >
-                <TransitionGroup name="slide" appear v-if="!menu.flags.hide && !menu.flags?.deleted">
-                    <template v-for="(item, index) in menu.options" :key="index">
-                        <div
-                            class="menu__option"
-                            :class="{ 'menu__option--no-margin': item.flags?.hide }"
-                            :data-id="index"
-                            :data-vid="item.vid"
-                        >
+                <template v-if="!menu.flags.hide && !menu.flags?.deleted">
+                    <template v-for="(item, index) in menu.options" :key="item.vid">
+                        <div v-if="!item.flags?.hide" class="menu__option" :data-id="index" :data-vid="item.vid">
                             <Component :is="getFieldComponent(item)" :item="item" :selected="Data.selected" />
                         </div>
                     </template>
-                </TransitionGroup>
+                </template>
             </div>
         </div>
     </Transition>
@@ -32,7 +32,7 @@
 <script lang="ts" setup>
 import { subscribe } from '../util';
 import { computed, defineAsyncComponent, ref } from 'vue';
-import { FocusTracker, FocusTrackerT, InteractionMenu, Option } from '../types/types';
+import { FocusTracker, FocusTrackerT, InteractionMenu, Menu, Option } from '../types/types';
 
 const menuComponents = {
     // @ts-ignore
@@ -74,6 +74,7 @@ const defaultInteractionMenu = (): InteractionMenu => ({
     selected: [],
     theme: 'default',
     glow: false,
+    width: 'fit-content',
 });
 
 const Data = ref(defaultInteractionMenu());
@@ -94,6 +95,7 @@ const showMenu = (data: InteractionMenu) => {
     Data.value.glow = data.glow;
     Data.value.menus = data.menus;
     Data.value.selected = data.selected;
+    Data.value.width = data.width;
 
     setVisible(true);
 };
