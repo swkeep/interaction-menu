@@ -38,7 +38,8 @@ local maxScaleY = minScaleY * 5
 local minDistance = 2.0
 local maxDistance = 20.0
 local maxEntities = 10
--- Function to draw the sprite with scaling based on distance
+
+-- draw the sprite with scaling based on distance
 local function drawSprite(p, player_position, icon)
     if not p then return end
     -- Calculate the distance between the player and the point
@@ -63,18 +64,21 @@ local function drawSprite(p, player_position, icon)
     ClearDrawOrigin()
 end
 
+local nearby_objects = {}
+local nearby_objects_limited = {}
+
 local function getNearbyObjects(isActive, currentMenu, coords)
     local objects = GetGamePool('CObject')
-    local nearby = {}
-    local count = 0
+    local entityHandle = StateManager.get('entityHandle')
+    nearby_objects_limited = {}
 
     for i = 1, #objects do
         local object = objects[i]
-
         local objectCoords = GetEntityCoords(object)
         local distance = #(coords - objectCoords)
 
         if distance < maxDistance then
+            local existingData = nearby_objects[object]
             local entity_type = GetEntityType(object)
             local model = GetEntityModel(object)
 
@@ -84,29 +88,44 @@ local function getNearbyObjects(isActive, currentMenu, coords)
                 entityType = entity_type
             }
 
-            if menuType > 1 and StateManager.get('entityHandle') ~= object then
-                local menu = Container.getMenu(model, object, nil)
-                count += 1
-
-                nearby[count] = {
-                    object = object,
-                    coords = objectCoords,
-                    type = entity_type,
-                    icon = menu and menu.icon,
-                    distance = distance
-                }
+            if menuType > 1 and entityHandle ~= object then
+                if not existingData then
+                    local menu = Container.getMenu(model, object, nil)
+                    nearby_objects[object] = {
+                        object = object,
+                        coords = objectCoords,
+                        type = entity_type,
+                        icon = menu and menu.icon,
+                        distance = distance,
+                        menu = menu
+                    }
+                else
+                    existingData.coords = objectCoords
+                    existingData.distance = distance
+                end
             end
+        else
+            nearby_objects[object] = nil
         end
     end
 
-    table.sort(nearby, function(a, b)
+    for object, data in pairs(nearby_objects) do
+        if isActive == false or data and entityHandle ~= data.object then
+            nearby_objects_limited[#nearby_objects_limited + 1] = data
+        end
+    end
+
+    table.sort(nearby_objects_limited, function(a, b)
         return a.distance < b.distance
     end)
-
-    return nearby
 end
 
-local entities = {}
+function UpdateNearbyObjects()
+    local playerPosition = StateManager.get('playerPosition')
+    local currentMenu = StateManager.get('id')
+    local isActive = StateManager.get('active')
+    getNearbyObjects(isActive, currentMenu, playerPosition)
+end
 
 local function StartSpriteThread()
     if isSpriteThreadRunning then return end
@@ -125,7 +144,7 @@ local function StartSpriteThread()
         while isSpriteThreadRunning and currentSpriteThreadHash == threadHash do
             isActive = StateManager.get('active')
             currentMenu = StateManager.get('id')
-            entities = getNearbyObjects(isActive, currentMenu, playerPosition)
+            getNearbyObjects(isActive, currentMenu, playerPosition)
             local nearPoints, totalNearPoints = grid_position:queryRange(playerPosition, 20)
             visiblePoints, visiblePointCount = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
 
@@ -149,7 +168,7 @@ local function StartSpriteThread()
                 end
             end
 
-            for index, value in ipairs(entities) do
+            for index, value in pairs(nearby_objects_limited) do
                 if index > maxEntities then break end
                 drawSprite(value.coords, playerPosition, value.icon)
             end
