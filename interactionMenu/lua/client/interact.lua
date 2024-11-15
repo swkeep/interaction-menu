@@ -340,13 +340,12 @@ exports("refresh", refresh)
 
 function Render.generic(data, metadata, callbacks)
     if not data then return end
+    StateManager.set('active', true)
 
     -- onEnter callback
     if callbacks.onEnter then
         if not callbacks.onEnter(data, metadata) then return end
     end
-
-    StateManager.set('active', true)
 
     -- afterStart callback
     if callbacks.afterStart then callbacks.afterStart(data, metadata) end
@@ -404,6 +403,7 @@ end
 function Render.onEntity(model, entity)
     local data = Container.getMenu(model, entity)
     if not data then return end
+    if not canInteract(data, nil) then return end
 
     local closestVehicleBone = Container.boneCheck(entity)
     local offset = data.offset or vec3(0, 0, 0)
@@ -430,6 +430,7 @@ function Render.onEntity(model, entity)
             scaleform.set3d(false)
             scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
             metadata.position = GetEntityCoords(entity)
+            UpdateNearbyObjects()
             return canInteract(data, nil)
         end,
         validate = function()
@@ -447,6 +448,7 @@ end
 function Render.onPosition(currentMenuId)
     local data = Container.getMenu(nil, nil, currentMenuId)
     if not data then return end
+    if not canInteract(data, nil) then return end
 
     local metadata = Container.constructMetadata(data)
     local position = data.position
