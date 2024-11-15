@@ -127,6 +127,11 @@ function UpdateNearbyObjects()
     getNearbyObjects(isActive, currentMenu, playerPosition)
 end
 
+function CleanNearbyObjects()
+    nearby_objects = {}
+    nearby_objects_limited = {}
+end
+
 local function StartSpriteThread()
     if isSpriteThreadRunning then return end
     isSpriteThreadRunning = true
