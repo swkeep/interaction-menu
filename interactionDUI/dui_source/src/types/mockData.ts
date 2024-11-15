@@ -1,7 +1,7 @@
 export const menuMockData = [
     {
         selected: 1,
-        theme: 'nopixel',
+        theme: 'default',
         indicator: {
             prompt: 'Enter',
             glow: true,
@@ -28,6 +28,15 @@ export const menuMockData = [
                         flags: {
                             update: true,
                             hide: false,
+                        },
+                    },
+                    {
+                        vid: 3,
+                        label: 'Sub Menu',
+                        flags: {
+                            update: true,
+                            hide: false,
+                            subMenu: true
                         },
                     },
                 ],

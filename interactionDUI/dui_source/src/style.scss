@@ -103,6 +103,25 @@ body {
                 margin-left: 0.375em;
             }
 
+            &--sub-menu::after {
+                content: '🠊';
+                position: absolute;
+                right: 24px;
+                animation: my-animation 1s infinite ease-in-out;
+            }
+
+            @keyframes my-animation {
+                0% {
+                    transform: translateX(0);
+                }
+                50% {
+                    transform: translateX(-6px);
+                }
+                100% {
+                    transform: translateX(0);
+                }
+            }
+
             &__icon {
                 min-width: 1.2em;
                 text-align: center;

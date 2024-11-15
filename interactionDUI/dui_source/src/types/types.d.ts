@@ -92,6 +92,7 @@ interface OptionFlags {
     hide: boolean;
     deleted?: boolean;
     canInteract: boolean;
+    subMenu: boolean;
 }
 
 export interface Option {

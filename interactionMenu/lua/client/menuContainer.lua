@@ -206,7 +206,8 @@ local function buildOption(data, instance)
                 disable = false,
                 action = nil,
                 event = nil,
-                hide = option.hide or false
+                hide = option.hide or false,
+                subMenu = option.subMenu or false,
             }
         }
 
@@ -556,7 +557,6 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
         if data and not deleted then
             local index = #container.menus + 1
             container.type = data.type and data.type or container.type
-            container.position = data.position and data.position or container.position
             container.offset = data.metadata and data.metadata.offset or container.offset
             container.indicator = data.indicator and data.indicator or container.indicator
             container.theme = data.theme and data.theme or container.theme
@@ -565,6 +565,7 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
             container.maxDistance = data.metadata and data.metadata.maxDistance
             container.static = data.flags and data.flags.static
             container.zone = data.zone
+            container.position = data.position and data.position or container.position
             container.rotation = data.rotation
             container.icon = data.icon
             container.scale = data.scale
@@ -612,7 +613,6 @@ function Container.getMenu(model, entity, menuId)
         is_deleted = Container.isDeleted(menuId)
         if is_deleted then return end
     end
-
 
     local id
     local combinedIds = {}
@@ -723,36 +723,44 @@ function Container.getMenuType(t)
     end
 
     -- ON_ENTITY
+    local isEntityIndexed = false
     local hasGlobalEntry = globalsExistsCheck(entity, entityType)
-    local isEntityTypeValid = (entityType == 3 or entityType == 2)
-    local isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or playersIndex[playerId] or hasGlobalEntry or netIdsIndex[netId]
 
-    -- ON_ENTITY
-    if isEntityTypeValid and isEntityIndexed then
-        if entityType == 2 and hasGlobalEntry then
+    if entityType == 1 then
+        -- PED
+        -- ON_ENTITY -> ON_PED -> normal
+        -- ON_ENTITY -> ON_PED -> player
+        -- ON_ENTITY -> ON_PED -> netId
+        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or playersIndex[playerId] or netIdsIndex[netId]
+        if isEntityIndexed or hasGlobalEntry then
+            return MenuTypes['ON_ENTITY']
+        end
+    elseif entityType == 2 then
+        -- VEHICLE
+        -- ON_ENTITY -> ON_VEHICLE -> normal
+        -- ON_ENTITY -> ON_VEHICLE -> bone
+        -- ON_ENTITY -> ON_VEHICLE -> netId
+        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or netIdsIndex[netId]
+        if isEntityIndexed or hasGlobalEntry then
+            return MenuTypes['ON_ENTITY']
+        else
             local _, closestBoneName = Container.boneCheck(entity)
 
             if bonesIndex[entity] and bonesIndex[entity][closestBoneName] then
                 return MenuTypes['ON_ENTITY']
-            end
-
-            if not globalsIndex.bones[closestBoneName] then
-                return 1
             end
         end
-        return MenuTypes['ON_ENTITY']
-    else
-        if entityType == 2 then
-            local _, closestBoneName = Container.boneCheck(entity)
-
-            if bonesIndex[entity] and bonesIndex[entity][closestBoneName] then
-                return MenuTypes['ON_ENTITY']
-            end
+    elseif entityType == 3 then
+        -- OBJECT
+        -- ON_ENTITY -> ON_OBJECT -> normal
+        -- ON_ENTITY -> ON_OBJECT -> netId
+        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or netIdsIndex[netId]
+        if isEntityIndexed or hasGlobalEntry then
+            return MenuTypes['ON_ENTITY']
         end
     end
 
-    -- Default return if no conditions match
-    return 1
+    return MenuTypes['DISABLED']
 end
 
 function Container.get(id)
