@@ -66,13 +66,13 @@ local function init()
         }
     end
 
-    SetTimeout(4000, function()
-        exports['interactionMenu']:set {
-            menuId = menus[1],
-            type = 'position',
-            value = positions[11]
-        }
-    end)
+    -- SetTimeout(4000, function()
+    --     exports['interactionMenu']:set {
+    --         menuId = menus[1],
+    --         type = 'position',
+    --         value = positions[11]
+    --     }
+    -- end)
 end
 
 local function cleanup()
