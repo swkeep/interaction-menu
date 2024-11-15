@@ -8,9 +8,9 @@
 
 </center>
 
-A standalone raycast-based interaction menu for FiveM, designed to enhance your interaction with the environment on your FiveM server.
+A standalone DUI-based interaction menu for FiveM, designed to enhance player interactions with the environment on your server.
 
-The primary goal is not to replace target scripts; instead, it can be used simultaneously to enhance script interactions within the FiveM. Nonetheless, the main factor is not just features it's because this script uses sprites and DUI, making it more demanding on resources compared to NUI-based scripts.
+This menu isn't designed to replace target scripts (though you could, but it would take quite a bit of effort on your end). Instead, it's meant to work alongside them, adding an extra layer of interactions to players. That said, keep in mind that the script uses sprites and DUI, which can be more resource-intensive compared to NUI-based scripts (nothing to worry about if you have some experience with scripting).
 
 ## Preview
 
@@ -45,13 +45,27 @@ The primary goal is not to replace target scripts; instead, it can be used simul
 
 **[Watch on YouTube](https://www.youtube.com/watch?v=7ylxnj4HC5A)**
 
+## Download
+
+**[Get the latest release](https://github.com/swkeep/interaction-menu/releases/latest)**
+
 ## Documentation
 
 **[Click Here](https://swkeep.com)**
 
-## Download
+## Developer Tools and Examples
 
-**[Get the latest release](https://github.com/swkeep/interaction-menu/releases/latest)**
+The script includes numerous examples in the `/lua/examples` directory to help you get started.
+
+To explore these examples live within your server:
+1. Set `Config.devMode` and `Config.debugPoly` to `true` in `config.shared.lua`.
+2. This enables developer mode, allowing you to see and interact with the examples in real time.
+
+**Important:** Remember to disable developer mode when you're done testing for optimal performance.
+
+<center>
+    <img src="https://cdn.swkeep.com/interaction_menu/dev_mode.jpg" alt="Developer Mode Example"/>
+</center>
 
 ## My Store
 
