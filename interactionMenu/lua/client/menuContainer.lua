@@ -1359,6 +1359,11 @@ local function setMenuProperty(t)
     local menuId = t.menuId
     local menuRef = Container.get(menuId)
 
+    if not menuRef then
+        warn("Menu doesn't exists!")
+        return
+    end
+
     -- Handle specific property types
     if t.type == 'hide' then
         setHideProperty(menuRef, t.option, t.value)
