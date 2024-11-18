@@ -832,35 +832,34 @@ end
 ---@param wheelDirection boolean
 ---@param menus any
 ---@param selected any
----@return nil
+---@return number
+---@return number
 local function navigateMenu(wheelDirection, menus, selected)
     local validOptions = collectValidOptions({ menus = menus }, function(a, b) return a.vid < b.vid end)
-
+    local validOptionCount = #validOptions
     -- no valid options (if this happens something is wrong!)
-    if #validOptions == 0 then return nil end
+    if validOptionCount == 0 then return 1, 0 end
 
     -- find the `current selected index` and its `position`
-    local _currentSelectedIndex = nil
     local currentIndex = nil
     for i, option in ipairs(validOptions) do
         if selected[option.vid] then
-            _currentSelectedIndex = option.vid
             currentIndex = i
             break
         end
     end
 
     -- default to first valid option if current selection is not found
-    if currentIndex == nil then return validOptions[1].vid end
+    if currentIndex == nil then return validOptions[1].vid, validOptionCount end
 
     -- next index based on the scroll direction
     if wheelDirection then
-        currentIndex = (currentIndex % #validOptions) + 1     -- Go down
+        currentIndex = (currentIndex % validOptionCount) + 1     -- Go down
     else
-        currentIndex = (currentIndex - 2) % #validOptions + 1 -- Go up
+        currentIndex = (currentIndex - 2) % validOptionCount + 1 -- Go up
     end
 
-    return validOptions[currentIndex].vid
+    return validOptions[currentIndex].vid, validOptionCount
 end
 
 local function updateSelectedItem(menus, selected, nextSelectedIndex)
@@ -884,10 +883,12 @@ function Container.changeMenuItem(scaleform, menuData, wheelDirection)
         return
     end
 
-    local nextSelectedIndex = navigateMenu(wheelDirection, menus, selected)
+    local nextSelectedIndex, validOptionCount = navigateMenu(wheelDirection, menus, selected)
     updateSelectedItem(menus, selected, nextSelectedIndex)
 
-    PlaySoundFrontend(-1, interactionAudio.mouseWheel.audioName, interactionAudio.mouseWheel.audioRef, true)
+    if validOptionCount > 1 then
+        PlaySoundFrontend(-1, interactionAudio.mouseWheel.audioName, interactionAudio.mouseWheel.audioRef, true)
+    end
     scaleform.send("interactionMenu:menu:selectedUpdate", nextSelectedIndex)
 end
 
