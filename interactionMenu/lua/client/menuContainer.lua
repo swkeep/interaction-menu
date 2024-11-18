@@ -839,7 +839,6 @@ local function navigateMenu(wheelDirection, menus, selected)
     local validOptionCount = #validOptions
     -- no valid options (if this happens something is wrong!)
     if validOptionCount == 0 then return 1, 0 end
-
     -- find the `current selected index` and its `position`
     local currentIndex = nil
     for i, option in ipairs(validOptions) do
@@ -871,13 +870,10 @@ local function updateSelectedItem(menus, selected, nextSelectedIndex)
 end
 
 function Container.changeMenuItem(scaleform, menuData, wheelDirection)
-    if not hasValidMenuOption(menuData) then
-        return
-    end
+    if not hasValidMenuOption(menuData) then return end
 
     local selected = menuData.selected
     local menus = menuData.menus
-
     -- Ignore if list is empty, selected is not present, or menus are absent
     if not selected or not menus or not next(menus) then
         return
@@ -1245,6 +1241,24 @@ function Container.syncData(scaleform, menuData, refreshUI)
         previous_daytime = is_daytime()
         Interact:setDarkMode(previous_daytime)
     end
+end
+
+function IsMenuVisible(menu_data)
+    local is_visible = false
+    for _, menu in pairs(menu_data.menus) do
+        local menu_id = menu.id
+        local original_menu_data = Container.get(menu_id)
+
+        if original_menu_data and not original_menu_data.flags.deleted then
+            for _, option in ipairs(menu.options) do
+                if option.flags.hide == false then
+                    is_visible = true
+                end
+            end
+        end
+    end
+
+    return is_visible
 end
 
 -- Validate and synchronize the selected option. If it's the first encounter with the menu,

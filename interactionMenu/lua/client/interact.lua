@@ -340,8 +340,9 @@ exports("refresh", refresh)
 
 function Render.generic(data, metadata, callbacks)
     if not data then return end
-    StateManager.set('active', true)
+    if not IsMenuVisible(data) then return end
 
+    StateManager.set('active', true)
     -- onEnter callback
     if callbacks.onEnter then
         if not callbacks.onEnter(data, metadata) then return end
