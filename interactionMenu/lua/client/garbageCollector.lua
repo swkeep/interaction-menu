@@ -67,6 +67,7 @@ function Container.remove(id)
         local zone = Container.zones[id]
         Container.zones[id] = nil
         zone:destroy()
+        TriggerEvent("interactionMenu:zoneTracker")
     elseif menuRef.type == 'position' then
         grid:remove(menuRef.position)
     elseif menuRef.type == 'entity' and menuRef.tracker == 'boundingBox' then
@@ -111,6 +112,10 @@ CreateThread(function()
 
         for key, value in pairs(Container.data) do
             processed = processed + 1
+
+            if value.flags.deleted and not value.deletedAt then
+                value.deletedAt = GetGameTimer() / 1000
+            end
 
             -- Check and remove deleted items if they have passed the delay period
             if value.flags.deleted and (currentTime - value.deletedAt) > 6 then
