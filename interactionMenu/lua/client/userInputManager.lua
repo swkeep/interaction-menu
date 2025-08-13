@@ -3,6 +3,7 @@ local lastHoldTrigger = nil
 local DisableControlAction = DisableControlAction
 local IsControlJustReleased = IsControlJustReleased
 local IsDisabledControlJustReleased = IsDisabledControlJustReleased
+local HOLD_COOLDOWN_MS = 1000
 
 -- UserInputManager Class
 UserInputManager = {}
@@ -31,34 +32,35 @@ function UserInputManager:handleMouseWheel(direction)
 end
 
 function UserInputManager:holdKey()
-    if self.currentMenuData and self.currentMenuData.indicator and self.currentMenuData.indicator.hold then
-        local currentTime = GetGameTimer()
-
-        if self.lastHoldTrigger then
-            if (currentTime - self.lastHoldTrigger) >= 1000 then
-                self.lastHoldTrigger = nil
-            else
-                return
-            end
-        end
-
-        if not self.holdStart then
-            self.holdStart = currentTime
-        end
-
-        local holdDuration = self.currentMenuData.indicator.hold
-        local elapsedTime = currentTime - self.holdStart
-        local percentage = (elapsedTime / holdDuration) * 100
-        Interact:fillIndicator(self.currentMenuData, percentage)
-
-        if elapsedTime >= holdDuration then
-            self.holdStart = nil
-            self.lastHoldTrigger = currentTime
-            Container.keyPress(self.currentMenuData)
-            Interact:indicatorStatus(self.currentMenuData, 'success')
-            Interact:fillIndicator(self.currentMenuData, 0)
-        end
+    if not (self.currentMenuData and self.currentMenuData.indicator and self.currentMenuData.indicator.hold) then
+        return false
     end
+
+    local current_time = GetGameTimer()
+    if self.lastHoldTrigger and (current_time - self.lastHoldTrigger) < HOLD_COOLDOWN_MS then
+        return false
+    end
+
+    if not self.holdStart then
+        self.holdStart = current_time
+    end
+
+    -- hold progress
+    local hold_duration = self.currentMenuData.indicator.hold
+    local elapsed_time = current_time - self.holdStart
+    local percentage = (elapsed_time / hold_duration) * 100
+    Interact:fillIndicator(self.currentMenuData, percentage)
+
+    if elapsed_time >= hold_duration then
+        self.holdStart = nil
+        self.lastHoldTrigger = current_time
+        self:pressKey()
+        Interact:indicatorStatus(self.currentMenuData, 'success')
+        Interact:fillIndicator(self.currentMenuData, 0)
+        return true
+    end
+
+    return false
 end
 
 function UserInputManager:pressKey()
@@ -67,25 +69,28 @@ function UserInputManager:pressKey()
 end
 
 function UserInputManager:leftEarly()
-    if self.currentMenuData then
-        Util.print_debug("Player stopped holding the key early")
-        Interact:indicatorStatus(self.currentMenuData, 'fail')
-        Interact:fillIndicator(self.currentMenuData, 0)
-        self.holdStart = nil
-    end
+    if not self.currentMenuData then return end
+
+    self.holdStart = nil
+    Interact:indicatorStatus(self.currentMenuData, 'fail')
+    Interact:fillIndicator(self.currentMenuData, 0)
+    Util.print_debug("Player stopped holding the key early")
 end
 
 function UserInputManager:startHoldDetection()
-    if not self.currentMenuData then return end
-    if self.holding then return end
+    if not self.currentMenuData or self.holding then
+        return
+    end
+
     self.holding = true
 
-    -- what we should use: hold or press
+    -- input -> hold or press
     if self.currentMenuData.indicator and self.currentMenuData.indicator.hold then
         CreateThread(function()
             while self.holding do
-                if self.currentMenuData then
-                    self:holdKey()
+                if not self.currentMenuData or self:holdKey() then
+                    self.holding = false
+                    return
                 end
                 Wait(0)
             end
