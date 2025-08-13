@@ -690,6 +690,9 @@ local function init()
     local on_ped = Util.spawnPed(GetHashKey('cs_brad'), positions[start + 1])
     menu_ids[#menu_ids + 1] = exports['interactionMenu']:Create {
         entity = on_ped,
+        indicator = {
+            prompt = "Hey"
+        },
         options = {
             {
                 label = 'Disabled After 4 Seconds',
