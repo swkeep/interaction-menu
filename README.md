@@ -18,13 +18,13 @@ This menu isn't designed to replace target scripts (though you could, but it wou
     <table>
     <tr>
         <td align="center">
-            <img src="https://cdn.swkeep.com/interaction_menu/preview_1.jpg" />
+            <img src=".github/images/preview_1.jpg" />
         </td>
         <td align="center">
-            <img src="https://cdn.swkeep.com/interaction_menu/preview_2.jpg" />
+            <img src=".github/images/preview_2.jpg" />
         </td>
         <td align="center">
-            <img src="https://cdn.swkeep.com/interaction_menu/preview_3.jpg" />
+            <img src=".github/images/preview_3.jpg" />
         </td>
     </tr>
     </table>
@@ -34,10 +34,10 @@ This menu isn't designed to replace target scripts (though you could, but it wou
     <table>
     <tr>
         <td align="center">
-            <img src="https://cdn.swkeep.com/interaction_menu/preview_4.jpg" />
+            <img src=".github/images/preview_4.jpg" />
         </td>
         <td align="center">
-            <img src="https://cdn.swkeep.com/interaction_menu/preview_5.jpg" />
+            <img src=".github/images/preview_5.jpg" />
         </td>
     </tr>
     </table>
@@ -64,12 +64,8 @@ To explore these examples live within your server:
 **Important:** Remember to disable developer mode when you're done testing for optimal performance.
 
 <center>
-    <img src="https://cdn.swkeep.com/interaction_menu/dev_mode.jpg" alt="Developer Mode Example"/>
+    <img src=".github/images/dev_mode.jpg" alt="Developer Mode Example"/>
 </center>
-
-## My Store
-
-**[Visit my store](https://swkeep.tebex.io/)**
 
 <!-- CONTRIBUTING -->
 ## Contributing
