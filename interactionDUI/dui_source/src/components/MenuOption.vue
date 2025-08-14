@@ -39,5 +39,6 @@ const labelClass = computed(() => ({
     'label--center': !isRadio.value,
     'label--radio': isRadio.value,
     'label--sub-menu': props.item.flags.subMenu,
+    'label--action': props.item.flags.action === true,
 }));
 </script>
