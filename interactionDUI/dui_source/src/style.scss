@@ -62,6 +62,7 @@ body {
 }
 
 .menu {
+
     // radio style from https://codepen.io/havardob/pen/dyYXBBr by Håvard Brynjulfsen
     &--hidden {
         display: none;
@@ -82,7 +83,7 @@ body {
             position: absolute;
             appearance: none;
 
-            &:checked + .label {
+            &:checked+.label {
                 background-color: var(--primary-color-background);
 
                 &:before {
@@ -99,6 +100,16 @@ body {
             border-radius: 99em;
             transition: 0.25s ease;
 
+            &__badge {
+                position: absolute;
+                right: 1rem;
+                transition: all 0.2s ease;
+                padding: 0.35em 0.65em;
+                font-size: 0.65em;
+                color: #fff;
+                text-transform: uppercase;
+            }
+
             &__text {
                 margin-left: 0.375em;
             }
@@ -114,9 +125,11 @@ body {
                 0% {
                     transform: translateX(0);
                 }
+
                 50% {
                     transform: translateX(-6px);
                 }
+
                 100% {
                     transform: translateX(0);
                 }
@@ -202,4 +215,119 @@ body {
 
 .slide-move {
     transition: transform 0.4s;
+}
+
+.label__badge[data-badge-type="blue"] {
+    background-color: #3498db;
+}
+
+.label__badge[data-badge-type="gray"] {
+    background-color: #6c757d;
+}
+
+.label__badge[data-badge-type="green"] {
+    background-color: #2ecc71;
+}
+
+.label__badge[data-badge-type="red"] {
+    background-color: #e74c3c;
+}
+
+.label__badge[data-badge-type="orange"] {
+    background-color: #f39c12;
+    color: #000;
+}
+
+.label__badge[data-badge-type="teal"] {
+    background-color: #1abc9c;
+}
+
+.label__badge[data-badge-type="light"] {
+    background-color: #ecf0f1;
+    color: #000;
+}
+
+.label__badge[data-badge-type="dark-blue"] {
+    background-color: #34495e;
+}
+
+.label__badge[data-badge-type="purple"] {
+    background-color: #8e44ad;
+    background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+}
+
+.label__badge[data-badge-type="gold"] {
+    background-color: #f1c40f;
+    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+    color: #000;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.label__badge[data-badge-type="dark-red"] {
+    background-color: #e74c3c;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    animation: pulse 2s infinite;
+}
+
+.label__badge[data-badge-type="navy"] {
+    background-color: #2980b9;
+    background: linear-gradient(135deg, #2980b9 0%, #2c3e50 100%);
+    font-style: italic;
+}
+
+.label__badge[data-badge-type="violet"] {
+    background-color: #9400d3;
+    background: linear-gradient(135deg, #9400d3 0%, #4b0082 100%);
+    font-family: 'Graffiti', cursive;
+}
+
+.label__badge[data-badge-type="black"] {
+    background-color: #000000;
+    background: linear-gradient(135deg, #000000 0%, #333333 100%);
+    color: #00ff00;
+    border: 1px solid #00ff00;
+}
+
+.label__badge[data-badge-type="bright-blue"] {
+    background-color: #0055ff;
+    background: linear-gradient(135deg, #0055ff 0%, #0033aa 100%);
+    color: #ffffff;
+}
+
+.label__badge[data-badge-type="dark-orange"] {
+    background-color: #ff8c00;
+    background: linear-gradient(135deg, #ff8c00 0%, #ff4500 100%);
+    color: #000000;
+    font-weight: 900;
+}
+
+.label__badge[data-badge-type="lime"] {
+    background-color: #32cd32;
+    background: linear-gradient(135deg, #32cd32 0%, #228b22 100%);
+    color: #ffffff;
+}
+
+.label__badge[data-badge-type="lavender"] {
+    background-color: #9370db;
+    background: linear-gradient(135deg, #9370db 0%, #663399 100%);
+    color: #ffffff;
+}
+
+.label__badge[data-badge-type="pink"] {
+    background-color: #ff69b4;
+    background: linear-gradient(135deg, #ff69b4 0%, #c71585 100%);
+    color: #ffffff;
+}
+
+.label__badge[data-badge-type="sky-blue"] {
+    background-color: #1e90ff;
+    background: linear-gradient(135deg, #1e90ff 0%, #0000ff 100%);
+    color: #ffffff;
+}
+
+.label__badge[data-badge-type="steel"] {
+    background-color: #a9a9a9;
+    background: linear-gradient(135deg, #a9a9a9 0%, #696969 100%);
+    color: #000000;
+    font-weight: 900;
 }

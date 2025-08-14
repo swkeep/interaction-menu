@@ -95,7 +95,13 @@ interface OptionFlags {
     subMenu: boolean;
 }
 
+interface OptionBadge {
+    type?: string;
+    label: string;
+}
+
 export interface Option {
+    badge: OptionBadge;
     id: string | number;
     vid: string | number;
     label: string;

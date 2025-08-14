@@ -25,6 +25,7 @@ export const menuMockData = [
                     {
                         vid: 1,
                         label: 'Sand',
+                        description: 'Carbon dating and artifact examination',
                         icon: 'fa-solid fa-coins',
                         flags: {
                             action: true,
@@ -94,6 +95,10 @@ export const menuMockData = [
                     {
                         vid: 6,
                         label: '👥 Users',
+                        badge: {
+                            type: "steel",
+                            label: "BADGE 1"
+                        },
                         flags: {
                             update: true,
                             hide: false,
