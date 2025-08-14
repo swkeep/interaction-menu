@@ -783,7 +783,9 @@ end
 
 function Container.triggerInteraction(menuId, optionId, ...)
     if not Container.data[menuId] or not Container.data[menuId].interactions[optionId] then return end
-    return Container.data[menuId].interactions[optionId].func(...)
+    local func = Container.data[menuId].interactions[optionId].func
+    if not func or type(func) ~= 'function' then return end
+    return func(...)
 end
 
 local function isOptionValid(option)
