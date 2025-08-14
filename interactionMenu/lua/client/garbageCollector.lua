@@ -2,6 +2,7 @@ local COLLECTOR_CONFIG = {
     INTERVAL = 1000 * 60
 }
 
+local StateManager = Util.StateManager()
 local GarbageCollector = {}
 local grid = Util.SpatialHashGrid:get('position')
 
@@ -100,6 +101,22 @@ function Container.remove(id)
 end
 
 exports('remove', Container.remove)
+
+function Container.removeByInvokingResource(i_r)
+    for id, menu in pairs(Container.data) do
+        if menu.metadata.invokingResource == i_r then
+            Container.remove(id)
+        end
+    end
+
+    StateManager.reset()
+end
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource == GetCurrentResourceName() then return end
+
+    Container.removeByInvokingResource(resource)
+end)
 
 -- Garbage collection thread
 CreateThread(function()

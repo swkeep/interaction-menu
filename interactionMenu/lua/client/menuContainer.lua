@@ -32,7 +32,7 @@ local set = { "peds", "vehicles", "objects" }
 EntityTypes = Util.ENUM { 'PED', 'VEHICLE', 'OBJECT' }
 
 -- #TODO: make a err handler
-local dupe_menu = 'Duplicate menu detected | invokingResource: %s -> MenuId: %s'
+local dupe_menu = 'Duplicate menu detected removing the old menu | invokingResource: %s -> MenuId: %s'
 
 -- class: menu container
 -- managing menus
@@ -263,7 +263,7 @@ function Container.create(t)
     local id = t.id or Util.createUniqueId(Container.data)
     if Container.data[id] then
         warn(dupe_menu:format(invokingResource, id))
-        return
+        Container.remove(id)
     end
 
     local instance = {
@@ -407,7 +407,7 @@ function Container.createGlobal(t)
     local id = t.id or Util.createUniqueId(Container.data)
     if Container.data[id] then
         warn(dupe_menu:format(invokingResource, id))
-        return
+        Container.remove(id)
     end
 
     local instance = {
@@ -787,7 +787,7 @@ function Container.triggerInteraction(menuId, optionId, ...)
 end
 
 local function isOptionValid(option)
-    return not option.flags.hide and option.flags.action or option.flags.event
+    return not option.flags.hide and (option.flags.action or option.flags.event)
 end
 
 local function collectValidOptions(menuData, sortCon)
@@ -1049,6 +1049,10 @@ function Container.keyPress(menuData)
             menuData = menuData,
             metadata = metadata,
             cb = function(...)
+                if not interaction.name then
+                    warn("event property doesn't have name attached to it")
+                    return
+                end
                 if interaction.type == 'client' then
                     TriggerEvent(interaction.name, ...)
                 elseif interaction.type == 'server' then
@@ -1401,23 +1405,3 @@ end
 
 exports('set', setMenuProperty)
 exports('setValue', setMenuProperty)
-
-function Container.removeByInvokingResource(i_r)
-    for key, menu in pairs(Container.data) do
-        if menu.metadata.invokingResource == i_r then
-            Container.data[key].flags.deleted = true
-
-            if Container.data[key].type == 'position' then
-                grid:remove(Container.data[key].position)
-            end
-        end
-    end
-
-    StateManager.reset()
-end
-
-AddEventHandler('onResourceStop', function(resource)
-    if resource == GetCurrentResourceName() then return end
-
-    Container.removeByInvokingResource(resource)
-end)
