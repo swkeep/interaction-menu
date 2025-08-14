@@ -15,8 +15,17 @@ export const menuMockData = [
                 },
                 options: [
                     {
+                        vid: 0,
+                        label: '📊 Efficiency Stats </br></br> ⏱️ %.1f/min | 🏗️ Tier %d',
+                        flags: {
+                            action: false,
+                            hide: false,
+                        },
+                    },
+                    {
                         vid: 1,
                         label: 'Sand',
+                        icon: 'fa-solid fa-coins',
                         flags: {
                             action: true,
                             hide: false,
@@ -24,7 +33,8 @@ export const menuMockData = [
                     },
                     {
                         vid: 2,
-                        label: 'State: Locked',
+                        label: 'State: 🔒 Locked 🔒',
+                        icon: 'fa-solid fa-lock',
                         flags: {
                             update: true,
                             hide: false,
@@ -33,10 +43,76 @@ export const menuMockData = [
                     {
                         vid: 3,
                         label: 'Sub Menu',
+                        icon: 'fa-solid fa-folder',
                         flags: {
                             update: true,
                             hide: false,
                             subMenu: true
+                        },
+                    },
+                    {
+                        vid: 16,
+                        label: 'INFO',
+                        progress: {
+                            type: 'info',
+                            percent: true,
+                            value: 29,
+                        },
+                        flags: {
+                            hide: false,
+                        },
+                    },
+                    {
+                        vid: 16,
+                        label: 'ERROR',
+                        progress: {
+                            type: 'error',
+                            percent: true,
+                            value: 79,
+                        },
+                        flags: {
+                            hide: false,
+                        },
+                    },
+                    {
+                        vid: 4,
+                        label: 'Settings',
+                        icon: 'fa-solid fa-gear',
+                        flags: {
+                            action: true,
+                            hide: false,
+                        },
+                    },
+                    {
+                        vid: 5,
+                        label: '📊 Analytics',
+                        flags: {
+                            action: true,
+                            hide: false,
+                        },
+                    },
+                    {
+                        vid: 6,
+                        label: '👥 Users',
+                        flags: {
+                            update: true,
+                            hide: false,
+                        },
+                    },
+                    {
+                        vid: 7,
+                        label: '✉️ Messages',
+                        flags: {
+                            action: true,
+                            hide: false,
+                        },
+                    },
+                    {
+                        vid: 8,
+                        label: '🛒 Shop',
+                        flags: {
+                            subMenu: false,
+                            hide: false,
                         },
                     },
                 ],

@@ -8,7 +8,19 @@ const props = defineProps<{
 }>();
 
 const count = ref(1);
-const themes = ['default', 'box'];
+const themes = [
+    'default',
+    'box',
+    'theme-1',
+    'theme-2',
+    'theme-3',
+    'theme-4',
+    'theme-5',
+    'theme-6',
+    'theme-7',
+    'theme-8',
+    'theme-9',
+];
 const darkMode = ref(false);
 const show = ref(false);
 const currentTheme = computed(() => props.theme);
@@ -35,7 +47,18 @@ const toggleDarkMode = () => {
 
 const cycleTheme = () => {
     const nextIndex = (themes.indexOf(currentTheme.value) + 1) % themes.length;
-    debug([{ action: 'interactionMenu:menu:show', data: { theme: themes[nextIndex] } }], 0);
+    debug(
+        [
+            {
+                action: 'interactionMenu:menu:show',
+                data: {
+                    ...menuMockData[currentMenu.value],
+                    theme: themes[nextIndex],
+                },
+            },
+        ],
+        0,
+    );
 };
 
 const updateCount = (delta: number) => {
