@@ -112,5 +112,8 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "hold_indicator", "Hold Indicator", "fa-solid fa-stopwatch-20")
+    InternalRegisterTest(init, cleanup, "hold_indicator", "Hold Action Indicator", "fa-solid fa-stopwatch-20", "Test the hold action progress indicator UI element and its timing accuracy", {
+        type = "blue",
+        label = "UI"
+    })
 end)

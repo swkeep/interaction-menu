@@ -206,5 +206,9 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "chair_test", "Lots of Chairs", "fa-solid fa-chair")
+    InternalRegisterTest(init, cleanup, "chair_test", "Chair Interaction", "fa-solid fa-chair",
+        "Spawns multiple chairs in a grid, use the menu to test sitting on chairs", {
+            type = "orange",
+            label = "Object"
+        })
 end)

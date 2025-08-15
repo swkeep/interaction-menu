@@ -73,10 +73,12 @@ function InternalGetTestSlot(name, index)
     return test_slots[name][index]
 end
 
-function InternalRegisterTest(init_func, cleanup_func, name, desb, icon)
+function InternalRegisterTest(init_func, cleanup_func, name, desb, icon, description, badge)
     refs[#refs + 1] = {
         name = name,
         desb = desb,
+        description = description,
+        badge = badge,
         init = init_func,
         cleanup = cleanup_func,
         icon = icon
@@ -113,6 +115,8 @@ CreateThread(function()
     for index, menu in pairs(refs) do
         options[#options + 1] = {
             label = ("[%02d] %s"):format(index, menu.desb),
+            description = menu.description,
+            badge = menu.badge,
             icon = menu.icon,
             action = function(data)
                 if selected == index then
@@ -142,6 +146,7 @@ CreateThread(function()
     for index, ref in pairs(refs2) do
         options2[#options2 + 1] = {
             label = ref.desb,
+            description = ref.d_desb,
             icon = ref.icon,
             action = function(data)
                 if not ref.active then
@@ -164,6 +169,7 @@ CreateThread(function()
         offset = vector3(0, 0, 0),
         rotation = vector3(-20, 0, -90),
         position = vector4(785.6, -2999.2, -68.5, 271.65),
+        theme = 'theme-2',
         scale = 1,
         width = "100%",
         zone = {
@@ -182,6 +188,7 @@ CreateThread(function()
         offset = vector3(0, 0, 0),
         rotation = vector3(-20, 0, -90),
         position = vector3(785.5, -2996.2, -69.0),
+        theme = 'theme-2',
         scale = 1,
         width = "100%",
         zone = {

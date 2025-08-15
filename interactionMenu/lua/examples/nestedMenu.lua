@@ -170,5 +170,9 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "nested_menu", "Nested Menu", "fa-solid fa-network-wired")
+    InternalRegisterTest(init, cleanup, "nested_menu", "Nested Menu System", "fa-solid fa-network-wired",
+        "Validates nested menu functionality by spawning multiple submenus in a grid layout, tests menu navigation, parent-child relationships, and conflict between menus", {
+            type = "blue",
+            label = "UI"
+        })
 end)

@@ -126,5 +126,9 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "garage_example", "Garage", "fa-solid fa-warehouse")
+    InternalRegisterTest(init, cleanup, "garage_example", "Garage System", "fa-solid fa-warehouse",
+        "Spawns random vehicles that can be taken out and returned to their designated parking slots", {
+            type = "green",
+            label = "Vehicle"
+        })
 end)
