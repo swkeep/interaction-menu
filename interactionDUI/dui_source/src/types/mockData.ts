@@ -78,6 +78,7 @@ export const menuMockData = [
                     {
                         vid: 4,
                         label: 'Settings',
+                        description: '[•] police database',
                         icon: 'fa-solid fa-gear',
                         flags: {
                             action: true,

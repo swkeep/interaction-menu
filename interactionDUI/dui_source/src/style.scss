@@ -263,6 +263,23 @@ body {
     text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    }
+}
+
 .label__badge[data-badge-type="dark-red"] {
     background-color: #e74c3c;
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
@@ -330,4 +347,10 @@ body {
     background: linear-gradient(135deg, #a9a9a9 0%, #696969 100%);
     color: #000000;
     font-weight: 900;
+}
+
+.label__description {
+    margin-left: 0.675em;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2rem;
 }

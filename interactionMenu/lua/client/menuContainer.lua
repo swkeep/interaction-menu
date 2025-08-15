@@ -191,6 +191,7 @@ local function buildOption(data, instance)
         local formatted = {
             -- visual information
             label = option.label,
+            description = option.description,
             badge = option.badge,
             picture = option.picture,
             video = option.video,

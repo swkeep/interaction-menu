@@ -1,10 +1,24 @@
 <template>
-    <input v-if="isRadio" class="menu__option__radio" type="radio" :name="radioName" :checked="isSelected" />
+    <input
+        v-if="isRadio"
+        class="menu__option__radio"
+        type="radio"
+        :name="radioName"
+        :checked="isSelected"
+        :class="{
+            'menu__option--selected': isSelected,
+        }"
+    />
     <div class="label" :class="labelClass" :style="computedItemStyle">
         <i v-if="item.icon" :class="[item.icon, 'label__icon']"></i>
         <span v-if="!isRadio" v-html="sanitized_label"></span>
         <div v-if="isRadio" class="label__container">
             <div class="label__text" v-html="sanitized_label"></div>
+            <div
+                v-if="item.description !== undefined && isSelected"
+                class="label__description"
+                v-html="sanitized_description"
+            ></div>
         </div>
         <span
             v-if="props.item.badge !== undefined"
@@ -26,21 +40,14 @@ const props = defineProps<{
     selected?: number; // when it's radio
 }>();
 
-const sanitized_label = computed(() => {
-    const html = String(props.item.label);
-    if (html === undefined) return '';
+const sanitizeHtml = (html: unknown) => {
+    if (html === undefined || html === null) return '';
+    return DOMPurify.sanitize(String(html));
+};
 
-    return DOMPurify.sanitize(html);
-});
-
-const sanitized_badge = computed(() => {
-    if (!props.item.badge) return '';
-
-    const html = String(props.item.badge.label);
-    if (html === undefined) return '';
-
-    return DOMPurify.sanitize(html);
-});
+const sanitized_label = computed(() => sanitizeHtml(props.item.label));
+const sanitized_badge = computed(() => sanitizeHtml(props.item.badge?.label));
+const sanitized_description = computed(() => sanitizeHtml(props.item.description));
 
 const isRadio = computed(
     () => (props.item.flags?.update || props.item.flags?.action || props.item.flags?.event) ?? false,
