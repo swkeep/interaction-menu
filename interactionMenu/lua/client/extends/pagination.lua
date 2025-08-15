@@ -68,6 +68,8 @@ function PaginationBuilder:generateOptions()
         local page = math.ceil(index / self.itemsPerPage)
         table.insert(self.options, {
             label = option.label,
+            description = option.description,
+            badge = option.badge,
             icon = option.icon,
             action = option.action,
             bind = option.bind,
