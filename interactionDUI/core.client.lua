@@ -50,10 +50,33 @@ local function cache3dScale(scale)
     cachedSz = scalez * (scale or 1)
 end
 
+local function get_rotation_from_entity(entity)
+    if not DoesEntityExist(entity) then return vector3(0, 0, 0) end
+
+    local forwardVector = GetEntityForwardVector(entity)
+    local pitch = -math.deg(math.asin(forwardVector.z))
+    local yaw = math.deg(math.atan2(forwardVector.x, forwardVector.y))
+
+    local finalRotation = vector3(
+        pitch + DUI.scaleform.rotation.x,
+        DUI.scaleform.rotation.y,
+        yaw + DUI.scaleform.rotation.z
+    )
+
+    return finalRotation
+end
+
 local function render_3d(scaleform)
-    DrawScaleformMovie_3dSolid(scaleform.sfHandle, scaleform.position.x, scaleform.position.y,
-        scaleform.position.z + 1, scaleform.rotation.x, scaleform.rotation.y, scaleform.rotation.z, 2.0, 2.0, 1.0,
-        cachedSx, cachedSy, cachedSz, 2)
+    if DUI.scaleform.lockToForward then
+        local rotation = get_rotation_from_entity(scaleform.attached.entity)
+        DrawScaleformMovie_3dSolid(scaleform.sfHandle, scaleform.position.x, scaleform.position.y,
+            scaleform.position.z + 1, rotation.x, rotation.y, rotation.z, 2.0, 2.0, 1.0,
+            cachedSx, cachedSy, cachedSz, 2)
+    else
+        DrawScaleformMovie_3dSolid(scaleform.sfHandle, scaleform.position.x, scaleform.position.y,
+            scaleform.position.z + 1, scaleform.rotation.x, scaleform.rotation.y, scaleform.rotation.z, 2.0, 2.0, 1.0,
+            cachedSx, cachedSy, cachedSz, 2)
+    end
 end
 
 local function loadScaleform(scaleformName, timeout)
@@ -106,6 +129,10 @@ end
 local function setRotation(rotation)
     if DUI.scaleform.rotation == rotation then return end
     DUI.scaleform.rotation = vec3(rotation.x, rotation.y, rotation.z)
+end
+
+local function setForwardVectorLock(value)
+    DUI.scaleform['lockToForward'] = value
 end
 
 local function set3d(value)
@@ -182,6 +209,7 @@ function DUI:Create()
         sfHandle = nil,
         position = vector3(0, 0, 0),
         rotation = vector3(0, 0, 0),
+        lockToForward = false,
         attached = {
             entity = false,
             bone = false,
@@ -206,6 +234,7 @@ function DUI:Create()
     scaleform.setStatus = setStatus
     scaleform.attach = attach
     scaleform.dettach = dettach
+    scaleform.setForwardVectorLock = setForwardVectorLock
 
     DUI.scaleform = scaleform
 end
@@ -278,6 +307,11 @@ calculateWorldPosition = function(ref)
     else
         ref.static = false
         previousPosition = currentPosition
+        tracking_interval = 0
+    end
+
+    if DUI.scaleform.lockToForward then
+        ref.static = false
         tracking_interval = 0
     end
 

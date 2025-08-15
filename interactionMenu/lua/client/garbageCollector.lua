@@ -73,6 +73,11 @@ function Container.remove(id)
         grid:remove(menuRef.position)
     elseif menuRef.type == 'entity' and menuRef.tracker == 'boundingBox' then
         EntityDetector.unwatch(menuRef.entity.handle)
+    elseif menuRef.type == "manual" then
+        for index, value in pairs(menuRef.manual_events) do
+            -- #TODO: finish up the collector code
+            RemoveEventHandler(value)
+        end
     end
 
     if menuRef.type == "bones" or menuRef.type == "entities" or menuRef.type == "zones" or menuRef.type == 'peds' then

@@ -12,7 +12,8 @@ MenuTypes = Util.ENUM {
     'DISABLED',
     'ON_POSITION',
     'ON_ENTITY',
-    'ON_ZONE'
+    'ON_ZONE',
+    'MANUAL'
 }
 
 local Wait = Wait
@@ -29,8 +30,8 @@ local SpatialHashGrid = Util.SpatialHashGrid
 local closestEntity -- entity detector
 local closestZoneId
 local grid_position = SpatialHashGrid:new('position', 100)
-
 local visiblePoints = {}
+ActiveManualMenu = nil
 -- Render
 local StateManager = Util.StateManager()
 
@@ -330,7 +331,6 @@ end)
 
 -- #region Render Threads
 local activeMenuRef
-
 local function refresh()
     Container.syncData(scaleform, activeMenuRef, true)
 end
@@ -492,6 +492,7 @@ function Render.onZone(currentMenuId)
     Render.generic(data, metadata, {
         onEnter = function()
             StateManager.set('disableRayCast', true)
+            scaleform.setForwardVectorLock(false)
             scaleform.setPosition(position)
 
             if rotation then
@@ -506,6 +507,60 @@ function Render.onZone(currentMenuId)
         end,
         onExit = function()
             StateManager.set('disableRayCast', false)
+        end
+    })
+end
+
+function Render.manual(id, model, entity)
+    local data = Container.getMenu(nil, nil, id)
+    if not data then return end
+    if not canInteract(data, nil) then return end
+
+    local closestVehicleBone = Container.boneCheck(entity)
+    local offset = data.offset or vec3(0, 0, 0)
+
+    data.model = model
+    data.entity = entity
+
+    local metadata = Container.constructMetadata(data)
+    local isVehicle = GetEntityType(entity) == 2
+    local validateSlow
+    if isVehicle then
+        validateSlow = function()
+            local currentClosestBone = Container.boneCheck(entity)
+            return closestVehicleBone == currentClosestBone and canInteract(data, nil)
+        end
+    else
+        validateSlow = function()
+            return canInteract(data, nil)
+        end
+    end
+
+    Render.generic(data, metadata, {
+        onEnter = function()
+            local rotation = data.rotation
+            if rotation then
+                scaleform.setRotation(rotation)
+                scaleform.set3d(true)
+                scaleform.setScale(data.scale or 1)
+            else
+                scaleform.set3d(false)
+            end
+            scaleform.setForwardVectorLock(true)
+            scaleform.attach { entity = entity, offset = offset, bone = closestVehicleBone, static = data.static }
+            metadata.position = GetEntityCoords(entity)
+            UpdateNearbyObjects()
+            return canInteract(data, nil)
+        end,
+        validate = function()
+            return ActiveManualMenu == id
+        end,
+        validateSlow = validateSlow,
+        onExit = function()
+            StateManager.set('entityModel', nil)
+            StateManager.set('entityHandle', nil)
+            scaleform.dettach()
+            scaleform.setForwardVectorLock(false)
         end
     })
 end
@@ -537,6 +592,16 @@ local function RenderMenu()
         Render.onPosition(currentMenuId)
     elseif menuType == MenuTypes['ON_ZONE'] then
         Render.onZone(currentMenuId)
+    elseif menuType == MenuTypes['MANUAL'] then
+        local id = StateManager.get('id')
+        local entityHandle = StateManager.get('entityHandle')
+        local entityModel = StateManager.get('entityModel')
+
+        if entityHandle and entityModel then
+            Render.manual(id, entityModel, entityHandle)
+        else
+            print("interactionMenu: Missing entity data")
+        end
     else
         print("interactionMenu: Unknown menuType")
     end

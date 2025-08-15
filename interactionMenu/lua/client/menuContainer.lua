@@ -296,7 +296,33 @@ function Container.create(t)
         }
     }
 
-    if t.position and not t.zone then
+    if t.type == "manual" then
+        instance.type = 'manual'
+        instance.entity = {
+            handle = t.entity,
+            networked = NetworkGetEntityIsNetworked(t.entity) == 1,
+            type = EntityTypes[GetEntityType(t.entity)],
+            model = t.model or GetEntityModel(t.entity)
+        }
+        instance.rotation = t.rotation
+        instance.manual_events = {
+            [1] = AddEventHandler(t.triggers.open, function()
+                StateManager.set('id', id)
+                StateManager.set('menuType', MenuTypes['MANUAL'])
+                StateManager.set('entityModel', GetEntityModel(t.entity))
+                StateManager.set('entityHandle', t.entity)
+                StateManager.set('playerDistance', 1.0)
+                ActiveManualMenu = id
+            end),
+            [2] = AddEventHandler(t.triggers.close, function()
+                StateManager.set('id', nil)
+                StateManager.set('entityModel', nil)
+                StateManager.set('entityHandle', nil)
+                StateManager.set('playerDistance', 1.0)
+                ActiveManualMenu = nil
+            end)
+        }
+    elseif t.position and not t.zone then
         instance.type = 'position'
         instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id, maxDistance = t.maxDistance }
         instance.rotation = t.rotation
