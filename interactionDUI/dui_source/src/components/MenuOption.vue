@@ -20,12 +20,14 @@
                 v-html="sanitized_description"
             ></div>
         </div>
-        <span
-            v-if="props.item.badge !== undefined"
-            class="label__badge"
-            :data-badge-type="props.item.badge.type || 'default'"
-            v-html="sanitized_badge"
-        ></span>
+        <transition name="fade-reverse">
+            <span
+                v-if="props.item.badge !== undefined && !isSelected"
+                class="label__badge"
+                :data-badge-type="props.item.badge.type || 'default'"
+                v-html="sanitized_badge"
+            ></span>
+        </transition>
     </div>
 </template>
 
