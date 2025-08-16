@@ -31,6 +31,10 @@ local scalex, scaley, scalez = 0.07, 0.04, 1
 local renderingIsActive      = false
 local cachedSx, cachedSy, cachedSz
 
+local uiScale                = 1.0
+local currentW, currentH
+local scaled_width, scaled_height
+
 DUI                          = {
     scaleform = nil,
     status = 1
@@ -40,8 +44,31 @@ local function render_sprite(scaleform)
     -- DrawInteractiveSprite(txdName, txnName, 0.5, 0.5, 0.21, 0.55, 0.0, 255, 255, 255, 255)
     -- DrawSprite(txdName, txnName, 0.5, 0.5, 0.21, 0.55, 0.0, 255, 255, 255, 255) --draw in middle of screen
     SetDrawOrigin(scaleform.position.x, scaleform.position.y, scaleform.position.z, 0)
-    DrawSprite(txdName, txnName, 0.0, 0.0, 0.21, 0.55, 0.0, 255, 255, 255, 255)
+    DrawSprite(txdName, txnName, 0.0, 0.0, scaled_width * uiScale, scaled_height * uiScale, 0.0, 255, 255, 255, 255)
     ClearDrawOrigin()
+end
+
+local function calculate_ui_scale(w, h)
+    local aspect_ratio = w / h
+    local width_scale = 0.375 / aspect_ratio
+    local height_scale = 0.55
+
+    if aspect_ratio > 1.7 then -- 16:9 ish and wider
+        width_scale = math.max(0.16, width_scale)
+    end
+
+    if h >= 1440 then
+        height_scale = 0.60
+    elseif h >= 1200 then
+        height_scale = 0.58
+    elseif h <= 768 then
+        height_scale = 0.55
+    end
+
+    width_scale = math.floor(width_scale * 100 + 0.5) / 100
+    height_scale = math.floor(height_scale * 100 + 0.5) / 100
+
+    return width_scale, height_scale
 end
 
 local function cache3dScale(scale)
@@ -327,24 +354,51 @@ calculateWorldPosition = function(ref)
 end
 
 CreateThread(function()
+    -- for ref
+    local RESOLUTION_TABLE = {
+        -- Format: {w, h, scale, base_width, base_height}
+        { w = 3840, h = 2160, scale = 1.2, width = 0.16, height = 0.60 },
+        { w = 2560, h = 1440, scale = 1.1, width = 0.2,  height = 0.58 },
+        { w = 1920, h = 1080, scale = 1.2, width = 0.21, height = 0.55 },
+        { w = 1720, h = 1400, scale = 1.1, width = 0.28, height = 0.55 },
+        { w = 1600, h = 1200, scale = 1.1, width = 0.28, height = 0.58 },
+        { w = 1600, h = 900,  scale = 1.1, width = 0.21, height = 0.58 },
+        { w = 1400, h = 900,  scale = 1.2, width = 0.23, height = 0.58 },
+        { w = 1366, h = 768,  scale = 1.0, width = 0.21, height = 0.55 },
+        { w = 1280, h = 720,  scale = 1.1, width = 0.21, height = 0.55 },
+        { w = 1024, h = 768,  scale = 1.2, width = 0.27, height = 0.55 },
+        { w = 800,  h = 600,  scale = 1.3, width = 0.27, height = 0.55 }
+    }
+
+    local savedScale       = GetResourceKvpFloat("ui_scale")
+    if savedScale and savedScale >= 0.5 and savedScale <= 2.0 then
+        uiScale = savedScale
+    end
+    print(("[InteractionDUI] Loaded scale: %.2f"):format(uiScale))
+
+    currentW, currentH          = GetActiveScreenResolution()
+    scaled_width, scaled_height = calculate_ui_scale(currentW, currentH)
     DUI:Create()
 end)
 
 AddEventHandler('interaction_menu:stop_render', function()
     -- just to be sure it's called internaly (for now!)
     if GetInvokingResource() ~= thisResource then return end
-
     renderingIsActive = false
 end)
 
 AddEventHandler('interaction_menu:start_render', function()
     -- just to be sure it's called internaly (for now!)
     if GetInvokingResource() ~= thisResource then return end
-
     if renderingIsActive then return end
     renderingIsActive = true
+
     local ref = DUI.scaleform.attached
     local render = DUI.Render
+
+    -- update the scaleform resolution before render
+    local newW, newH = GetActiveScreenResolution()
+    scaled_width, scaled_height = calculate_ui_scale(newW, newH)
 
     -- Tracking Thread
     CreateThread(function()
@@ -367,4 +421,54 @@ AddEventHandler('onResourceStop', function(resource)
     if resource ~= thisResource then return end
 
     DUI.Destroy()
+end)
+
+-- Commands
+RegisterCommand("interaction_menu", function(source, args)
+    TriggerEvent('chat:addSuggestion', '/interaction_menu', 'Adjust interaction menu settings', {
+        { name = "action", help = "Available actions: 'scale'" },
+        { name = "value",  help = "For scale: 0.5-2.0" }
+    })
+
+    if #args == 0 then
+        TriggerEvent('chat:addMessage', {
+            color = { 255, 255, 255 },
+            multiline = true,
+            args = { "Interaction Menu", "Usage:\n/interaction_menu scale [0.5-2.0] - Adjust UI scale" }
+        })
+        return
+    end
+
+    local subCommand = args[1]:lower()
+
+    if subCommand == "scale" then
+        local newScale = tonumber(args[2])
+
+        if not newScale or newScale < 0.5 or newScale > 2.0 then
+            TriggerEvent('chat:addMessage', {
+                color = { 255, 0, 0 },
+                args = { "Interaction Menu", "Invalid scale! Must be between 0.5 and 2.0" }
+            })
+            return
+        end
+
+        uiScale = newScale
+        SetResourceKvpFloat("ui_scale", uiScale)
+        TriggerEvent('chat:addMessage', {
+            color = { 0, 255, 0 },
+            args = { "Interaction Menu", string.format("UI scale set to %.2f", uiScale) }
+        })
+        TriggerEvent("InteractionDUI:client:update:ui_scale", uiScale)
+    else
+        TriggerEvent('chat:addMessage', {
+            color = { 255, 0, 0 },
+            args = { "Interaction Menu", "Unknown command. Use '/interaction_menu scale [0.5-2.0]'" }
+        })
+    end
+end, false)
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource == GetCurrentResourceName() then
+        TriggerEvent('chat:removeSuggestion', '/interaction_menu')
+    end
 end)
