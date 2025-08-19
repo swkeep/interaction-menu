@@ -84,6 +84,7 @@ interface Progress {
 }
 
 interface OptionFlags {
+    dialogue: boolean;
     action?: boolean;
     event?: boolean;
     update?: boolean;
@@ -101,6 +102,8 @@ interface OptionBadge {
 }
 
 export interface Option {
+    tts_api: string;
+    tts_voice: string;
     badge: OptionBadge;
     id: string | number;
     vid: string | number;

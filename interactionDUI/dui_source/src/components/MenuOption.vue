@@ -32,7 +32,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, watch, onUnmounted } from 'vue';
 import { Option } from '../types/types';
 import { itemStyle } from '../util';
 import DOMPurify from 'dompurify';
@@ -65,4 +65,47 @@ const labelClass = computed(() => ({
     'label--sub-menu': props.item.flags.subMenu,
     'label--action': props.item.flags.action === true,
 }));
+
+let currentAudio: HTMLAudioElement | null = null;
+
+const readLabel = (text: string) => {
+    if (!text) return;
+
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+    }
+
+    const api = props.item.tts_api || 'streamelements';
+    const tts_voice = props.item.tts_voice || 'Amy';
+    const textToSpeak = encodeURIComponent(text);
+
+    let ttsUrl;
+
+    if (api === 'streamelements') {
+        ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${tts_voice}&text=${textToSpeak}`;
+    }
+
+    currentAudio = new Audio(ttsUrl);
+    currentAudio.play().catch((e) => console.error('Error playing TTS:', e));
+};
+
+watch(
+    () => props.item.label,
+    (newLabel, oldLabel) => {
+        if (newLabel === 'placeholder') return;
+        if (props.item.flags?.dialogue && newLabel !== oldLabel) {
+            readLabel(newLabel);
+        }
+    },
+);
+
+onUnmounted(() => {
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+    }
+});
 </script>
