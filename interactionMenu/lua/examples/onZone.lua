@@ -30,40 +30,19 @@ local function init()
         options = {
             {
                 video = {
-                    url = 'https://cdn.swkeep.com//interaction_menu_internal_tests/test_video.mp4',
+                    url = 'http://127.0.0.1:8080/cdn/TEST%20VIDEO.mp4',
                     loop = true,
                     autoplay = true,
                     volume = 0.1
                 }
             },
             {
-                label = 'Launch Trojan Horse',
+                label = '(collision) Launch Trojan Horse',
                 icon = 'fa fa-code',
                 action = function(data)
                     print("Action 'Launch Trojan Horse'")
                 end
             },
-            {
-                label = 'Disable Security Cameras',
-                icon = 'fa fa-video-slash',
-                action = function(data)
-                    print("Action 'Disable Security Cameras'")
-                end
-            },
-            {
-                label = 'Override Access Control',
-                icon = 'fa fa-key',
-                action = function(data)
-                    print("Action 'Override Access Control'")
-                end
-            },
-            {
-                label = 'Download Classified Files',
-                icon = 'fa fa-download',
-                action = function(data)
-                    print("Action 'Download Classified Files'")
-                end
-            }
         }
     }
 
@@ -81,7 +60,7 @@ local function init()
         },
         options = {
             {
-                label = 'Menu on sphere zone',
+                label = '(collision) Menu on sphere zone',
                 icon = 'fa fa-code',
                 action = function(data)
 
@@ -115,7 +94,7 @@ local function init()
         },
         options = {
             {
-                label = 'Menu on poly zone',
+                label = '(collision) Menu on poly zone',
                 icon = 'fa fa-code',
                 action = function(data)
 
@@ -131,6 +110,68 @@ local function init()
             },
         }
     }
+
+    local locations   = {
+        vector3(787.51, -2993.77, -68.04),
+        vector3(787.37, -2993.8, -68.67),
+        vector3(787.37, -2993.8, -69.63)
+    }
+
+    for index, value in ipairs(locations) do
+        exports['interactionMenu']:Create {
+            position = value,
+            tracker = "hit",
+            zone = {
+                type = 'circleZone',
+                position = value,
+                radius = 0.5,
+                useZ = true,
+                debugPoly = Config.debugPoly
+            },
+            options = {
+                {
+                    label = '(hit) Menu - > ' .. index,
+                    icon = 'fa fa-code',
+                    action = function(data)
+
+                    end
+                },
+
+            }
+        }
+    end
+
+    local locations_2 = {
+        vector3(791.01, -2990.25, -69.59),
+        vector3(791.03, -2990.25, -68.75),
+        vector3(791.05, -2990.25, -67.97)
+    }
+
+    for index, value in ipairs(locations_2) do
+        exports['interactionMenu']:Create {
+            position = value,
+            tracker = "hit",
+            zone = {
+                type = 'boxZone',
+                position = value,
+                heading = 0,
+                width = 0.5,
+                length = 0.5,
+                debugPoly = Config.debugPoly,
+                minZ = value.z - 0.3,
+                maxZ = value.z + 0.3,
+            },
+            options = {
+                {
+                    label = '(hit) Test ->' .. index,
+                    icon = 'fa fa-download',
+                    action = function(data)
+                        print("Action 'Download Classified Files'")
+                    end
+                }
+            }
+        }
+    end
 
     -- menus[#menus + 1] = exports['interactionMenu']:Create {
     --     rotation = vector3(0, 0, 180),
