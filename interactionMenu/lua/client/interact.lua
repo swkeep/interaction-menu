@@ -266,12 +266,18 @@ CreateThread(function()
                 if not StateManager.get("disableRayCast") and isInVehicle == false then
                     hitPosition, entity, playerDistance = Util.rayCast(10, playerPed)
 
+                    local found_a_zone = false
                     if hitPosition and not StateManager.get("disableZoneRayCast") then
                         for key, value in pairs(Container.zones) do
                             if value.tracker == "hit" and value:isPointInside(hitPosition) then
                                 closestZoneId = value.name
+                                found_a_zone = true
                                 break
                             end
+                        end
+
+                        if found_a_zone == false and closestZoneId then
+                            closestZoneId = nil
                         end
                     end
 
@@ -282,6 +288,7 @@ CreateThread(function()
                         end
                     end
                 end
+
                 StateManager.set('hitPosition', hitPosition)
                 StateManager.set({
                     playerPed = playerPed,
