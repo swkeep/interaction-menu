@@ -203,6 +203,9 @@ local function buildOption(data, instance)
             job = option.job and transformRestrictions(option.job),
             gang = option.gang and transformRestrictions(option.gang),
 
+            tts_api = option.tts_api,
+            tts_voice = option.tts_voice,
+
             flags = {
                 dynamic = option.dynamic,
                 disable = false,
@@ -210,6 +213,7 @@ local function buildOption(data, instance)
                 event = nil,
                 hide = option.hide or false,
                 subMenu = option.subMenu or false,
+                dialogue = option.dialogue or false,
             }
         }
 
@@ -395,14 +399,18 @@ function Container.create(t)
                 z = t.position.z,
                 id = id
             }
-
             instance.rotation = t.rotation
             instance.zone = t.zone
             instance.scale = t.scale
+            instance.tracker = t.tracker or "collision" -- (presence or collision), hit
 
             if instance.zone then
                 t.zone.name = id
+                t.zone.tracker = instance.tracker
                 Container.zones[id] = Util.addZone(t.zone)
+                if instance.tracker == "hit" then
+                    Container.zones[id].tracker = instance.tracker
+                end
                 if not Container.zones[id] then
                     return
                 end
@@ -663,6 +671,7 @@ function Container.getMenu(model, entity, menuId)
         if menuId then
             local menuRef = Container.get(menuId)
             if menuRef.type == 'zone' then
+                container.tracker = menuRef.tracker
                 combinedIds = Util.table_merge(combinedIds, Container.indexes.globals.zones or {})
             end
         end
@@ -812,7 +821,8 @@ end
 function Container.triggerInteraction(menuId, optionId, ...)
     if not Container.data[menuId] or not Container.data[menuId].interactions[optionId] then return end
     local func = Container.data[menuId].interactions[optionId].func
-    if not func or type(func) ~= 'function' then return end
+
+    if not func and func["__cfx_functionReference"] then return end
     return func(...)
 end
 

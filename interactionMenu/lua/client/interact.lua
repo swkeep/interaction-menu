@@ -255,16 +255,25 @@ CreateThread(function()
 
         if isPauseMenuState == 0 and isNuiFocused ~= 1 then
             if not closestEntity then
-                local playerPosition = GetEntityCoords(playerPed)
                 local model = 0
                 local entityType = 0
+                local playerPosition = GetEntityCoords(playerPed)
                 -- #TODO: Give onPosition priority?!
                 -- It's going to lower resource usage, BUT if we have two colliding menus, we might not be able to detect them.
                 -- reason: when the player is inside the `entity detector`, we won't be able to use rayCast to detect other menus.
 
                 local hitPosition, playerDistance, entity
-                if closestZoneId == nil and (not StateManager.get("disableRayCast") or isInVehicle ~= 1) then
+                if not StateManager.get("disableRayCast") and isInVehicle == false then
                     hitPosition, entity, playerDistance = Util.rayCast(10, playerPed)
+
+                    if hitPosition and not StateManager.get("disableZoneRayCast") then
+                        for key, value in pairs(Container.zones) do
+                            if value.tracker == "hit" and value:isPointInside(hitPosition) then
+                                closestZoneId = value.name
+                                break
+                            end
+                        end
+                    end
 
                     if entity then
                         entityType = GetEntityType(entity)
@@ -313,8 +322,10 @@ end)
 
 AddEventHandler("interactionMenu:zoneTracker", function(zone_name, state)
     if zone_name and state then
+        StateManager.set("disableZoneRayCast", true)
         closestZoneId = zone_name
     else
+        StateManager.set("disableZoneRayCast", false)
         closestZoneId = nil
     end
 end)
@@ -489,6 +500,14 @@ function Render.onZone(currentMenuId)
     local rotation = data.rotation
     if not position then return end
 
+    local validateSlow
+    if data.tracker == "hit" then
+        validateSlow = function()
+            local hitPosition, entity, playerDistance = Util.rayCast(10, PlayerPedId())
+            return Container.zones[currentMenuId]:isPointInside(hitPosition)
+        end
+    end
+
     Render.generic(data, metadata, {
         onEnter = function()
             StateManager.set('disableRayCast', true)
@@ -496,15 +515,18 @@ function Render.onZone(currentMenuId)
             scaleform.setPosition(position)
 
             if rotation then
-                scaleform.setRotation(rotation)
                 scaleform.set3d(true)
+                scaleform.setRotation(rotation)
                 scaleform.setScale(data.scale or 1)
+            else
+                scaleform.set3d(false)
             end
             return true
         end,
         validate = function()
             return StateManager.get('id') == currentMenuId
         end,
+        validateSlow = validateSlow,
         onExit = function()
             StateManager.set('disableRayCast', false)
         end
