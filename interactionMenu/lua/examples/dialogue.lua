@@ -807,7 +807,7 @@ local function init()
             local data = {
                 index = ped_data.index,
                 entity = entity,
-                theme = 'theme-10',
+                theme = 'theme-6',
                 onSeen = ped_data.onSeen,
                 onExit = ped_data.onExit,
                 conversations = ped_data.dialogues,
