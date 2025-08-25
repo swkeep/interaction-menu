@@ -17,5 +17,5 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "1", "! Empty", "fa-solid fa-warehouse")
+    InternalRegisterTest(init, cleanup, "!1", "Empty", "fa-solid fa-warehouse")
 end)
