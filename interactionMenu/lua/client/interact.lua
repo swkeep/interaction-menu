@@ -194,12 +194,16 @@ local triggers = {
 -- detect the menu type and set menu data and pass rest to render thread
 
 local function handlePositionBasedInteraction()
-    local maxDistance = visiblePoints.closest.maxDistance or 3
+    local maxDistance = visiblePoints[1].maxDistance or 3
 
-    if visiblePoints.closest.distance and visiblePoints.closest.distance < maxDistance then
-        StateManager.set('id', visiblePoints.closest.id)
+    if visiblePoints[1].distance and visiblePoints[1].distance < maxDistance then
+        if visiblePoints[1].point.ids then
+            StateManager.set('id', visiblePoints[1].point.ids)
+        else
+            StateManager.set('id', visiblePoints[1].id)
+        end
         StateManager.set('menuType', MenuTypes['ON_POSITION'])
-        StateManager.set('playerDistance', visiblePoints.closest.distance)
+        StateManager.set('playerDistance', visiblePoints[1].distance)
     else
         StateManager.set('id', nil)
         StateManager.set('menuType', nil)
@@ -297,11 +301,12 @@ CreateThread(function()
 
                 local nearPoints = grid_position:queryRange(playerPosition, 25)
                 visiblePoints    = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
+
                 local menuType   = Container.getMenuType {
                     model = model,
                     entity = entity,
                     entityType = entityType,
-                    closestPoint = visiblePoints.closest,
+                    closestPoint = visiblePoints[1],
                     zone = closestZoneId
                 }
 
@@ -358,6 +363,7 @@ exports("refresh", refresh)
 
 function Render.generic(data, metadata, callbacks)
     if not data then return end
+    Container.syncData(scaleform, data, false)
     if not IsMenuVisible(data) then return end
 
     StateManager.set('active', true)
@@ -423,7 +429,6 @@ function Render.onEntity(model, entity)
     local data = Container.getMenu(model, entity)
     if not data then return end
     if not canInteract(data, nil) then return end
-
     local closestVehicleBone = Container.boneCheck(entity)
     local offset = data.offset or vec3(0, 0, 0)
 
@@ -434,6 +439,7 @@ function Render.onEntity(model, entity)
     local isVehicle = GetEntityType(entity) == 2
     local validateSlow
     if isVehicle then
+        TriggerEvent("interactionMenu:client:set_vehicle", entity)
         validateSlow = function()
             local currentClosestBone = Container.boneCheck(entity)
             return closestVehicleBone == currentClosestBone and canInteract(data, nil)
@@ -457,6 +463,9 @@ function Render.onEntity(model, entity)
         end,
         validateSlow = validateSlow,
         onExit = function()
+            if isVehicle then
+                TriggerEvent("interactionMenu:client:set_vehicle", nil)
+            end
             StateManager.set('entityModel', nil)
             StateManager.set('entityHandle', nil)
             scaleform.dettach()
@@ -464,8 +473,15 @@ function Render.onEntity(model, entity)
     })
 end
 
-function Render.onPosition(currentMenuId)
-    local data = Container.getMenu(nil, nil, currentMenuId)
+function Render.onPosition()
+    local currentMenuId = StateManager.get('id')
+    local data
+
+    if type(currentMenuId) == "table" then
+        data = Container.getMenu(nil, nil, nil, currentMenuId)
+    else
+        data = Container.getMenu(nil, nil, currentMenuId)
+    end
     if not data then return end
     if not canInteract(data, nil) then return end
 
@@ -618,7 +634,7 @@ local function RenderMenu()
             print("interactionMenu: Missing entity data")
         end
     elseif menuType == MenuTypes['ON_POSITION'] then
-        Render.onPosition(currentMenuId)
+        Render.onPosition()
     elseif menuType == MenuTypes['ON_ZONE'] then
         Render.onZone(currentMenuId)
     elseif menuType == MenuTypes['MANUAL'] then
