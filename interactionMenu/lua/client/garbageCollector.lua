@@ -70,7 +70,20 @@ function Container.remove(id)
         zone:destroy()
         TriggerEvent("interactionMenu:zoneTracker")
     elseif menuRef.type == 'position' then
-        grid:remove(menuRef.position)
+        local _, foundItem, cell = grid:isPositionOccupied({ x = menuRef.position.x, y = menuRef.position.y })
+        if foundItem and foundItem.ids then
+            for index, value in ipairs(foundItem.ids) do
+                if value == id then
+                    table.remove(foundItem.ids, index)
+                    break
+                end
+            end
+            if #foundItem.ids == 0 then
+                grid:_raw_remove(cell.x, cell.y, cell.index)
+            end
+        else
+            grid:remove(menuRef.position)
+        end
     elseif menuRef.type == 'entity' and menuRef.tracker == 'boundingBox' then
         EntityDetector.unwatch(menuRef.entity.handle)
     elseif menuRef.type == "manual" then
@@ -103,6 +116,8 @@ function Container.remove(id)
     menuRef.flags.deleted = true
     menuRef.deletedAt = GetGameTimer() / 1000
     Container.total = Container.total - 1
+
+    exports['interactionMenu']:refresh()
 end
 
 exports('remove', Container.remove)
