@@ -304,14 +304,20 @@ local function preCalculatePosition(ref, entity, offset)
     local pos
 
     if ref.bone then
-        pos = GetWorldPositionOfEntityBone(entity, ref.bone)
-        setPosition(pos)
-        return pos
+        pos = GetEntityBonePosition_2(entity, ref.bone)
     else
         pos = calculatePosition(entity, offset)
-        -- setPosition(pos)
-        return pos
     end
+
+    -- Only apply rotation offset if there's actually an offset to apply
+    if ref.offset and (ref.offset.x ~= 0 or ref.offset.y ~= 0 or ref.offset.z ~= 0) then
+        local vehicleRotation = GetEntityHeading(entity)
+        local ro_x, ro_y, ro_z = getRotatedOffset(vehicleRotation, ref.offset)
+        pos = pos + vec3(ro_x, ro_y, ro_z)
+    end
+
+    setPosition(pos)
+    return pos
 end
 
 calculateWorldPosition = function(ref)
@@ -321,7 +327,7 @@ calculateWorldPosition = function(ref)
     end
 
     local entity = ref.entity
-    local offset = ref.offset
+    local offset = ref.offset or vec3(0, 0, 0)
 
     local currentPosition = GetEntityCoords(entity)
 
