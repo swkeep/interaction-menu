@@ -56,9 +56,6 @@ local function init()
             badge = { type = "green", label = "READY" }
         },
         {
-            label = 'Sales Report',
-            icon = 'fa-solid fa-chart-line',
-            description = 'View today\'s sales performance',
             template = templates.cash_register,
             bind = function()
                 local subtotal = math.random(100, 1000) / 10
