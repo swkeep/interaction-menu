@@ -132,6 +132,81 @@ function CleanNearbyObjects()
     nearby_objects_limited = {}
 end
 
+local function GetClosestVehicle()
+    local ped = PlayerPedId()
+    local vehicles = GetGamePool('CVehicle')
+    local closestDistance = -1
+    local closestVehicle = -1
+    local coords = GetEntityCoords(ped)
+
+    for i = 1, #vehicles, 1 do
+        local vehicleCoords = GetEntityCoords(vehicles[i])
+        local distance = #(vehicleCoords - coords)
+
+        if closestDistance == -1 or closestDistance > distance then
+            closestVehicle = vehicles[i]
+            closestDistance = distance
+        end
+    end
+
+    return closestVehicle, closestDistance
+end
+
+local function GetVehicleBoneMenus()
+    local closestVehicle = GetClosestVehicle()
+    local boneList = Container.indexes.bones[closestVehicle] or Container.indexes.globals.bones
+    local closestVehicleMenus = {}
+
+    if boneList then
+        local closestDistance = 10000
+        local isHoodOpen = GetVehicleDoorAngleRatio(closestVehicle, 4) > 0.9
+        local isHoodDamaged = IsVehicleDoorDamaged(closestVehicle, 4)
+        local coords = GetEntityCoords(closestVehicle)
+
+        for boneName, bone_menus in pairs(boneList) do
+            local boneId = GetEntityBoneIndexByName(closestVehicle, boneName)
+            if boneId ~= -1 then
+                if boneName == "engine" and (isHoodDamaged == false and not isHoodOpen) then
+                    goto continue
+                end
+
+                if boneName == "bonnet" and isHoodDamaged then
+                    goto continue
+                end
+
+                local menu = Container.get(bone_menus[1])
+                local bonePosition = GetEntityBonePosition_2(closestVehicle, boneId)
+                local distance = #(coords - bonePosition)
+
+                if distance <= closestDistance then
+                    closestVehicleMenus[boneName] = {
+                        distance = distance,
+                        boneId = boneId,
+                        position = bonePosition,
+                        icon = menu and menu.icon
+                    }
+                end
+            end
+            ::continue::
+        end
+    end
+
+    return closestVehicleMenus, closestVehicle
+end
+
+local currentVehicleMenu
+local closestVehicleMenus = {}
+
+AddEventHandler("interactionMenu:client:set_vehicle", function(veh)
+    if veh == nil then
+        currentVehicleMenu = nil
+        closestVehicleMenus = {}
+    else
+        currentVehicleMenu = veh
+        closestVehicleMenus = GetVehicleBoneMenus()
+    end
+end)
+
 local function StartSpriteThread()
     if isSpriteThreadRunning then return end
     isSpriteThreadRunning = true
@@ -139,11 +214,13 @@ local function StartSpriteThread()
     local playerPosition = StateManager.get('playerPosition')
     local currentMenu = StateManager.get('id')
     local isActive = StateManager.get('active')
-
+    local closestVehicle
     -- This is kinda overkill, but in my testing, sometimes one of these threads would stay alive,
     -- causing flickering and performance drops.
     local threadHash = math.random(1000000)
     currentSpriteThreadHash = threadHash
+
+    closestVehicleMenus = GetVehicleBoneMenus()
 
     CreateThread(function()
         while isSpriteThreadRunning and currentSpriteThreadHash == threadHash do
@@ -152,7 +229,8 @@ local function StartSpriteThread()
             getNearbyObjects(isActive, currentMenu, playerPosition)
             local nearPoints, totalNearPoints = grid_position:queryRange(playerPosition, 20)
             visiblePoints, visiblePointCount = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
-
+            closestVehicle = GetClosestVehicle()
+            closestVehicleMenus = GetVehicleBoneMenus()
             Wait(1000)
         end
     end)
@@ -162,20 +240,32 @@ local function StartSpriteThread()
             playerPosition = GetEntityCoords(player)
 
             if visiblePointCount > 0 then
-                for _, value in ipairs(visiblePoints.inView) do
-                    if value.id ~= currentMenu then
-                        drawSprite(value.point, playerPosition, visiblePoints.closest.icon)
+                for i = 2, #visiblePoints, 1 do
+                    if visiblePoints[i].id ~= currentMenu then
+                        drawSprite(visiblePoints[i].point, playerPosition, visiblePoints[i].icon)
                     end
                 end
 
-                if visiblePoints.closest.id ~= currentMenu and not isActive then
-                    drawSprite(visiblePoints.closest.point, playerPosition, visiblePoints.closest.icon)
+                if visiblePoints[1].point.ids then
+                    if not isActive then
+                        drawSprite(visiblePoints[1].point, playerPosition, visiblePoints[1].icon)
+                    end
+                else
+                    if visiblePoints[1].id ~= currentMenu and not isActive then
+                        drawSprite(visiblePoints[1].point, playerPosition, visiblePoints[1].icon)
+                    end
                 end
             end
 
             for index, value in pairs(nearby_objects_limited) do
                 if index > maxEntities then break end
                 drawSprite(value.coords, playerPosition, value.icon)
+            end
+
+            if closestVehicle ~= currentVehicleMenu then
+                for key, value in pairs(closestVehicleMenus) do
+                    drawSprite(value.position, playerPosition, value.icon)
+                end
             end
 
             Wait(0)
