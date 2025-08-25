@@ -59,24 +59,35 @@ end
 ---@return unknown|vector3 "The world position of the closest bone on the vehicle"
 function Util.getClosestVehicleBone(coords, vehicle, boneList)
     local closestBoneId = -1
-    local closestDistance = math.huge
+    local closestDistance = 10000
     local closestBoneName
     local closestBonePosition
+    local isHoodOpen = GetVehicleDoorAngleRatio(vehicle, 4) > 0.9
+    local isHoodDamaged = IsVehicleDoorDamaged(vehicle, 4)
 
     for boneName, isEnabled in pairs(boneList) do
         if isEnabled then
             local boneId = GetEntityBoneIndexByName(vehicle, boneName)
             if boneId ~= -1 then
-                local bonePosition = GetWorldPositionOfEntityBone(vehicle, boneId)
+                if boneName == "engine" and (isHoodDamaged == false and not isHoodOpen) then
+                    goto continue
+                end
+
+                if boneName == "bonnet" and isHoodDamaged then
+                    goto continue
+                end
+
+                local bonePosition = GetEntityBonePosition_2(vehicle, boneId)
                 local distance = #(coords - bonePosition)
 
-                if distance < closestDistance then
+                if distance <= closestDistance then
                     closestDistance = distance
                     closestBoneId = boneId
                     closestBoneName = boneName
                     closestBonePosition = bonePosition
                 end
             end
+            ::continue::
         end
     end
 
@@ -119,46 +130,37 @@ end
 Util.isPointWithinScreenBounds = InitIsPointWithinScreenBounds()
 
 function Util.filterVisiblePointsWithinRange(playerPosition, inputPoints)
-    local closestPointDistance = 15
-    local closestPointIndex
-    local visiblePointCount = 0
-    local visiblePoints = {
-        inView = {},
-        closest = {}
-    }
-    if not playerPosition or not inputPoints or #inputPoints == 0 then return visiblePoints, 0 end
+    if not playerPosition or not inputPoints or #inputPoints == 0 then
+        return {}, 0
+    end
 
-    for _, inputPoint in pairs(inputPoints) do
-        local pointDistance = #(playerPosition - vector3(inputPoint.x, inputPoint.y, inputPoint.z))
-        local _, screenX, screenY = GetScreenCoordFromWorldCoord(inputPoint.x, inputPoint.y, inputPoint.z)
-        local isPointVisible = Util.isPointWithinScreen(screenX, screenY)
+    local visiblePoints = {}
+    for i, inputPoint in ipairs(inputPoints) do
+        local pointVector = vector3(inputPoint.x, inputPoint.y, inputPoint.z)
+        local pointDistance = #(playerPosition - pointVector)
 
-        if isPointVisible then
-            local visiblePointIndex = #visiblePoints.inView + 1
-            visiblePoints.inView[visiblePointIndex] = {
-                id = inputPoint.id,
-                point = inputPoint
-            }
-            visiblePointCount = visiblePointCount + 1
+        if pointDistance <= 15 then
+            local _, screenX, screenY = GetScreenCoordFromWorldCoord(inputPoint.x, inputPoint.y, inputPoint.z)
 
-            if Util.isPointWithinScreenBounds(screenX, screenY) and pointDistance < closestPointDistance then
-                closestPointDistance = pointDistance
-                closestPointIndex = visiblePointIndex
+            if Util.isPointWithinScreen(screenX, screenY) and Util.isPointWithinScreenBounds(screenX, screenY) then
+                visiblePoints[#visiblePoints + 1] = {
+                    id = inputPoint.id,
+                    point = inputPoint,
+                    distance = pointDistance,
+                    screenX = screenX,
+                    screenY = screenY
+                }
             end
         end
     end
 
-    if closestPointIndex then
-        visiblePoints.closest = {
-            id = visiblePoints.inView[closestPointIndex].id,
-            point = visiblePoints.inView[closestPointIndex].point,
-            distance = closestPointDistance
-        }
-
-        table.remove(visiblePoints.inView, closestPointIndex)
+    if #visiblePoints > 1 then
+        table.sort(visiblePoints, function(a, b)
+            return a.distance < b.distance
+        end)
     end
 
-    return visiblePoints, visiblePointCount
+    return visiblePoints, #visiblePoints
 end
 
 local nearClip = 0.1
@@ -259,6 +261,45 @@ function SpatialHashGrid:insert(item)
     end
 
     cell[#cell + 1] = item
+end
+
+function SpatialHashGrid:isPositionOccupied(position, _radius, excludeId)
+    _radius = _radius or 1
+    local radiusSquared = _radius * _radius
+
+    -- Determine cells within the query range
+    local minCellX = math_floor((position.x - _radius) / self.cellSize)
+    local maxCellX = math_floor((position.x + _radius) / self.cellSize)
+    local minCellY = math_floor((position.y - _radius) / self.cellSize)
+    local maxCellY = math_floor((position.y + _radius) / self.cellSize)
+
+    for i = minCellX, maxCellX do
+        for j = minCellY, maxCellY do
+            local cell = self.cells[i] and self.cells[i][j]
+            if cell then
+                for cell_index, item in ipairs(cell) do
+                    -- Skip excluded item if specified
+                    if not excludeId or item.id ~= excludeId then
+                        local dx = item.x - position.x
+                        local dy = item.y - position.y
+                        if dx * dx + dy * dy <= radiusSquared then
+                            return true, item, { x = i, y = j, index = cell_index }
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return false, nil
+end
+
+function SpatialHashGrid:_raw_remove(cellX, cellY, index)
+    local cell = self.cells[cellX] and self.cells[cellX][cellY]
+
+    if cell then
+        table_remove(cell, index)
+    end
 end
 
 --- Removes an item from the grid
