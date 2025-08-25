@@ -72,6 +72,7 @@ function NestedMenuBuilder:generateOptions(options, full_list, parentPath)
             icon = option.icon,
             action = action,
             bind = option.bind,
+            template = option.template,
             event = option.event,
             command = option.command,
             canInteract = option.canInteract,

@@ -72,6 +72,7 @@ function PaginationBuilder:generateOptions()
             badge = option.badge,
             icon = option.icon,
             action = option.action,
+            template = option.template,
             bind = option.bind,
             event = option.event,
             command = option.command,

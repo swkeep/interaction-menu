@@ -100,6 +100,7 @@ function DialogueSystem:create(data)
                 icon = response.icon,
                 description = response.description,
                 animation = response.animation,
+                template = response.template,
                 voice = response.voice,
                 conversationIndex = conversation_index,
             }
