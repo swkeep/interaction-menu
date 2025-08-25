@@ -66,6 +66,26 @@ local function init()
         }
     end
 
+    for i = 1, 15, 1 do
+        menus[i] = exports['interactionMenu']:Create({
+            theme = 'theme-2',
+            position = vector3(794.58, -3009.07, -69.0),
+            extra = {
+                onSeen = function()
+                    print(('seen menu id [%s]'):format(menus[i]))
+                end
+            },
+            options = {
+                {
+                    label = ('Menu #[%s]'):format(i),
+                    action = function()
+                        exports['interactionMenu']:remove(menus[i])
+                    end
+                }
+            }
+        })
+    end
+
     -- SetTimeout(4000, function()
     --     exports['interactionMenu']:set {
     --         menuId = menus[1],
