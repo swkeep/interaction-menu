@@ -193,6 +193,7 @@ local function buildOption(data, instance)
             label = option.label,
             description = option.description,
             badge = option.badge,
+            template = option.template,
             picture = option.picture,
             video = option.video,
             audio = option.audio,
@@ -331,7 +332,19 @@ function Container.create(t)
         instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id, maxDistance = t.maxDistance }
         instance.rotation = t.rotation
 
-        grid:insert(instance.position)
+        local isOccupied, foundItem = grid:isPositionOccupied({ x = t.position.x, y = t.position.y })
+        if isOccupied then
+            if not foundItem.ids then
+                local current_id = foundItem.id
+                foundItem.id = nil
+                foundItem.ids = {
+                    [1] = current_id,
+                }
+            end
+            foundItem.ids[#foundItem.ids + 1] = id
+        else
+            grid:insert(instance.position)
+        end
     elseif t.player then
         if type(t.player) ~= 'number' then
             warn('Player id must a integer value')
@@ -506,23 +519,20 @@ exports('createGlobal', Container.createGlobal)
 ---@return number "boneDistance"
 function Container.boneCheck(entity)
     -- it's safer to use it only in vehicles
-    if GetEntityType(entity) ~= 2 then
-        return nil, nil, nil
-    end
+    if GetEntityType(entity) ~= 2 then return nil, nil, nil end
 
     local bones = Container.indexes.bones[entity] or Container.indexes.globals.bones
     local hitPosition = StateManager.get('hitPosition')
 
     if bones and hitPosition then
         local closestVehicleBone, closestBoneName, boneDistance = 0, false, 0
+        closestVehicleBone, closestBoneName, boneDistance = Util.getClosestVehicleBone(hitPosition, entity, bones)
 
-        closestVehicleBone, closestBoneName, boneDistance = Util.getClosestVehicleBone(hitPosition, entity,
-            bones)
-
-        if boneDistance < 0.65 then
+        if boneDistance <= 1 then
             return closestVehicleBone, closestBoneName, boneDistance
         end
     end
+    return nil, nil, nil
 end
 
 --- assigns an id to a menu container based on its properties
@@ -643,7 +653,7 @@ local function isPedAPlayer(entityType, entity)
     return entityType == 1 and IsPedAPlayer(entity)
 end
 
-function Container.getMenu(model, entity, menuId)
+function Container.getMenu(model, entity, menuId, list_of_id)
     local is_deleted = false
     if menuId then
         is_deleted = Container.isDeleted(menuId)
@@ -660,6 +670,10 @@ function Container.getMenu(model, entity, menuId)
         width    = 'fit-content',
         theme    = 'default'
     }
+
+    if list_of_id then
+        combinedIds = list_of_id
+    end
 
     local closestBoneId, closestBoneName = Container.boneCheck(entity)
 
@@ -1125,6 +1139,10 @@ local function evaluateBindValue(option, optionIndex, menuOriginalData, pt)
         local success, res = callFunction()
 
         if success then
+            if option.template then
+                option.template_data = res
+                return true
+            end
             if option.progress and option.progress.value ~= res then
                 option.progress.value = res
                 return true
@@ -1231,14 +1249,15 @@ end
 ---@param scaleform table
 ---@param menuData table
 function Container.syncData(scaleform, menuData, refreshUI)
-    local updatedElements = {}
-    local passThrough = Container.constructMetadata(menuData)
+    local updated_elements = {}
+    local metadata = Container.constructMetadata(menuData)
 
     for _, menu in pairs(menuData.menus) do
-        local menuId = menu.id
-        local menuOriginalData = Container.get(menuId)
+        local menu_id   = menu.id
+        local menu_data = Container.get(menu_id)
+        local flags     = menu_data.flags
 
-        if not menuOriginalData then
+        if not menu_data then
             -- What is this?
             -- If we delete the menu (garbage collection) while a player is using that menu, we have to close it.
             -- For example, if a player is looking at an entity that has a menu and two globals on it, the menu is still in use.
@@ -1248,33 +1267,38 @@ function Container.syncData(scaleform, menuData, refreshUI)
             return
         end
 
-        local deleted = menuOriginalData.flags.deleted
+        if not flags.deleted then
+            for option_index, option in ipairs(menu.options) do
+                local modified = false
+                local _flags   = option.flags
 
-        if not deleted then
-            for optionIndex, option in ipairs(menu.options) do
-                local modified_something = false
+                modified       = modified or evaluateBindValue(option, option_index, menu_data, metadata)
+                modified       = modified or updateOptionVisibility(option, option_index, menu_data, metadata)
+                modified       = modified or frameworkOptionVisibilityRestrictions(updated_elements, menu_id, option, option_index, menu_data, metadata)
 
-                modified_something = modified_something or evaluateBindValue(option, optionIndex, menuOriginalData, passThrough)
-                modified_something = modified_something or updateOptionVisibility(option, optionIndex, menuOriginalData, passThrough)
-                modified_something = modified_something or frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, passThrough)
-
-                if modified_something or option.flags.previous_hide ~= option.flags.hide then
-                    option.flags.previous_hide = option.flags.hide
-                    table.insert(updatedElements, { menuId = menuId, option = option })
+                if modified or _flags.previous_hide ~= _flags.hide then
+                    _flags.previous_hide = _flags.hide
+                    if option.template then
+                        local copy = table.clone(option)
+                        copy.template = nil
+                        table.insert(updated_elements, { menuId = menu_id, option = copy })
+                    else
+                        table.insert(updated_elements, { menuId = menu_id, option = option })
+                    end
                 end
             end
-        elseif deleted and not menuOriginalData.flags.deletion_synced then
-            menuOriginalData.flags.deletion_synced = true
-            table.insert(updatedElements, { menuId = menuId, option = {} })
-            Interact:deleteMenu(menuId)
+        elseif not flags.deletion_synced then
+            flags.deletion_synced = true
+            table.insert(updated_elements, { menuId = menu_id, option = {} })
+            Interact:deleteMenu(menu_id)
         end
     end
 
-    if refreshUI or #updatedElements > 0 then
-        scaleform.send("interactionMenu:menu:batchUpdate", updatedElements)
+    if refreshUI or next(updated_elements) then
+        scaleform.send("interactionMenu:menu:batchUpdate", updated_elements)
     end
 
-    if refreshUI and next(updatedElements) then
+    if refreshUI and next(updated_elements) then
         -- merged from handleCheckedListUpdates(scaleform, menuData)
         -- If the player has selected the element that we want to hide, then we have to move their selected value to something
         -- that is valid
