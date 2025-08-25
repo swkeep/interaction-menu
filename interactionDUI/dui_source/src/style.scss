@@ -23,15 +23,17 @@ body {
     font-family: 'Jura', Arial, sans-serif;
 }
 
+::-webkit-scrollbar {
+    display: none;
+}
+
 .interact-container {
     width: 100%;
-    height: 100%;
+    align-items: center;
     display: flex;
     justify-content: center;
-    align-content: center;
-    flex-wrap: wrap;
+    height: 100%;
     overflow: hidden;
-    gap: 1rem;
 
     // yeah that's dark mode xd
     &[data-dark='true'] {
@@ -46,15 +48,15 @@ body {
 }
 
 .menus-container {
-    width: fit-content;
     max-width: $max-width;
     display: flex;
-    justify-content: center;
     flex-direction: column;
     font-size: 2rem;
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: 1em;
     transition: background-color 2.5s ease;
+    overflow: scroll;
+    scroll-behavior: smooth;
 
     &--glow {
         box-shadow: 0 0px 20px 4px var(--primary-color-glow);
