@@ -102,6 +102,8 @@ interface OptionBadge {
 }
 
 export interface Option {
+    template: string;
+    template_data: {};
     tts_api: string;
     tts_voice: string;
     badge: OptionBadge;
@@ -128,14 +130,12 @@ export interface Menu {
 }
 
 export interface InteractionMenu {
-    id: string | number;
     indicator?: Indicator;
-    loading?: boolean;
-    menus: Menu[];
-    selected: Array<boolean>;
+    menus: Map<number | string, Menu & { options: Map<number | string, Option> }>;
+    selected: (string | number)[];
     theme: string;
     glow: boolean;
-    width: number | string;
+    width: string;
 }
 
 export interface MenuOption {
