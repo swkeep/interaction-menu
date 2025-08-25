@@ -25,26 +25,24 @@ const setVisible = (name: FocusTrackerT, value: boolean) => {
     focusTracker.value[name] = value;
 };
 
-const handleHideMenu = () => {
+const hide_menu = () => {
     setVisible('indicator', false);
     setVisible('menu', false);
 };
 
-const handleDarkModeChange = (value: boolean) => {
+const set_darl_mode = (value: boolean) => {
     darkMode.value = value;
 };
 
-const handleMenuShow = (data: InteractionMenu) => {
-    if (data && data.theme) {
-        theme.value = data.theme;
-    }
+const show_menu = (data: InteractionMenu) => {
+    if (data && data.theme) theme.value = data.theme;
 };
 
 // Subscriptions
 dev_run(() => (dev.value = true));
-subscribe('interactionMenu:hideMenu', handleHideMenu);
-subscribe('interactionMenu:darkMode', handleDarkModeChange);
-subscribe('interactionMenu:menu:show', handleMenuShow);
+subscribe('interactionMenu:hideMenu', hide_menu);
+subscribe('interactionMenu:darkMode', set_darl_mode);
+subscribe('interactionMenu:menu:show', show_menu);
 </script>
 
 <template>
