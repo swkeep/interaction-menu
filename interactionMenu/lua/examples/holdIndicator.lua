@@ -61,7 +61,6 @@ local function init()
         options = {
             {
                 label = 'Active Test: [####] ',
-                dynamic = true,
                 bind = function()
                     return GetFormattedMoney()
                 end

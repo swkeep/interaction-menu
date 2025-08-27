@@ -160,7 +160,6 @@ end
 ---@field style? string "Style information"
 ---@field progress? ProgressOption
 ---@field icon? string "Icon name"
----@field dynamic? boolean "Whether the option's value is dynamically handled"
 ---@field disable boolean "Whether the option is disabled"
 ---@field action? function "Function to execute when the option is selected"
 ---@field event? string "Event name to trigger when the option is selected"
@@ -208,7 +207,6 @@ local function buildOption(data, instance)
             tts_voice = option.tts_voice,
 
             flags = {
-                dynamic = option.dynamic,
                 disable = false,
                 action = nil,
                 event = nil,
@@ -1124,49 +1122,48 @@ local function is_daytime()
     return hour >= 6 and hour < 19
 end
 
-local function evaluateBindValue(option, optionIndex, menuOriginalData, pt)
-    local value = menuOriginalData.interactions[optionIndex]
+local function evaluateBindValue(option, option_index, menu_original_data, pt)
+    local opt_flags = option.flags
+    if not (opt_flags and opt_flags.bind) then return false end
 
-    local function callFunction()
-        if value and value.func then
-            return pcall(value.func, pt.entity, pt.distance, pt.coords, pt.name, pt.bone)
-        end
-        return false, nil
-    end
+    local interaction = menu_original_data.interactions[option_index]
+    if not interaction then return false end
 
-    if option.flags.bind then
-        -- Handle 'bind'
-        local success, res = callFunction()
+    local ok, res = pcall(interaction.func, pt.entity, pt.distance, pt.coords, pt.name, pt.bone)
+    if not ok or not res then return false end
 
-        if success then
-            if option.template then
-                option.template_data = res
-                return true
-            end
-            if option.progress and option.progress.value ~= res then
-                option.progress.value = res
-                return true
-            elseif not option.progress and option.label ~= res then
-                option.label = res
-                return true
-            end
-        end
-    elseif option.flags.dynamic then
-        -- Handle 'dynamic'
-        local success, res = callFunction()
-
-        if success then
-            if res ~= option.label then
-                option.label = res
-                return true
-            end
-        elseif option.label_cache ~= option.label then
-            option.label_cache = option.label
+    local res_type = type(res)
+    if res_type == "string" then
+        if res ~= option.label then
+            option.label = res
             return true
         end
-    else
         return false
     end
+
+    if res_type == "table" then
+        if option.template then
+            option.template_data = res
+            return true
+        end
+
+        if res.label and res.label ~= option.label then
+            option.label = res.label
+            return true
+        end
+
+        if res.description and res.description ~= option.description then
+            option.description = res.description
+            return true
+        end
+
+        if res.progress and option.progress and option.progress ~= res.progress then
+            option.progress = res.progress
+            return true
+        end
+    end
+
+    return false
 end
 
 --- check canInteract passed by user and update option's visibility
@@ -1255,8 +1252,6 @@ function Container.syncData(scaleform, menuData, refreshUI)
     for _, menu in pairs(menuData.menus) do
         local menu_id   = menu.id
         local menu_data = Container.get(menu_id)
-        local flags     = menu_data.flags
-
         if not menu_data then
             -- What is this?
             -- If we delete the menu (garbage collection) while a player is using that menu, we have to close it.
@@ -1267,6 +1262,7 @@ function Container.syncData(scaleform, menuData, refreshUI)
             return
         end
 
+        local flags = menu_data.flags
         if not flags.deleted then
             for option_index, option in ipairs(menu.options) do
                 local modified = false
@@ -1305,9 +1301,12 @@ function Container.syncData(scaleform, menuData, refreshUI)
         Container.validateAndSyncSelected(scaleform, menuData)
     end
 
-    if Config.features.timeBasedTheme and is_daytime() ~= previous_daytime then
-        previous_daytime = is_daytime()
-        Interact:setDarkMode(previous_daytime)
+    if Config.features.timeBasedTheme then
+        local now = is_daytime()
+        if now ~= previous_daytime then
+            previous_daytime = now
+            Interact:setDarkMode(now)
+        end
     end
 end
 

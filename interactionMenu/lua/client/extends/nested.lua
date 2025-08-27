@@ -77,7 +77,6 @@ function NestedMenuBuilder:generateOptions(options, full_list, parentPath)
             command = option.command,
             canInteract = option.canInteract,
             progress = option.progress,
-            dynamic = option.dynamic,
             style = option.style,
             video = option.video,
             picture = option.picture,

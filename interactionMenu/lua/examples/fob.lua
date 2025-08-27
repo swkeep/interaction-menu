@@ -236,7 +236,6 @@ local function init()
             {
                 label = '🚗 Vehicle Information',
                 description = 'Detailed vehicle status',
-                dynamic = true,
                 bind = function()
                     return formatVehicleDetails(getVehicleDetails())
                 end

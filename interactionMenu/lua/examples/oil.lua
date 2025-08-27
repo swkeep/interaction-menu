@@ -29,7 +29,6 @@ local function create_menu(menu_type)
                 {
                     label = '🛢️ Oil Well Management',
                     description = 'Manage your oil operations',
-                    dynamic = true,
                     bind = function()
                         local production = math.random(500, 2500)
                         local quality = math.random(70, 98)
@@ -82,7 +81,6 @@ local function create_menu(menu_type)
                 {
                     label = '⛏️ Active Extraction Sites',
                     description = 'View all active oil pumps',
-                    dynamic = true,
                     bind = function() return ("Status: %s"):format(math.random() > 0.5 and "Operational" or "Maintenance") end
                 },
                 { label = '🔄 Start Extraction', description = 'Begin pumping oil', action = function() end },
@@ -100,7 +98,6 @@ local function create_menu(menu_type)
                 {
                     label = '⚗️ Refinement Status',
                     description = 'Current operations',
-                    dynamic = true,
                     bind = function()
                         return ("Quality: %d%% | Output: %dL"):format(math.random(70, 100), math.random(500, 2000))
                     end
@@ -120,7 +117,6 @@ local function create_menu(menu_type)
                 {
                     label = '🗄️ Storage Capacity',
                     description = 'Current inventory',
-                    dynamic = true,
                     bind = function()
                         return ("Crude: %dL | Fuel: %dL"):format(math.random(0, 50000), math.random(0, 30000))
                     end
@@ -140,7 +136,6 @@ local function create_menu(menu_type)
                 {
                     label = '🚚 Distribution Network',
                     description = 'Manage shipments',
-                    dynamic = true,
                     bind = function()
                         return ("Active: %d | Completed: %d"):format(math.random(0, 5), math.random(5, 20))
                     end
