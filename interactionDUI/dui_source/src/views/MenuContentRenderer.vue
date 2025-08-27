@@ -20,15 +20,17 @@
                 }"
             >
                 <template v-if="!menu.flags.hide && !menu.flags?.deleted">
-                    <template v-for="item in Array.from(menu.options.values())" :key="item.vid">
-                        <div v-if="!item.flags?.hide" class="menu__option" :data-vid="item.vid">
-                            <Component
-                                :is="getFieldComponent(item)"
-                                :item="item"
-                                :selected="interaction_menu.selected"
-                            />
-                        </div>
-                    </template>
+                    <TransitionGroup name="list">
+                        <template v-for="item in Array.from(menu.options.values())" :key="item.vid">
+                            <div v-if="!item.flags?.hide" class="menu__option" :data-vid="item.vid">
+                                <Component
+                                    :is="getFieldComponent(item)"
+                                    :item="item"
+                                    :selected="interaction_menu.selected"
+                                />
+                            </div>
+                        </template>
+                    </TransitionGroup>
                 </template>
             </div>
         </div>
@@ -127,10 +129,9 @@ const set_menu_visibility = ({ id, visibility }: { id: string | number; visibili
 };
 
 const mark_menu_deleted = (ids: (number | string)[]) => {
-    ids.forEach((id) => {
-        const menu = interaction_menu.value.menus.get(id);
-        if (menu) menu.flags.deleted = true;
-    });
+    for (let i = 0; i < ids.length; i++) {
+        interaction_menu.value.menus.delete(ids[i]);
+    }
 };
 
 type OptionUpdate = {
@@ -162,7 +163,7 @@ const batch_update_options = (updates: { [key: string]: OptionUpdate }) => {
         });
 
         menu.options.set(option.vid, existing_option);
-        // console.debug(`[${update_type}] updated option`, option.vid, option);
+        // console.debug(`${menuId} | [${update_type}] updated option`, option.vid, option);
     }
 };
 subscribe('interactionMenu:hideMenu', hide_menu);

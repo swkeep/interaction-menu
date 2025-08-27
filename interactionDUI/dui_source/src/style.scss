@@ -368,3 +368,17 @@ body {
     color: rgba(255, 255, 255, 0.7);
     font-size: 1.2rem;
 }
+
+.list-enter-active,
+.list-leave-active {
+    transition: 0.2s transform ease, 0.15s height ease;
+    height: 65px;
+    transform: translateX(0px);
+}
+
+.list-enter-from,
+.list-leave-to {
+    opacity: 0;
+    height: 0px;
+    transform: translateX(-30px);
+}
