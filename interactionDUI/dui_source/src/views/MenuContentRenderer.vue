@@ -133,21 +133,38 @@ const mark_menu_deleted = (ids: (number | string)[]) => {
     });
 };
 
-const batch_update_options = (updates: { [key: string]: { menuId: string | number; option: Option } }) => {
+type OptionUpdate = {
+    menuId: string | number;
+    option: Partial<Option> & { vid: string | number; update_type?: string };
+};
+
+const batch_update_options = (updates: { [key: string]: OptionUpdate }) => {
     for (const { menuId, option } of Object.values(updates)) {
         const menu = interaction_menu.value.menus.get(menuId);
         if (!menu) continue;
 
         const existing_option = menu.options.get(option.vid);
-        if (existing_option && existing_option.template) {
-            existing_option.template_data = option.template_data;
-            menu.options.set(option.vid, existing_option);
-        } else {
-            menu.options.set(option.vid, option);
-        }
+        if (!existing_option) continue;
+
+        const update_type = option.update_type ?? 'partial_update';
+        Object.entries(option).forEach(([key, value]) => {
+            if (key === 'vid' || key === 'update_type') return;
+
+            if (key === 'template_data' && existing_option.template) {
+                // Merge template_data changes instead of overwriting
+                existing_option.template_data = {
+                    ...existing_option.template_data,
+                    ...(value as object),
+                };
+            } else {
+                (existing_option as any)[key] = value;
+            }
+        });
+
+        menu.options.set(option.vid, existing_option);
+        // console.debug(`[${update_type}] updated option`, option.vid, option);
     }
 };
-
 subscribe('interactionMenu:hideMenu', hide_menu);
 subscribe('interactionMenu:menu:show', show_menu);
 subscribe('interactionMenu:menu:selectedUpdate', update_selected);

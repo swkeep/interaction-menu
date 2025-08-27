@@ -1122,75 +1122,57 @@ local function is_daytime()
     return hour >= 6 and hour < 19
 end
 
-local function evaluateBindValue(option, option_index, menu_original_data, pt)
-    local opt_flags = option.flags
-    if not (opt_flags and opt_flags.bind) then return false end
+local function update_field(changes, option, field, new_value)
+    if new_value ~= nil and option[field] ~= new_value then
+        option[field] = new_value
+        changes[field] = new_value
+        return true
+    end
+    return false
+end
 
-    local interaction = menu_original_data.interactions[option_index]
+local function apply_bind_result(option, option_index, menu_data, pt, changes)
+    if not (option.flags and option.flags.bind) then return false end
+
+    local interaction = menu_data.interactions[option_index]
     if not interaction then return false end
 
     local ok, res = pcall(interaction.func, pt.entity, pt.distance, pt.coords, pt.name, pt.bone)
     if not ok or not res then return false end
 
+    local modified = false
     local res_type = type(res)
     if res_type == "string" then
-        if res ~= option.label then
-            option.label = res
-            return true
-        end
-        return false
-    end
-
-    if res_type == "table" then
-        if option.template then
-            option.template_data = res
-            return true
-        end
-
-        if res.label and res.label ~= option.label then
-            option.label = res.label
-            return true
-        end
-
-        if res.description and res.description ~= option.description then
-            option.description = res.description
-            return true
-        end
-
-        if res.progress and option.progress and option.progress ~= res.progress then
-            option.progress = res.progress
-            return true
+        modified = update_field(changes, option, "label", res) or modified
+    elseif res_type == "table" then
+        if option.template and next(res) then
+            modified = update_field(changes, option, "template_data", res) or modified
+        else
+            modified = update_field(changes, option, "label", res.label) or modified
+            modified = update_field(changes, option, "description", res.description) or modified
+            if res.progress and option.progress then
+                modified = update_field(changes, option, "progress", res.progress) or modified
+            end
         end
     end
 
-    return false
+    return modified
 end
 
---- check canInteract passed by user and update option's visibility
----@param option any
----@param optionIndex any
----@param menuOriginalData any
----@param pt any "passThrough"
----@return boolean "modified"
-local function updateOptionVisibility(option, optionIndex, menuOriginalData, pt)
-    if not option.flags.canInteract then return false end
+local function apply_visibility_rule(option, option_index, menu_data, pt, changes)
+    if not (option.flags and option.flags.canInteract) then return false end
 
-    local value = menuOriginalData.interactions['canInteract|' .. optionIndex]
-    local success, res = pcall(value.func, pt.entity, pt.distance, pt.coords, pt.name, pt.bone)
+    local interaction = menu_data.interactions['canInteract|' .. option_index]
+    if not interaction then return false end
 
-    if success and res == nil then res = false end
-    if success and type(res) == "boolean" then
-        if option.flags.hide == not res then return false end
-        option.flags.hide = not res
-        return true
-    else
-        if option.flags.hide == false then return false end
-        option.flags.hide = false
-        return true
-    end
+    local ok, res = pcall(interaction.func, pt.entity, pt.distance, pt.coords, pt.name, pt.bone)
+    if ok and res == nil then res = false end
+
+    local newHide = (ok and type(res) == "boolean") and not res or false
+    return update_field(changes, option.flags, "hide", newHide)
 end
 
-local function check_restrictions(restrictions)
+local function _validate_restrictions(restrictions)
     if not Bridge.active then return true end
 
     local job, job_level = Bridge.getJob()
@@ -1213,33 +1195,22 @@ local function check_restrictions(restrictions)
     return false
 end
 
-local function frameworkOptionVisibilityRestrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, pt)
-    -- #TODO: refactor and add new restrictions
+local function apply_framework_restrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, pt, changes)
     if not Bridge.active then return false end
-    if option.item == nil and option.job == nil and option.gang == nil then
-        return false
-    end
+    if not (option.item or option.job or option.gang) then return false end
 
     local shouldHide = false
     if option.item then
-        local res = Bridge.hasItem(option.item)
-        shouldHide = type(res) == "boolean" and not res
+        local ok = Bridge.hasItem(option.item)
+        shouldHide = type(ok) == "boolean" and not ok or false
     end
 
     if option.job or option.gang then
-        local res = check_restrictions({
-            job = option.job,
-            gang = option.gang
-        })
-        shouldHide = type(res) == "boolean" and not res
+        local allowed = _validate_restrictions({ job = option.job, gang = option.gang })
+        shouldHide = type(allowed) == "boolean" and not allowed or shouldHide
     end
 
-    option.flags.hide = shouldHide
-    if option.flags.hide == shouldHide then
-        return false
-    else
-        return true
-    end
+    return update_field(changes, option.flags, "hide", shouldHide)
 end
 
 --- calculate canInteract and update values and refresh UI
@@ -1265,22 +1236,23 @@ function Container.syncData(scaleform, menuData, refreshUI)
         local flags = menu_data.flags
         if not flags.deleted then
             for option_index, option in ipairs(menu.options) do
+                local changes  = {}
                 local modified = false
                 local _flags   = option.flags
 
-                modified       = modified or evaluateBindValue(option, option_index, menu_data, metadata)
-                modified       = modified or updateOptionVisibility(option, option_index, menu_data, metadata)
-                modified       = modified or frameworkOptionVisibilityRestrictions(updated_elements, menu_id, option, option_index, menu_data, metadata)
+                modified       = apply_bind_result(option, option_index, menu_data, metadata, changes) or modified
+                modified       = apply_visibility_rule(option, option_index, menu_data, metadata, changes) or modified
+                modified       = apply_framework_restrictions(updated_elements, menu_id, option, option_index, menu_data, metadata, changes) or modified
 
-                if modified or _flags.previous_hide ~= _flags.hide then
+                if _flags.previous_hide ~= _flags.hide then
                     _flags.previous_hide = _flags.hide
-                    if option.template then
-                        local copy = table.clone(option)
-                        copy.template = nil
-                        table.insert(updated_elements, { menuId = menu_id, option = copy })
-                    else
-                        table.insert(updated_elements, { menuId = menu_id, option = option })
-                    end
+                    changes.hide = _flags.hide
+                    modified = true
+                end
+
+                if modified then
+                    changes.vid = option.vid
+                    table.insert(updated_elements, { menuId = menu_id, option = changes })
                 end
             end
         elseif not flags.deletion_synced then
