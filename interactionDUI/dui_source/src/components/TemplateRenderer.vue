@@ -3,15 +3,19 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, onMounted, onBeforeUnmount, type Ref } from 'vue';
+import { ref, watch, onMounted, type Ref } from 'vue';
 import DOMPurify from 'dompurify';
 import type { Option } from '../types/types';
+import { useHandlebarsHelpers } from '../composables/useHandlebarsHelpers';
 
 const props = defineProps<{ item: Option }>();
 const host: Ref<HTMLElement | null> = ref(null);
 const shadowRootRef: Ref<ShadowRoot | null> = ref(null);
 const style_el: Ref<HTMLStyleElement | null> = ref(null);
 const content_container: Ref<HTMLDivElement | null> = ref(null);
+
+// initialize helpers once
+const Handlebars = useHandlebarsHelpers();
 
 function sanitize_html(raw: string): string {
     return DOMPurify.sanitize(raw, { FORCE_BODY: true });
@@ -29,6 +33,16 @@ function separate_style_from_html(html: string): { styles: string; content: stri
     return { styles, content: tmp.innerHTML };
 }
 
+function compileTemplate(template: string, data: any): string {
+    try {
+        const compiledTemplate = Handlebars.compile(template);
+        return compiledTemplate(data || {});
+    } catch (error) {
+        console.error('Handlebars compilation error:', error);
+        return '';
+    }
+}
+
 onMounted(() => {
     const hostEl = host.value;
     if (!hostEl) return;
@@ -41,11 +55,7 @@ onMounted(() => {
     style_el.value = styleNode;
 
     const contentNode = document.createElement('div');
-    contentNode.style.width = '100%';
-    contentNode.style.height = '100%';
-    contentNode.style.display = 'flex';
-    contentNode.style.justifyContent = 'center';
-    contentNode.style.alignItems = 'center';
+    contentNode.style.cssText = 'width:100%;height:100%;display:flex;justify-content:center;align-items:center;';
     shadow.appendChild(contentNode);
     content_container.value = contentNode;
 });
@@ -63,16 +73,9 @@ watch(
             return;
         }
 
-        // interpolate {{ key }} tokens
-        let filled = template;
-        if (data) {
-            for (const [key, val] of Object.entries(data)) {
-                const token = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-                filled = filled.replace(token, String(val));
-            }
-        }
+        const out = compileTemplate(template, data);
+        const { styles, content } = separate_style_from_html(out);
 
-        const { styles, content } = separate_style_from_html(filled);
         if (styleNode.textContent !== styles) styleNode.textContent = styles;
         container.innerHTML = sanitize_html(content);
     },
