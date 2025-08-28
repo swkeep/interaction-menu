@@ -10,7 +10,7 @@
 local thisResource           = GetCurrentResourceName()
 local duiUrl                 = ("nui://%s/dui/index.html"):format(thisResource)
 local width                  = 1000
-local height                 = 1400
+local height                 = 1500
 local txdName                = "keep_interaction" -- texture dictionary
 local txnName                = "interaction_txn"  -- texture name
 
