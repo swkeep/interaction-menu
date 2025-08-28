@@ -290,11 +290,11 @@ function Container.create(t)
         tracker = t.tracker or 'raycast',
         schemaType = t.schemaType or 'normal',
         flags = {
-            deleted = false,
             disable = false,
             hide = false,
             suppressGlobals = t.suppressGlobals and true or false,
             static = t.static and true or false,
+            skip_animation = t.skip_animation and true or false,
             alternativeMetadata = t.alternativeMetadata or false
         }
     }
@@ -475,9 +475,9 @@ function Container.createGlobal(t)
             maxDistance = t.maxDistance or 2
         },
         flags = {
-            deleted = false,
             disable = false,
-            hide = false
+            hide = false,
+            skip_animation = t.skip_animation and true or false,
         }
     }
 
@@ -596,10 +596,10 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
 
     for _, menu_id in ipairs(combinedIds) do
         local data = Container.data[menu_id]
-        local deleted = data.flags.deleted
 
-        if data and not deleted then
+        if data and not GC.isMarked(menu_id) then
             local index = #container.menus + 1
+            local flags = data.flags
             container.type = data.type and data.type or container.type
             container.offset = data.metadata and data.metadata.offset or container.offset
             container.indicator = data.indicator and data.indicator or container.indicator
@@ -607,31 +607,31 @@ local function populateMenus(container, combinedIds, id, bones, closestBoneName,
             container.glow = data.glow and data.glow or container.glow
             container.width = data.width and data.width or container.width
             container.maxDistance = data.metadata and data.metadata.maxDistance
-            container.static = data.flags and data.flags.static
+            container.static = flags and flags.static
+            container.skip_animation = flags and flags.skip_animation
             container.zone = data.zone
             container.position = data.position and data.position or container.position
             container.rotation = data.rotation
             container.icon = data.icon
             container.scale = data.scale
 
-            if data.flags.suppressGlobals then
+            if flags.suppressGlobals then
                 container.selected = {}
                 container.menus = {}
                 index = 1
                 row_counter = 1
             end
 
-            for optionIndex, option in ipairs(data.options) do
-                option.id = optionIndex
+            for option_index, option in ipairs(data.options) do
+                row_counter = row_counter + 1
+                option.id = option_index
                 option.vid = row_counter
                 container.selected[row_counter] = false
-
-                row_counter = row_counter + 1
             end
 
             container.menus[index] = {
                 id = menu_id,
-                flags = data.flags,
+                flags = flags,
                 options = data.options,
                 metadata = data.metadata
             }
@@ -652,10 +652,9 @@ local function isPedAPlayer(entityType, entity)
 end
 
 function Container.getMenu(model, entity, menuId, list_of_id)
-    local is_deleted = false
     if menuId then
-        is_deleted = Container.isDeleted(menuId)
-        if is_deleted then return end
+        local menuRef = Container.get(menuId)
+        if not menuRef then return end
     end
 
     local id
@@ -820,16 +819,6 @@ function Container.count()
     return Container.total
 end
 
-function Container.isDeleted(id)
-    local menuRef = Container.get(id)
-    if not menuRef then
-        Util.print_debug('Could not find this menu')
-        return true
-    end
-
-    return menuRef.flags and menuRef.flags.deleted
-end
-
 function Container.triggerInteraction(menuId, optionId, ...)
     if not Container.data[menuId] or not Container.data[menuId].interactions[optionId] then return end
     local func = Container.data[menuId].interactions[optionId].func
@@ -846,12 +835,10 @@ local function collectValidOptions(menuData, sortCon)
     local validOptions = {}
 
     for _, menu in ipairs(menuData.menus) do
-        if not menu.flags.deleted then
-            for _, option in ipairs(menu.options) do
-                if isOptionValid(option) then
-                    option.menu_id = menu.id
-                    validOptions[#validOptions + 1] = option
-                end
+        for _, option in ipairs(menu.options) do
+            if isOptionValid(option) then
+                option.menu_id = menu.id
+                validOptions[#validOptions + 1] = option
             end
         end
     end
@@ -1131,6 +1118,37 @@ local function update_field(changes, option, field, new_value)
     return false
 end
 
+function table.eq(o1, o2, ignore_mt)
+    if o1 == o2 then return true end
+    local o1Type = type(o1)
+    local o2Type = type(o2)
+    if o1Type ~= o2Type then return false end
+    if o1Type ~= 'table' then return false end
+
+    if not ignore_mt then
+        local mt1 = getmetatable(o1)
+        if mt1 and mt1.__eq then
+            --compare using built in method
+            return o1 == o2
+        end
+    end
+
+    local keySet = {}
+
+    for key1, value1 in pairs(o1) do
+        local value2 = o2[key1]
+        if value2 == nil or table.eq(value1, value2, ignore_mt) == false then
+            return false
+        end
+        keySet[key1] = true
+    end
+
+    for key2, _ in pairs(o2) do
+        if not keySet[key2] then return false end
+    end
+    return true
+end
+
 local function apply_bind_result(option, option_index, menu_data, pt, changes)
     if not (option.flags and option.flags.bind) then return false end
 
@@ -1220,49 +1238,48 @@ function Container.syncData(scaleform, menuData, refreshUI)
     local updated_elements = {}
     local metadata = Container.constructMetadata(menuData)
 
-    for _, menu in pairs(menuData.menus) do
+    for menu_index, menu in pairs(menuData.menus) do
         local menu_id   = menu.id
         local menu_data = Container.get(menu_id)
-        if not menu_data then
-            -- What is this?
-            -- If we delete the menu (garbage collection) while a player is using that menu, we have to close it.
-            -- For example, if a player is looking at an entity that has a menu and two globals on it, the menu is still in use.
-            -- However, we've literally garbage collected it XD, so we need to close the menu and get the new container.
 
-            StateManager.reset()
-            return
-        end
+        if menu_data then
+            local flags = menu_data.flags
 
-        local flags = menu_data.flags
-        if not flags.deleted then
-            for option_index, option in ipairs(menu.options) do
-                local changes  = {}
-                local modified = false
-                local _flags   = option.flags
+            if not GC.isMarked(menu_id) then
+                for option_index, option in ipairs(menu.options) do
+                    local changes  = {}
+                    local modified = false
+                    local _flags   = option.flags
 
-                modified       = apply_bind_result(option, option_index, menu_data, metadata, changes) or modified
-                modified       = apply_visibility_rule(option, option_index, menu_data, metadata, changes) or modified
-                modified       = apply_framework_restrictions(updated_elements, menu_id, option, option_index, menu_data, metadata, changes) or modified
+                    modified       = apply_bind_result(option, option_index, menu_data, metadata, changes) or modified
+                    modified       = apply_visibility_rule(option, option_index, menu_data, metadata, changes) or modified
+                    modified       = apply_framework_restrictions(updated_elements, menu_id, option, option_index, menu_data, metadata, changes) or modified
 
-                if _flags.previous_hide ~= _flags.hide then
-                    _flags.previous_hide = _flags.hide
-                    changes.hide = _flags.hide
-                    modified = true
+                    if _flags.previous_hide ~= _flags.hide then
+                        _flags.previous_hide = _flags.hide
+                        changes.flags = _flags
+                        modified = true
+                    end
+
+                    if modified then
+                        changes.vid = option.vid
+                        table.insert(updated_elements, { menuId = menu_id, option = changes })
+                    end
                 end
-
-                if modified then
-                    changes.vid = option.vid
-                    table.insert(updated_elements, { menuId = menu_id, option = changes })
-                end
+            else
+                GC.exec {
+                    menu_index = menu_index,
+                    menus = menuData.menus,
+                    menu_id = menu_id,
+                    menu = menu
+                }
+                -- to trigger an update
+                updated_elements[#updated_elements + 1] = {}
             end
-        elseif not flags.deletion_synced then
-            flags.deletion_synced = true
-            table.insert(updated_elements, { menuId = menu_id, option = {} })
-            Interact:deleteMenu(menu_id)
         end
     end
 
-    if refreshUI or next(updated_elements) then
+    if refreshUI and next(updated_elements) then
         scaleform.send("interactionMenu:menu:batchUpdate", updated_elements)
     end
 
@@ -1288,7 +1305,7 @@ function IsMenuVisible(menu_data)
         local menu_id = menu.id
         local original_menu_data = Container.get(menu_id)
 
-        if original_menu_data and not original_menu_data.flags.deleted then
+        if original_menu_data and not GC.isMarked(menu_id) then
             for _, option in ipairs(menu.options) do
                 if option.flags.hide == false then
                     is_visible = true

@@ -40,7 +40,7 @@ client_script {
      'lua/client/userInputManager.lua',
      'lua/client/interact.lua',
      'lua/client/drawIndicator.lua',
-     'lua/client/garbageCollector.lua',
+     'lua/client/GC.lua',
      'lua/client/example_manager.lua',
      'lua/client/extends/*.lua',
 
