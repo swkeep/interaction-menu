@@ -670,6 +670,8 @@ local function InitAddZone()
                 z.onEnter = function() onPlayerIn(o.name) end
                 z.onExit = function() onPlayerOut(o.name) end
             end
+            z.name = o.name
+
             return z
         end,
         PolyZone = function(o)
