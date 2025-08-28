@@ -1,17 +1,33 @@
-if not Config.features.drawIndicator.active then
-    return
-end
+if not Config.features.drawIndicator.active then return end
 
 -- #region Show sprite while holding alt
 
-local SpatialHashGrid = Util.SpatialHashGrid
-local currentSpriteThreadHash = nil
-local isSpriteThreadRunning = false
-local isTargetSpritesActive = false
-local StateManager = Util.StateManager()
-local grid_position = SpatialHashGrid:new('position', 100)
-local visiblePoints = {}
-local visiblePointCount = 0
+local RED = 255
+local GREEN = 255
+local BLUE = 255
+local ALPHA = 255
+local MIN_SCALE_X = 0.02 / 4
+local MAX_SCALE_X = MIN_SCALE_X * 5
+local MIN_SCALE_Y = 0.035 / 4
+local MAX_SCALE_Y = MIN_SCALE_Y * 5
+local MIN_DISTANCE = 2.0
+local MAX_DISTANCE = 20.0
+local MAX_ENTITIES = 10
+
+local spatial_hash_grid = Util.SpatialHashGrid
+local current_sprite_thread_hash = nil
+local is_sprite_thread_running = false
+local is_target_sprites_active = false
+local state_manager = Util.StateManager()
+local grid_position = spatial_hash_grid:new('position', 100)
+local visible_points = {}
+local visible_point_count = 0
+local current_menu_type
+local nearby_objects = {}
+local nearby_objects_limited = {}
+local current_vehicle_menu
+local closest_vehicle_menus = {}
+local center_of_zones = {}
 
 CreateThread(function()
     local txd = CreateRuntimeTxd('interaction_txd_indicator')
@@ -21,87 +37,59 @@ CreateThread(function()
     end
 end)
 
--- even tho we can set it using the menu's data i use a const white color
--- sprite colors
-local red = 255
-local green = 255
-local blue = 255
-local alpha = 255
+local function _draw_sprite(point, player_position, icon)
+    if not point then return end
+    local distance = #(vec3(point.x, point.y, point.z) - player_position)
+    local clamped_distance = math.max(MIN_DISTANCE, math.min(MAX_DISTANCE, distance))
 
--- minimum and maximum scale factors for x and y
-local minScaleX = 0.02 / 4
-local maxScaleX = minScaleX * 5
-local minScaleY = 0.035 / 4
-local maxScaleY = minScaleY * 5
+    local scale_range_x = MAX_SCALE_X - MIN_SCALE_X
+    local scale_range_y = MAX_SCALE_Y - MIN_SCALE_Y
+    local distance_range = MAX_DISTANCE - MIN_DISTANCE
+    local normalized_distance = (clamped_distance - MIN_DISTANCE) / distance_range
 
--- Distance thresholds
-local minDistance = 2.0
-local maxDistance = 20.0
-local maxEntities = 10
+    local scale_x = MIN_SCALE_X + scale_range_x * (1 - normalized_distance)
+    local scale_y = MIN_SCALE_Y + scale_range_y * (1 - normalized_distance)
 
--- draw the sprite with scaling based on distance
-local function drawSprite(p, player_position, icon)
-    if not p then return end
-    -- Calculate the distance between the player and the point
-    local distance = #(vec3(p.x, p.y, p.z) - player_position)
-    local clampedDistance = math.max(minDistance, math.min(maxDistance, distance))
-
-    -- Pre-calculate the scale factor range
-    local scaleRangeX = maxScaleX - minScaleX
-    local scaleRangeY = maxScaleY - minScaleY
-    local distanceRange = maxDistance - minDistance
-    local normalizedDistance = (clampedDistance - minDistance) / distanceRange
-
-    -- Calculate the scale factors based on the clamped distance
-    local scaleX = minScaleX + scaleRangeX * (1 - normalizedDistance)
-    local scaleY = minScaleY + scaleRangeY * (1 - normalizedDistance)
-
-    -- Set the draw origin to the point's coordinates
-    SetDrawOrigin(p.x, p.y, p.z, 0)
-
-    -- Draw the sprite with the calculated scales
-    DrawSprite('interaction_txd_indicator', icon or 'indicator', 0, 0, scaleX, scaleY, 0, red, green, blue, alpha)
+    SetDrawOrigin(point.x, point.y, point.z, 0)
+    DrawSprite('interaction_txd_indicator', icon or 'indicator', 0, 0, scale_x, scale_y, 0, RED, GREEN, BLUE, ALPHA)
     ClearDrawOrigin()
 end
 
-local nearby_objects = {}
-local nearby_objects_limited = {}
-
-local function getNearbyObjects(isActive, currentMenu, coords)
+local function _get_nearby_objects(is_active, current_menu, coords)
     local objects = GetGamePool('CObject')
-    local entityHandle = StateManager.get('entityHandle')
+    local entity_handle = state_manager.get('entityHandle')
     nearby_objects_limited = {}
 
     for i = 1, #objects do
         local object = objects[i]
-        local objectCoords = GetEntityCoords(object)
-        local distance = #(coords - objectCoords)
+        local object_coords = GetEntityCoords(object)
+        local distance = #(coords - object_coords)
 
-        if distance < maxDistance then
-            local existingData = nearby_objects[object]
+        if distance < MAX_DISTANCE then
+            local existing_data = nearby_objects[object]
             local entity_type = GetEntityType(object)
             local model = GetEntityModel(object)
 
-            local menuType = Container.getMenuType {
+            local menu_type = Container.getMenuType {
                 model = model,
                 entity = object,
                 entityType = entity_type
             }
 
-            if menuType > 1 and entityHandle ~= object then
-                if not existingData then
+            if menu_type > 1 and entity_handle ~= object then
+                if not existing_data then
                     local menu = Container.getMenu(model, object, nil)
                     nearby_objects[object] = {
                         object = object,
-                        coords = objectCoords,
+                        coords = object_coords,
                         type = entity_type,
                         icon = menu and menu.icon,
                         distance = distance,
                         menu = menu
                     }
                 else
-                    existingData.coords = objectCoords
-                    existingData.distance = distance
+                    existing_data.coords = object_coords
+                    existing_data.distance = distance
                 end
             end
         else
@@ -110,7 +98,7 @@ local function getNearbyObjects(isActive, currentMenu, coords)
     end
 
     for object, data in pairs(nearby_objects) do
-        if isActive == false or data and entityHandle ~= data.object then
+        if is_active == false or (data and entity_handle ~= data.object) then
             nearby_objects_limited[#nearby_objects_limited + 1] = data
         end
     end
@@ -120,69 +108,57 @@ local function getNearbyObjects(isActive, currentMenu, coords)
     end)
 end
 
-function UpdateNearbyObjects()
-    local playerPosition = StateManager.get('playerPosition')
-    local currentMenu = StateManager.get('id')
-    local isActive = StateManager.get('active')
-    getNearbyObjects(isActive, currentMenu, playerPosition)
-end
-
-function CleanNearbyObjects()
-    nearby_objects = {}
-    nearby_objects_limited = {}
-end
-
-local function GetClosestVehicle()
+local function _get_closest_vehicle()
     local ped = PlayerPedId()
     local vehicles = GetGamePool('CVehicle')
-    local closestDistance = -1
-    local closestVehicle = -1
+    local closest_distance = -1
+    local closest_vehicle = -1
     local coords = GetEntityCoords(ped)
 
     for i = 1, #vehicles, 1 do
-        local vehicleCoords = GetEntityCoords(vehicles[i])
-        local distance = #(vehicleCoords - coords)
+        local vehicle_coords = GetEntityCoords(vehicles[i])
+        local distance = #(vehicle_coords - coords)
 
-        if closestDistance == -1 or closestDistance > distance then
-            closestVehicle = vehicles[i]
-            closestDistance = distance
+        if closest_distance == -1 or closest_distance > distance then
+            closest_vehicle = vehicles[i]
+            closest_distance = distance
         end
     end
 
-    return closestVehicle, closestDistance
+    return closest_vehicle, closest_distance
 end
 
-local function GetVehicleBoneMenus()
-    local closestVehicle = GetClosestVehicle()
-    local boneList = Container.indexes.bones[closestVehicle] or Container.indexes.globals.bones
-    local closestVehicleMenus = {}
+local function _get_vehicle_bone_menus()
+    local closest_vehicle = _get_closest_vehicle()
+    local bone_list = Container.indexes.bones[closest_vehicle] or Container.indexes.globals.bones
+    local closest_vehicle_menus = {}
 
-    if boneList then
-        local closestDistance = 10000
-        local isHoodOpen = GetVehicleDoorAngleRatio(closestVehicle, 4) > 0.9
-        local isHoodDamaged = IsVehicleDoorDamaged(closestVehicle, 4)
-        local coords = GetEntityCoords(closestVehicle)
+    if bone_list then
+        local closest_distance = 10000
+        local is_hood_open = GetVehicleDoorAngleRatio(closest_vehicle, 4) > 0.9
+        local is_hood_damaged = IsVehicleDoorDamaged(closest_vehicle, 4)
+        local coords = GetEntityCoords(closest_vehicle)
 
-        for boneName, bone_menus in pairs(boneList) do
-            local boneId = GetEntityBoneIndexByName(closestVehicle, boneName)
-            if boneId ~= -1 then
-                if boneName == "engine" and (isHoodDamaged == false and not isHoodOpen) then
+        for bone_name, bone_menus in pairs(bone_list) do
+            local bone_id = GetEntityBoneIndexByName(closest_vehicle, bone_name)
+            if bone_id ~= -1 then
+                if bone_name == "engine" and (is_hood_damaged == false and not is_hood_open) then
                     goto continue
                 end
 
-                if boneName == "bonnet" and isHoodDamaged then
+                if bone_name == "bonnet" and is_hood_damaged then
                     goto continue
                 end
 
                 local menu = Container.get(bone_menus[1])
-                local bonePosition = GetEntityBonePosition_2(closestVehicle, boneId)
-                local distance = #(coords - bonePosition)
+                local bone_position = GetEntityBonePosition_2(closest_vehicle, bone_id)
+                local distance = #(coords - bone_position)
 
-                if distance <= closestDistance then
-                    closestVehicleMenus[boneName] = {
+                if distance <= closest_distance then
+                    closest_vehicle_menus[bone_name] = {
                         distance = distance,
-                        boneId = boneId,
-                        position = bonePosition,
+                        bone_id = bone_id,
+                        position = bone_position,
                         icon = menu and menu.icon
                     }
                 end
@@ -191,100 +167,132 @@ local function GetVehicleBoneMenus()
         end
     end
 
-    return closestVehicleMenus, closestVehicle
+    return closest_vehicle_menus, closest_vehicle
 end
 
-local currentVehicleMenu
-local closestVehicleMenus = {}
-
-AddEventHandler("interactionMenu:client:set_vehicle", function(veh)
-    if veh == nil then
-        currentVehicleMenu = nil
-        closestVehicleMenus = {}
-    else
-        currentVehicleMenu = veh
-        closestVehicleMenus = GetVehicleBoneMenus()
-    end
-end)
-
-local function StartSpriteThread()
-    if isSpriteThreadRunning then return end
-    isSpriteThreadRunning = true
+local function _start_sprite_thread()
+    if is_sprite_thread_running then return end
+    is_sprite_thread_running = true
     local player = PlayerPedId()
-    local playerPosition = StateManager.get('playerPosition')
-    local currentMenu = StateManager.get('id')
-    local isActive = StateManager.get('active')
-    local closestVehicle
-    -- This is kinda overkill, but in my testing, sometimes one of these threads would stay alive,
-    -- causing flickering and performance drops.
-    local threadHash = math.random(1000000)
-    currentSpriteThreadHash = threadHash
+    local player_position = state_manager.get('playerPosition')
+    local current_menu = state_manager.get('id')
+    local is_active = state_manager.get('active')
+    local closest_vehicle
+    local thread_hash = math.random(1000000)
+    current_sprite_thread_hash = thread_hash
 
-    closestVehicleMenus = GetVehicleBoneMenus()
+    closest_vehicle_menus = _get_vehicle_bone_menus()
 
     CreateThread(function()
-        while isSpriteThreadRunning and currentSpriteThreadHash == threadHash do
-            isActive = StateManager.get('active')
-            currentMenu = StateManager.get('id')
-            getNearbyObjects(isActive, currentMenu, playerPosition)
-            local nearPoints, totalNearPoints = grid_position:queryRange(playerPosition, 20)
-            visiblePoints, visiblePointCount = Util.filterVisiblePointsWithinRange(playerPosition, nearPoints)
-            closestVehicle = GetClosestVehicle()
-            closestVehicleMenus = GetVehicleBoneMenus()
-            Wait(1000)
+        while is_sprite_thread_running and current_sprite_thread_hash == thread_hash do
+            is_active = state_manager.get('active')
+            current_menu = state_manager.get('id')
+            current_menu_type = state_manager.get('menuType')
+            _get_nearby_objects(is_active, current_menu, player_position)
+            local near_points, total_near_points = grid_position:queryRange(player_position, 20)
+            visible_points, visible_point_count = Util.filterVisiblePointsWithinRange(player_position, near_points)
+            closest_vehicle = _get_closest_vehicle()
+            closest_vehicle_menus = _get_vehicle_bone_menus()
+
+            if not (is_active and current_menu_type == 4) then
+                for key, value in pairs(Container.zones) do
+                    local pos = value.center or value.coords
+                    if type(pos) == "vector3" then
+                        center_of_zones[key] = {
+                            coords = pos,
+                            icon = value.icon
+                        }
+                    else
+                        center_of_zones[key] = {
+                            coords = vec3(pos.x, pos.y, (value.minZ + value.maxZ) / 2),
+                            icon = value.icon
+                        }
+                    end
+                end
+            else
+                center_of_zones = {}
+            end
+
+            Wait(500)
         end
     end)
 
     CreateThread(function()
-        while isTargetSpritesActive and currentSpriteThreadHash == threadHash do
-            playerPosition = GetEntityCoords(player)
+        while is_target_sprites_active and current_sprite_thread_hash == thread_hash do
+            player_position = GetEntityCoords(player)
 
-            if visiblePointCount > 0 then
-                for i = 2, #visiblePoints, 1 do
-                    if visiblePoints[i].id ~= currentMenu then
-                        drawSprite(visiblePoints[i].point, playerPosition, visiblePoints[i].icon)
+            if visible_point_count > 0 then
+                for i = 2, #visible_points, 1 do
+                    if visible_points[i].id ~= current_menu then
+                        _draw_sprite(visible_points[i].point, player_position, visible_points[i].icon)
                     end
                 end
 
-                if visiblePoints[1].point.ids then
-                    if not isActive then
-                        drawSprite(visiblePoints[1].point, playerPosition, visiblePoints[1].icon)
+                if visible_points[1].point.ids then
+                    if not is_active then
+                        _draw_sprite(visible_points[1].point, player_position, visible_points[1].icon)
                     end
                 else
-                    if visiblePoints[1].id ~= currentMenu and not isActive then
-                        drawSprite(visiblePoints[1].point, playerPosition, visiblePoints[1].icon)
+                    if visible_points[1].id ~= current_menu and not is_active then
+                        _draw_sprite(visible_points[1].point, player_position, visible_points[1].icon)
                     end
                 end
             end
 
             for index, value in pairs(nearby_objects_limited) do
-                if index > maxEntities then break end
-                drawSprite(value.coords, playerPosition, value.icon)
+                if index > MAX_ENTITIES then break end
+                _draw_sprite(value.coords, player_position, value.icon)
             end
 
-            if closestVehicle ~= currentVehicleMenu then
-                for key, value in pairs(closestVehicleMenus) do
-                    drawSprite(value.position, playerPosition, value.icon)
+            for index, value in pairs(center_of_zones) do
+                _draw_sprite(value.coords, player_position, value.icon)
+            end
+
+            if closest_vehicle ~= current_vehicle_menu then
+                for key, value in pairs(closest_vehicle_menus) do
+                    _draw_sprite(value.position, player_position, value.icon)
                 end
             end
 
             Wait(0)
         end
-        isSpriteThreadRunning = false
+        is_sprite_thread_running = false
     end)
 end
 
-RegisterCommand('+toggleTargetSprites', function()
-    isTargetSpritesActive = true
-    StartSpriteThread()
+function UpdateNearbyObjects()
+    local player_position = state_manager.get('playerPosition')
+    local current_menu = state_manager.get('id')
+    local is_active = state_manager.get('active')
+    _get_nearby_objects(is_active, current_menu, player_position)
+end
+
+function CleanNearbyObjects()
+    nearby_objects = {}
+    nearby_objects_limited = {}
+end
+
+AddEventHandler("interactionMenu:client:set_vehicle", function(veh)
+    if veh == nil then
+        current_vehicle_menu = nil
+        closest_vehicle_menus = {}
+    else
+        current_vehicle_menu = veh
+        closest_vehicle_menus = _get_vehicle_bone_menus()
+    end
+end)
+
+RegisterCommand('+toggle_target_sprites', function()
+    is_target_sprites_active = true
+    _start_sprite_thread()
 end, false)
 
-RegisterCommand('-toggleTargetSprites', function()
-    isTargetSpritesActive = false
-    isSpriteThreadRunning = false
+RegisterCommand('-toggle_target_sprites', function()
+    is_target_sprites_active = false
+    is_sprite_thread_running = false
 end, false)
 
-RegisterKeyMapping('+toggleTargetSprites', 'Toggle Target Sprites', 'keyboard', 'LMENU')
-RegisterKeyMapping('~!+toggleTargetSprites', 'Toggle Target Sprites - Alternate Key', 'keyboard', 'RMENU')
+RegisterKeyMapping('+toggle_target_sprites', 'Toggle Target Sprites', 'keyboard', 'LMENU')
+RegisterKeyMapping('~!+toggle_target_sprites', 'Toggle Target Sprites - Alternate Key', 'keyboard', 'RMENU')
 
 -- #endregion

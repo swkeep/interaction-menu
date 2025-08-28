@@ -45,6 +45,10 @@ function Interact.pause(value)
     pause = value and true or false
 end
 
+function Interact.getScaleForm()
+    return scaleform
+end
+
 exports('pause', Interact.pause)
 
 -- init
@@ -236,6 +240,14 @@ local function waitForScaleform()
     return scaleform_initialized
 end
 
+local function _is_point_inside_of_zone(zone, position)
+    if zone.isPointInside then
+        return zone:isPointInside(position)
+    elseif zone.contains then
+        return zone:contains(position)
+    end
+end
+
 CreateThread(function()
     if not waitForScaleform() then return end
     -- We could bump it up to 1000 for better performance, but it looks better with 500/600 ms
@@ -273,7 +285,8 @@ CreateThread(function()
                     local found_a_zone = false
                     if hitPosition and not StateManager.get("disableZoneRayCast") then
                         for key, value in pairs(Container.zones) do
-                            if value.tracker == "hit" and value:isPointInside(hitPosition) then
+                            if value.tracker == "hit" and _is_point_inside_of_zone(value, hitPosition) then
+                                print(value.name)
                                 closestZoneId = value.name
                                 found_a_zone = true
                                 break
@@ -328,6 +341,7 @@ CreateThread(function()
             StateManager.reset()
         end
 
+        GC.collectAll()
         Wait(interval)
     end
 end)
@@ -353,9 +367,10 @@ end)
 -- #endregion
 
 -- #region Render Threads
-local activeMenuRef
+
 local function refresh()
-    Container.syncData(scaleform, activeMenuRef, true)
+    if not Container.current then return end
+    Container.syncData(scaleform, Container.current, true)
 end
 
 exports("Refresh", refresh)
@@ -380,7 +395,7 @@ function Render.generic(data, metadata, callbacks)
     triggers.onSeen(data, metadata)
 
     local running = true
-    activeMenuRef = data
+    Container.current = data
 
     CreateThread(function()
         while running do
@@ -416,13 +431,13 @@ function Render.generic(data, metadata, callbacks)
     end
 
     running = false
-    activeMenuRef = nil
     setClose()
     triggers.onExit(data, metadata)
 
     --onExit callback
     if callbacks.onExit then callbacks.onExit(data, metadata) end
     StateManager.set('active', false)
+    Container.current = nil
 end
 
 function Render.onEntity(model, entity)
@@ -527,7 +542,7 @@ function Render.onZone(currentMenuId)
     if data.tracker == "hit" then
         validateSlow = function()
             local hitPosition, entity, playerDistance = Util.rayCast(10, PlayerPedId())
-            return Container.zones[currentMenuId]:isPointInside(hitPosition)
+            return _is_point_inside_of_zone(Container.zones[currentMenuId], hitPosition)
         end
     end
 
