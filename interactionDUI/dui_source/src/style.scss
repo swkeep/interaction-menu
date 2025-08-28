@@ -371,7 +371,7 @@ body {
 
 .list-enter-active,
 .list-leave-active {
-    transition: 0.2s transform ease, 0.15s height ease;
+    transition: 0.2s transform ease, 0.15s height ease, 0.2s opacity ease;
     height: 65px;
     transform: translateX(0px);
 }
@@ -381,4 +381,15 @@ body {
     opacity: 0;
     height: 0px;
     transform: translateX(-30px);
+}
+
+.list-delete-enter-active,
+.list-delete-leave-active {
+    transition: 0.2s height ease;
+    height: 65px;
+}
+
+.list-delete-enter-from,
+.list-delete-leave-to {
+    height: 0px;
 }

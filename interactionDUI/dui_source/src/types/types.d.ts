@@ -92,6 +92,7 @@ interface OptionFlags {
     dynamic?: boolean;
     hide: boolean;
     deleted?: boolean;
+    skip_animation?: boolean;
     canInteract: boolean;
     subMenu: boolean;
 }

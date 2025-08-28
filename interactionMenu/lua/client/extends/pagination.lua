@@ -101,6 +101,7 @@ function PaginationBuilder:create(t)
     self:addFooter()
 
     t.options = self.options
+    t.skip_animation = true
     self.menu_id = __export:Create(t)
 
     return self.menu_id

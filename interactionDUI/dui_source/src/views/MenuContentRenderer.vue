@@ -7,32 +7,33 @@
             :style="{ width: interaction_menu.width || 'fit-content', maxHeight: '1400px' }"
             v-if="focusTracker.menu"
         >
-            <div
-                class="menu"
-                v-for="menu in Array.from(interaction_menu.menus.values())"
-                :key="menu.id"
-                :data-menuId="menu.id"
-                :data-hide="menu.flags.hide"
-                :data-deleted="menu.flags.deleted"
-                :data-invoking-resource="menu?.metadata?.invokingResource"
-                :class="{
-                    'menu--hidden': menu.flags.hide || menu.flags?.deleted,
-                }"
-            >
-                <template v-if="!menu.flags.hide && !menu.flags?.deleted">
-                    <TransitionGroup name="list">
-                        <template v-for="item in Array.from(menu.options.values())" :key="item.vid">
-                            <div v-if="!item.flags?.hide" class="menu__option" :data-vid="item.vid">
-                                <Component
-                                    :is="getFieldComponent(item)"
-                                    :item="item"
-                                    :selected="interaction_menu.selected"
-                                />
-                            </div>
-                        </template>
-                    </TransitionGroup>
-                </template>
-            </div>
+            <TransitionGroup name="list-delete">
+                <div
+                    class="menu"
+                    v-for="menu in Array.from(interaction_menu.menus.values())"
+                    :key="menu.id"
+                    :data-menu-id="menu.id"
+                    :data-hide="menu.flags.hide"
+                    :data-invoking-resource="menu?.metadata?.invokingResource"
+                    :class="{
+                        'menu--hidden': menu.flags.hide,
+                    }"
+                >
+                    <template v-if="!menu.flags.hide">
+                        <TransitionGroup :name="menu.flags.skip_animation ? '' : 'list'">
+                            <template v-for="item in Array.from(menu.options.values())" :key="item.vid">
+                                <div v-if="!item.flags?.hide" class="menu__option" :data-vid="item.vid">
+                                    <Component
+                                        :is="getFieldComponent(item)"
+                                        :item="item"
+                                        :selected="interaction_menu.selected"
+                                    />
+                                </div>
+                            </template>
+                        </TransitionGroup>
+                    </template>
+                </div>
+            </TransitionGroup>
         </div>
     </Transition>
 </template>

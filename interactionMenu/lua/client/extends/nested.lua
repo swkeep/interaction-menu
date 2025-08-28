@@ -102,6 +102,7 @@ function NestedMenuBuilder:create(t)
     self:generateOptions(self.user_options, self.options, nil)
 
     t.options = self.options
+    t.skip_animation = true
     self.menu_id = __export:Create(t)
 
     return self.menu_id
