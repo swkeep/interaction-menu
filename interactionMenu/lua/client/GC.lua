@@ -92,7 +92,9 @@ collectors.zone = function(menuId, menu_instance)
         if type(zone.destroy) == 'function' then
             pcall(zone.destroy, zone)
         end
-        TriggerEvent("interactionMenu:zoneTracker")
+        if Container.current.id == menuId then
+            TriggerEvent("interactionMenu:zoneTracker")
+        end
     end
     return _safe_remove(menuId)
 end
