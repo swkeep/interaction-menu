@@ -136,6 +136,7 @@ export interface InteractionMenu {
     selected: (string | number)[];
     theme: string;
     glow: boolean;
+    rendered: boolean;
     width: string;
 }
 

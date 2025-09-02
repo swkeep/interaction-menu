@@ -7,7 +7,7 @@
             :style="{ width: interaction_menu.width || 'fit-content', maxHeight: '1400px' }"
             v-if="focusTracker.menu"
         >
-            <TransitionGroup name="list-delete">
+            <TransitionGroup :name="enable_animations ? 'list-delete' : ''">
                 <div
                     class="menu"
                     v-for="menu in Array.from(interaction_menu.menus.values())"
@@ -20,7 +20,7 @@
                     }"
                 >
                     <template v-if="!menu.flags.hide">
-                        <TransitionGroup :name="menu.flags.skip_animation ? '' : 'list'">
+                        <TransitionGroup :name="menu.flags.skip_animation || !enable_animations ? '' : 'list'">
                             <template v-for="item in Array.from(menu.options.values())" :key="item.vid">
                                 <div v-if="!item.flags?.hide" class="menu__option" :data-vid="item.vid">
                                     <Component
@@ -40,7 +40,7 @@
 
 <script lang="ts" setup>
 import { subscribe } from '../util';
-import { computed, defineAsyncComponent, ref, provide } from 'vue';
+import { computed, defineAsyncComponent, ref, provide, nextTick } from 'vue';
 import { FocusTracker, FocusTrackerT, InteractionMenu, Option } from '../types/types';
 
 const menuComponents = {
@@ -74,6 +74,7 @@ const default_menu_state = (): InteractionMenu => ({
     selected: [],
     theme: 'default',
     glow: false,
+    rendered: false,
     width: 'fit-content',
 });
 
@@ -94,7 +95,7 @@ const hide_menu = () => {
     reset_state();
 };
 
-const show_menu = (data: InteractionMenu) => {
+const show_menu = async (data: InteractionMenu) => {
     if (!data || !data.menus) return;
     reset_state();
 
@@ -113,7 +114,12 @@ const show_menu = (data: InteractionMenu) => {
     );
 
     emit_visibility(true);
+
+    await nextTick();
+    interaction_menu.value.rendered = true;
 };
+
+const enable_animations = computed(() => interaction_menu.value.rendered);
 
 const update_selected = (data: any) => {
     interaction_menu.value.selected = data;
