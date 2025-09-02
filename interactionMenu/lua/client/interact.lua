@@ -31,7 +31,6 @@ local closestEntity -- entity detector
 local closestZoneId
 local grid_position = SpatialHashGrid:new('position', 100)
 local visiblePoints = {}
-ActiveManualMenu = nil
 -- Render
 local StateManager = Util.StateManager()
 
@@ -209,8 +208,7 @@ local function handlePositionBasedInteraction()
         StateManager.set('menuType', MenuTypes['ON_POSITION'])
         StateManager.set('playerDistance', visiblePoints[1].distance)
     else
-        StateManager.set('id', nil)
-        StateManager.set('menuType', nil)
+        StateManager.reset()
     end
 end
 
@@ -329,6 +327,8 @@ CreateThread(function()
                     handlePositionBasedInteraction()
                 elseif menuType == MenuTypes['ON_ZONE'] then
                     handleZoneBasedInteraction(closestZoneId)
+                elseif menuType == MenuTypes['MANUAL'] then
+                    -- do something
                 elseif menuType == MenuTypes['DISABLED'] then
                     StateManager.reset()
                 end
@@ -583,17 +583,10 @@ function Render.manual(id, model, entity)
     data.entity = entity
 
     local metadata = Container.constructMetadata(data)
-    local isVehicle = GetEntityType(entity) == 2
     local validateSlow
-    if isVehicle then
-        validateSlow = function()
-            local currentClosestBone = Container.boneCheck(entity)
-            return closestVehicleBone == currentClosestBone and canInteract(data, nil)
-        end
-    else
-        validateSlow = function()
-            return canInteract(data, nil)
-        end
+
+    validateSlow = function()
+        return canInteract(data, nil)
     end
 
     Render.generic(data, metadata, {
@@ -613,7 +606,7 @@ function Render.manual(id, model, entity)
             return canInteract(data, nil)
         end,
         validate = function()
-            return ActiveManualMenu == id
+            return StateManager.get('id') == id
         end,
         validateSlow = validateSlow,
         onExit = function()

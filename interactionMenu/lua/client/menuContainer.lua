@@ -25,7 +25,6 @@ local SpatialHashGrid = Util.SpatialHashGrid
 local grid = SpatialHashGrid:new('position', 100)
 local zone_grid = SpatialHashGrid:new('zone', 100)
 local StateManager = Util.StateManager()
-local previous_daytime = false
 
 -- enum: used in difference between OBJECTs, PEDs, VEHICLEs
 local set = { "peds", "vehicles", "objects" }
@@ -56,7 +55,7 @@ Container = {
             zones = {}
         }
     },
-    runningInteractions = {}
+    runningInteractions = {},
 }
 
 local function canCreateZone()
@@ -188,7 +187,6 @@ end
 local function buildOption(data, instance)
     for i, option in ipairs(data.options or {}) do
         local formatted = {
-            -- visual information
             label = option.label,
             description = option.description,
             badge = option.badge,
@@ -308,21 +306,19 @@ function Container.create(t)
             model = t.model or GetEntityModel(t.entity)
         }
         instance.rotation = t.rotation
+        instance.scale = t.scale
         instance.manual_events = {
             [1] = AddEventHandler(t.triggers.open, function()
+                Container.current_manual_menu = id
                 StateManager.set('id', id)
                 StateManager.set('menuType', MenuTypes['MANUAL'])
                 StateManager.set('entityModel', GetEntityModel(t.entity))
                 StateManager.set('entityHandle', t.entity)
                 StateManager.set('playerDistance', 1.0)
-                ActiveManualMenu = id
             end),
             [2] = AddEventHandler(t.triggers.close, function()
-                StateManager.set('id', nil)
-                StateManager.set('entityModel', nil)
-                StateManager.set('entityHandle', nil)
-                StateManager.set('playerDistance', 1.0)
-                ActiveManualMenu = nil
+                Container.current_manual_menu = nil
+                StateManager.reset()
             end)
         }
     elseif t.position and not t.zone then
@@ -759,6 +755,11 @@ function Container.getMenuType(t)
     local playerId = IdentifyPlayerServerId(entityType, entity)
     local isNetworked = NetworkGetEntityIsNetworked(entity)
     local netId = isNetworked and NetworkGetNetworkIdFromEntity(entity) or nil
+
+    -- MANUAL
+    if Container.current_manual_menu then
+        return MenuTypes['MANUAL']
+    end
 
     -- ON_ZONE
     if t.zone then
@@ -1292,8 +1293,8 @@ function Container.syncData(scaleform, menuData, refreshUI)
 
     if Config.features.timeBasedTheme then
         local now = is_daytime()
-        if now ~= previous_daytime then
-            previous_daytime = now
+        if now ~= StateManager.get("daytime") then
+            StateManager.set("daytime", now)
             Interact:setDarkMode(now)
         end
     end
