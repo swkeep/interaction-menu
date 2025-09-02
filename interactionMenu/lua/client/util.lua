@@ -441,6 +441,9 @@ end
 
 function StateManager.reset()
     StateManager.id = nil
+    StateManager.menuType = nil
+    StateManager.entityHandle = nil
+    StateManager.entityModel = nil
 end
 
 function StateManager.get(t)
