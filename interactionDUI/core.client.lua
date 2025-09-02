@@ -77,17 +77,19 @@ local function cache3dScale(scale)
     cachedSz = scalez * (scale or 1)
 end
 
-local function get_rotation_from_entity(entity)
+local function get_rotation_from_entity(entity, offset)
     if not DoesEntityExist(entity) then return vector3(0, 0, 0) end
+    offset = offset or vector3(0, 0, 0)
 
     local forwardVector = GetEntityForwardVector(entity)
     local pitch = -math.deg(math.asin(forwardVector.z))
     local yaw = math.deg(math.atan2(forwardVector.x, forwardVector.y))
+    local roll = GetEntityRoll(entity)
 
     local finalRotation = vector3(
-        pitch + DUI.scaleform.rotation.x,
-        DUI.scaleform.rotation.y,
-        yaw + DUI.scaleform.rotation.z
+        pitch + offset.x, -- x (pitch) with offset
+        roll + offset.y,  -- y (roll) with offset
+        yaw + offset.z    -- z (yaw) with offset
     )
 
     return finalRotation
@@ -95,7 +97,7 @@ end
 
 local function render_3d(scaleform)
     if DUI.scaleform.lockToForward then
-        local rotation = get_rotation_from_entity(scaleform.attached.entity)
+        local rotation = get_rotation_from_entity(scaleform.attached.entity, scaleform.rotation)
         DrawScaleformMovie_3dSolid(scaleform.sfHandle, scaleform.position.x, scaleform.position.y,
             scaleform.position.z + 1, rotation.x, rotation.y, rotation.z, 2.0, 2.0, 1.0,
             cachedSx, cachedSy, cachedSz, 2)
@@ -427,54 +429,51 @@ AddEventHandler('onResourceStop', function(resource)
     if resource ~= thisResource then return end
 
     DUI.Destroy()
+    TriggerEvent('chat:removeSuggestion', '/interaction_menu')
 end)
 
 -- Commands
-RegisterCommand("interaction_menu", function(source, args)
-    TriggerEvent('chat:addSuggestion', '/interaction_menu', 'Adjust interaction menu settings', {
-        { name = "action", help = "Available actions: 'scale'" },
-        { name = "value",  help = "For scale: 0.5-2.0" }
-    })
-
-    if #args == 0 then
-        TriggerEvent('chat:addMessage', {
-            color = { 255, 255, 255 },
-            multiline = true,
-            args = { "Interaction Menu", "Usage:\n/interaction_menu scale [0.5-2.0] - Adjust UI scale" }
-        })
-        return
-    end
-
-    local subCommand = args[1]:lower()
-
-    if subCommand == "scale" then
-        local newScale = tonumber(args[2])
-
-        if not newScale or newScale < 0.5 or newScale > 2.0 then
+CreateThread(function()
+    RegisterCommand("interaction_menu", function(source, args)
+        if #args == 0 then
             TriggerEvent('chat:addMessage', {
-                color = { 255, 0, 0 },
-                args = { "Interaction Menu", "Invalid scale! Must be between 0.5 and 2.0" }
+                color = { 255, 255, 255 },
+                multiline = true,
+                args = { "Interaction Menu", "Usage:\n/interaction_menu scale [0.5-2.0] - Adjust UI scale" }
             })
             return
         end
 
-        uiScale = newScale
-        SetResourceKvpFloat("ui_scale", uiScale)
-        TriggerEvent('chat:addMessage', {
-            color = { 0, 255, 0 },
-            args = { "Interaction Menu", string.format("UI scale set to %.2f", uiScale) }
-        })
-        TriggerEvent("InteractionDUI:client:update:ui_scale", uiScale)
-    else
-        TriggerEvent('chat:addMessage', {
-            color = { 255, 0, 0 },
-            args = { "Interaction Menu", "Unknown command. Use '/interaction_menu scale [0.5-2.0]'" }
-        })
-    end
-end, false)
+        local subCommand = args[1]:lower()
 
-AddEventHandler('onResourceStop', function(resource)
-    if resource == GetCurrentResourceName() then
-        TriggerEvent('chat:removeSuggestion', '/interaction_menu')
-    end
+        if subCommand == "scale" then
+            local newScale = tonumber(args[2])
+
+            if not newScale or newScale < 0.5 or newScale > 2.0 then
+                TriggerEvent('chat:addMessage', {
+                    color = { 255, 0, 0 },
+                    args = { "Interaction Menu", "Invalid scale! Must be between 0.5 and 2.0" }
+                })
+                return
+            end
+
+            uiScale = newScale
+            SetResourceKvpFloat("ui_scale", uiScale)
+            TriggerEvent('chat:addMessage', {
+                color = { 0, 255, 0 },
+                args = { "Interaction Menu", string.format("UI scale set to %.2f", uiScale) }
+            })
+            TriggerEvent("InteractionDUI:client:update:ui_scale", uiScale)
+        else
+            TriggerEvent('chat:addMessage', {
+                color = { 255, 0, 0 },
+                args = { "Interaction Menu", "Unknown command. Use '/interaction_menu scale [0.5-2.0]'" }
+            })
+        end
+    end, false)
+
+    TriggerEvent('chat:addSuggestion', '/interaction_menu', 'Adjust interaction menu settings', {
+        { name = "action", help = "Available actions: 'scale'" },
+        { name = "value",  help = "For scale: 0.5-2.0" }
+    })
 end)
