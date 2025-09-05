@@ -142,8 +142,7 @@ function GC._collect(id)
     do
         local active = StateManager.get('active')
         if active then
-            local scaleform = Interact.getScaleForm()
-            scaleform.send("interactionMenu:menu:delete", Util.ensureTable(id))
+            Interact:deleteMenu(id)
         end
     end
 
@@ -190,9 +189,8 @@ function GC._remove_from_active_menus(id)
     local idx = find_menu_by_id(current.menus, id)
     if not idx then return false end
 
-    local scaleform = Interact.getScaleForm()
-    scaleform.send("interactionMenu:menu:delete", Util.ensureTable(id))
-    Container.syncData(scaleform, current, true)
+    Interact:deleteMenu(id)
+    Container.refresh()
     return true
 end
 
@@ -229,8 +227,7 @@ function GC.exec(arg)
 
     -- update UI only if visible
     if StateManager.get('active') then
-        local scaleform = Interact.getScaleForm()
-        scaleform.send("interactionMenu:menu:delete", Util.ensureTable(id))
+        Interact:deleteMenu(id)
     end
 
     local ok = GC._collect(id)
