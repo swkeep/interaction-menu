@@ -13,12 +13,8 @@ DEVMODE = Config.devMode or false
 local glm = require 'glm'
 local GetScreenCoordFromWorldCoord = GetScreenCoordFromWorldCoord
 local GetEntityBoneIndexByName = GetEntityBoneIndexByName
-local GetWorldPositionOfEntityBone = GetWorldPositionOfEntityBone
 local table_remove = table.remove
 local math_floor = math.floor
-local math_cos = math.cos
-local math_rad = math.rad
-local math_sin = math.sin
 local string_char = string.char
 local math_random = math.random
 
@@ -29,7 +25,6 @@ local getCamRot = GetFinalRenderedCamRot
 local toRadians = glm.rad
 local createQuaternion = glm.quatEulerAngleZYX
 local rayPicking = glm.rayPicking
-local HasEntityClearLosToEntity = HasEntityClearLosToEntity
 local GetShapeTestResult = GetShapeTestResult
 local StartShapeTestLosProbe = StartShapeTestLosProbe
 local GetFinalRenderedCamFov = GetFinalRenderedCamFov
@@ -92,16 +87,6 @@ function Util.getClosestVehicleBone(coords, vehicle, boneList)
     end
 
     return closestBoneId, closestBoneName, closestDistance, closestBonePosition
-end
-
-function Util.getRotatedOffset(rotation, offset)
-    rotation = math_rad(rotation)
-    local sin_r = math_sin(rotation)
-    local cos_r = math_cos(rotation)
-
-    local x = offset.x * cos_r - offset.y * sin_r
-    local y = offset.x * sin_r + offset.y * cos_r
-    return x, y, offset.z
 end
 
 function Util.isPointWithinScreen(screenX, screenY)
@@ -174,10 +159,6 @@ local function screenPositionToCameraRay(fieldOfView, aspectRatio)
     local camUp = quaternion * upVector
 
     return camPos, rayPicking(camForward, camUp, fieldOfView, aspectRatio, nearClip, farClip, 0, 0)
-end
-
-function DotProduct3D(x1, y1, z1, x2, y2, z2)
-    return x1 * x2 + y1 * y2 + z1 * z2
 end
 
 function Util.rayCast(maxDist, playerPed)
@@ -382,37 +363,6 @@ end
 
 Util.SpatialHashGrid = SpatialHashGrid
 
--- #region PersistentData
-
--- Helpers
-
--- class: PersistentData
--- managing persistent data storage of menus
-local PersistentData = { data = {} }
-
-function PersistentData.set(id, data)
-    PersistentData.data[id] = data
-    return PersistentData.data[id]
-end
-
-function PersistentData.clear(id)
-    PersistentData.data[id] = nil
-end
-
-function PersistentData.hasBeenSet(id)
-    return PersistentData.data[id] and true or false
-end
-
-function PersistentData.get(id)
-    return PersistentData.data[id]
-end
-
-function Util.PersistentData()
-    return PersistentData
-end
-
--- #endregion
-
 -- #region StateManager
 
 -- class: StateManager
@@ -426,15 +376,16 @@ local StateManager = {
     entityHandle = 0
 }
 
-function StateManager.set(t, value, batch)
-    if StateManager[t] == value then return end
-
-    if not batch then
-        StateManager[t] = value
+function StateManager.set(key_or_table, value)
+    if type(key_or_table) == "table" then
+        for k, v in pairs(key_or_table) do
+            if StateManager[k] ~= v then
+                StateManager[k] = v
+            end
+        end
     else
-        local data = t
-        for i, v in pairs(data) do
-            StateManager[i] = v
+        if StateManager[key_or_table] ~= value then
+            StateManager[key_or_table] = value
         end
     end
 end
@@ -444,6 +395,7 @@ function StateManager.reset()
     StateManager.menuType = nil
     StateManager.entityHandle = nil
     StateManager.entityModel = nil
+    StateManager.disableRayCast = false
 end
 
 function StateManager.get(t)
@@ -472,6 +424,10 @@ local function randomId(length)
     return string
 end
 
+---comment
+---@param table any
+---@param len any
+---@return string
 function Util.createUniqueId(table, len)
     len = len or 13
     local hash = randomId(len)
@@ -507,13 +463,6 @@ end
 
 function Util.print_table(t)
     print(json.encode(t, { indent = true, sort_keys = true }))
-end
-
-function Util.preloadSharedTextureDict()
-    while not HasStreamedTextureDictLoaded("shared") do
-        Wait(10)
-        RequestStreamedTextureDict("shared", true)
-    end
 end
 
 local function reqmodel(objectModel)

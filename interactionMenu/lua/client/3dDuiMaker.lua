@@ -110,8 +110,6 @@ local function handle_height(p)
 end
 
 CreateThread(function()
-    Util.preloadSharedTextureDict()
-
     local timeout = 5000
     local startTime = GetGameTimer()
 
