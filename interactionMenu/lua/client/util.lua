@@ -93,21 +93,21 @@ function Util.isPointWithinScreen(screenX, screenY)
     return screenX ~= -1.0 or screenY ~= -1.0
 end
 
-local function InitIsPointWithinScreenBounds()
-    local shapeCheckFunctions = {
-        rectangle = function(x, y)
-            return x < 0.6 and y < 0.6 and x > 0.3 and y > 0.3
-        end,
-        circle = function(x, y)
-            local squaredDistance = (x - centerX) ^ 2 + (y - centerY) ^ 2
-            -- return squaredDistance <= radius^2
-            return squaredDistance <= radius
-        end,
-        none = function()
-            return true
-        end
-    }
+local shapeCheckFunctions = {
+    rectangle = function(x, y)
+        return x < 0.6 and y < 0.6 and x > 0.3 and y > 0.3
+    end,
+    circle = function(x, y)
+        local squaredDistance = (x - centerX) ^ 2 + (y - centerY) ^ 2
+        -- return squaredDistance <= radius^2
+        return squaredDistance <= radius
+    end,
+    none = function()
+        return true
+    end
+}
 
+local function InitIsPointWithinScreenBounds()
     if not Config.screenBoundaryShape then return shapeCheckFunctions.none end
     return shapeCheckFunctions[Config.screenBoundaryShape] or shapeCheckFunctions.none
 end
