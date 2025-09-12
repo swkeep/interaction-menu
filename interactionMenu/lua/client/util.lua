@@ -15,27 +15,18 @@ local GetScreenCoordFromWorldCoord = GetScreenCoordFromWorldCoord
 local GetEntityBoneIndexByName = GetEntityBoneIndexByName
 local table_remove = table.remove
 local math_floor = math.floor
+local math_abs = math.abs
 local string_char = string.char
 local math_random = math.random
-
-local upVector = glm.up()
-local forwardVector = glm.forward()
-local getCamCoord = GetFinalRenderedCamCoord
-local getCamRot = GetFinalRenderedCamRot
-local toRadians = glm.rad
-local createQuaternion = glm.quatEulerAngleZYX
-local rayPicking = glm.rayPicking
-local GetShapeTestResult = GetShapeTestResult
+local GetShapeTestResultIncludingMaterial = GetShapeTestResultIncludingMaterial
 local StartShapeTestLosProbe = StartShapeTestLosProbe
-local GetFinalRenderedCamFov = GetFinalRenderedCamFov
-local GetAspectRatio = GetAspectRatio
 local GetEntityCoords = GetEntityCoords
-
+local glm_sincos = glm.sincos
+local glm_rad = glm.rad
 local object = {}
 -- center of the screen!
 local centerX, centerY = 0.45, 0.45
 local radius = 0.2 ^ 2
-
 
 Util = {}
 
@@ -114,7 +105,7 @@ end
 
 Util.isPointWithinScreenBounds = InitIsPointWithinScreenBounds()
 
-function Util.filterVisiblePointsWithinRange(playerPosition, inputPoints)
+function Util.filterVisiblePointsWithinRange(playerPosition, inputPoints, max_distance)
     if not playerPosition or not inputPoints or #inputPoints == 0 then
         return {}, 0
     end
@@ -124,7 +115,7 @@ function Util.filterVisiblePointsWithinRange(playerPosition, inputPoints)
         local pointVector = vector3(inputPoint.x, inputPoint.y, inputPoint.z)
         local pointDistance = #(playerPosition - pointVector)
 
-        if pointDistance <= 15 then
+        if pointDistance <= (max_distance or 15) then
             local _, screenX, screenY = GetScreenCoordFromWorldCoord(inputPoint.x, inputPoint.y, inputPoint.z)
 
             if Util.isPointWithinScreen(screenX, screenY) and Util.isPointWithinScreenBounds(screenX, screenY) then
@@ -148,55 +139,67 @@ function Util.filterVisiblePointsWithinRange(playerPosition, inputPoints)
     return visiblePoints, #visiblePoints
 end
 
-local nearClip = 0.1
-local farClip = 10000.0
+---@enum TraceFlags
+TraceFlags = {
+    None = 0,
+    IntersectWorld = 1,
+    IntersectVehicles = 2,
+    IntersectPeds = 4,
+    IntersectRagdolls = 8,
+    IntersectObjects = 16,
+    IntersectPickup = 32,
+    IntersectGlass = 64,
+    IntersectRiver = 128,
+    IntersectFoliage = 256,
+    IntersectEverything = 511
+}
 
-local function screenPositionToCameraRay(fieldOfView, aspectRatio)
-    local camPos = getCamCoord()
-    local camRot = toRadians(getCamRot(2))
-    local quaternion = createQuaternion(camRot.z, camRot.y, camRot.x)
-    local camForward = quaternion * forwardVector
-    local camUp = quaternion * upVector
+---@enum TraceOptionFlags
+TraceOptionFlags = {
+    None = 0,
+    OptionIgnoreGlass = 1,
+    OptionIgnoreSeeThrough = 2,
+    OptionIgnoreNoCollision = 4,
+    OptionDefault = 7 -- 1 + 2 + 4 =7 (Glass + SeeThrough + NoCollision)
+}
 
-    return camPos, rayPicking(camForward, camUp, fieldOfView, aspectRatio, nearClip, farClip, 0, 0)
-end
+---@param trace_flags TraceFlags
+---@param player_ped any
+---@param trace_option_flags TraceOptionFlags|nil
+---@param ray_length any
+---@return boolean|nil hit
+---@return integer|nil target_entity
+---@return vector3|nil ray_hit_position
+---@return vector3|nil surface_normal
+---@return integer|nil material_hash
+function Util.rayCast(trace_flags, player_ped, trace_option_flags, ray_length)
+    if not player_ped then return end
 
-function Util.rayCast(maxDist, playerPed)
-    if not playerPed then return end
+    local origin = GetFinalRenderedCamCoord()
+    local cam_rot = GetFinalRenderedCamRot(2)
+    local rot_rad = glm_rad(cam_rot)
+    local sin, cos = glm_sincos(rot_rad)
+    local forward = vec3(-sin.z * math_abs(cos.x), cos.z * math_abs(cos.x), sin.x)
+    local destination = origin + forward * (ray_length or 10)
 
-    local aspectRatio = GetAspectRatio(true)
-    local fieldOfView = toRadians(GetFinalRenderedCamFov())
-    local losProbeFlags = 23
-    local rayLength = 16 -- or rayscale?
+    local ray_handle = StartShapeTestLosProbe(
+        origin.x, origin.y, origin.z,
+        destination.x, destination.y, destination.z,
+        trace_flags or 511,
+        player_ped,
+        trace_option_flags or 4
+    )
 
-    local playerCoords = GetEntityCoords(playerPed)
-    if not playerCoords then return end
+    for _ = 1, 3 do
+        local status, hit, ray_hit_position, surface_normal, material_hash, target_entity =
+            GetShapeTestResultIncludingMaterial(ray_handle)
 
-    local rayPos, rayDir = screenPositionToCameraRay(fieldOfView, aspectRatio)
-    local dest = rayPos + (rayLength * rayDir)
-    local rayHandle = StartShapeTestLosProbe(rayPos.x, rayPos.y, rayPos.z, dest.x, dest.y, dest.z, losProbeFlags,
-        playerPed, 4)
-
-    -- endCoords: The resulting coordinates where the shape test hit a collision
-    -- surfaceNormal: The surface normal of the hit position
-    local status, hit, endCoords, surfaceNormal, entityHit, distance
-
-    -- in some of my tests 2 was working fine but sometimes sometimes it just didn't work
-    for i = 1, 3, 1 do
-        status, hit, endCoords, surfaceNormal, entityHit = GetShapeTestResult(rayHandle)
-
-        if status == 2 and hit then
-            distance = #(playerCoords - endCoords)
-            if maxDist < distance then return nil, nil, nil end
-
-            -- #TEST: seems to works fine without it!?
-            -- hasClearSight = HasEntityClearLosToEntity(entityHit, playerPed, 7)
-            break
+        if status ~= 1 then
+            return hit, target_entity, ray_hit_position, surface_normal, material_hash
         end
+
         Wait(0)
     end
-
-    return endCoords, entityHit, distance
 end
 
 local SpatialHashGrid = {
@@ -465,12 +468,21 @@ function Util.print_table(t)
     print(json.encode(t, { indent = true, sort_keys = true }))
 end
 
-local function reqmodel(objectModel)
+local function reqmodel(objectModel, timeout)
+    timeout = timeout or 5000
+    local start = GetGameTimer()
+
     RequestModel(objectModel)
     while not HasModelLoaded(objectModel) do
-        RequestModel(objectModel)
+        if GetGameTimer() - start > timeout then
+            print(("⚠️ Model %s failed to load in %d ms"):format(objectModel, timeout))
+            return false
+        end
         Wait(0)
+        RequestModel(objectModel)
     end
+
+    return true
 end
 
 function Util.spawnObject(objectModel, c, door, net)
@@ -519,180 +531,6 @@ function Util.spawnPed(hash, pos)
     return object[id]
 end
 
--- validation zone data (it still needs more work it wrote it for PolyZone only ox have some differences)
-local function validateZoneData(o)
-    if type(o) ~= "table" then
-        error("Zone data must be a table")
-    end
-
-    -- common
-    assert(type(o.type) == "string", "Zone type must be a string")
-
-    -- validate position
-    if o.position then
-        local t = type(o.position)
-        if not (t == 'vector3' or t == 'vector4') then
-            assert(type(o.position) == "table" and o.position.x and o.position.y and o.position.z,
-                "Position must be a table with x, y, z coordinates")
-            assert(type(o.position.x) == "number" and type(o.position.y) == "number" and type(o.position.z) == "number",
-                "Position coordinates must be numbers")
-        end
-    end
-
-    -- type things
-    if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
-        assert(type(o.radius) == "number", "Radius must be a number")
-    elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
-        assert(type(o.length) == "number", "Length must be a number")
-        assert(type(o.width) == "number", "Width must be a number")
-        assert(o.heading == nil or type(o.heading) == "number", "Heading must be a number if provided")
-        assert(o.minZ == nil or type(o.minZ) == "number", "minZ must be a number if provided")
-        assert(o.maxZ == nil or type(o.maxZ) == "number", "maxZ must be a number if provided")
-    elseif o.type == 'polyZone' or o.type == 'poly' then
-        assert(type(o.points) == "table", "Points must be a table of coordinates")
-        for _, point in ipairs(o.points) do
-            assert(type(point.x) == "number" and type(point.y) == "number" and type(point.z) == "number",
-                "Each point must have numeric x, y, z coordinates")
-        end
-    elseif o.type == 'comboZone' or o.type == 'combo' then
-        assert(type(o.zones) == "table", "Zones must be a table of zone definitions")
-        for _, zoneData in ipairs(o.zones) do
-            validateZoneData(zoneData) -- recursive
-        end
-    else
-        error("Unsupported zone type: " .. tostring(o.type))
-    end
-end
-
-local onPlayerIn = function(name)
-    TriggerEvent('interactionMenu:zoneTracker', name, true)
-end
-
-local onPlayerOut = function(name)
-    TriggerEvent('interactionMenu:zoneTracker', name, false)
-end
-
-local function InitAddZone()
-    -- auto detect
-    if GetResourceState('ox_lib') == 'started' and lib then
-        Config.triggerZoneScript = 'ox_lib'
-    elseif GetResourceState('PolyZone') == 'started' then
-        Config.triggerZoneScript = 'PolyZone'
-    end
-
-    local zoneFunctions = {
-        ox_lib = function(o)
-            assert(lib, "ox_lib is not loaded. Uncomment '-- @ox_lib/init.lua' in fxmanifest.lua")
-            validateZoneData(o)
-
-            local z
-            if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
-                z = lib.zones.sphere({
-                    coords = vec3(o.position.x, o.position.y, o.position.z),
-                    radius = o.radius or 2,
-                    debug = o.debugPoly,
-                    inside = o.inside,
-                })
-            elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
-                o.minZ = o.minZ or 0
-                o.maxZ = o.maxZ or 1
-                local useZ = o.useZ or not o.maxZ
-                local sizeZ = useZ and o.position.z or math.abs(o.maxZ - o.minZ)
-
-                z = lib.zones.box({
-                    coords = vec3(o.position.x, o.position.y, o.position.z),
-                    size = o.size or vec3(o.length, o.width, sizeZ),
-                    rotation = o.heading or 0,
-                    debug = o.debugPoly,
-                    inside = o.inside,
-                })
-            elseif o.type == 'polyZone' or o.type == 'poly' then
-                z = lib.zones.poly({
-                    points = o.points,
-                    thickness = o.thickness or 4,
-                    debug = o.debugPoly,
-                    inside = o.inside,
-                })
-            elseif o.type == 'comboZone' or o.type == 'combo' then
-                warn("Unsupported zone type with ox_lib: " .. tostring(o.type))
-            else
-                error("Unsupported zone type: " .. tostring(o.type))
-            end
-            if z then
-                z.onEnter = function() onPlayerIn(o.name) end
-                z.onExit = function() onPlayerOut(o.name) end
-            end
-            z.name = o.name
-
-            return z
-        end,
-        PolyZone = function(o)
-            validateZoneData(o)
-            local z
-            -- Using PolyZone for zone creation
-            if o.type == 'circleZone' or o.type == 'circle' or o.type == 'sphere' then
-                assert(CircleZone,
-                    "PolyZone CircleZone is not loaded. Uncomment '@PolyZone/CircleZone.lua' in fxmanifest.lua")
-                z = CircleZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.radius or 1.0, {
-                    name = o.name,
-                    debugPoly = o.debugPoly,
-                    useZ = o.useZ or false,
-                })
-            elseif o.type == 'boxZone' or o.type == 'box' or o.type == 'rectangle' then
-                assert(BoxZone,
-                    "PolyZone BoxZone is not loaded. Uncomment '@PolyZone/BoxZone.lua' in fxmanifest.lua")
-                z = BoxZone:Create(vec3(o.position.x, o.position.y, o.position.z), o.length or 1.0, o.width or 1.0, {
-                    name = o.name,
-                    heading = o.heading,
-                    debugPoly = o.debugPoly,
-                    minZ = o.minZ,
-                    maxZ = o.maxZ,
-                })
-            elseif o.type == 'polyZone' or o.type == 'poly' then
-                assert(PolyZone,
-                    "PolyZone is not loaded. Uncomment '@PolyZone/client.lua' in fxmanifest.lua")
-                z = PolyZone:Create(o.points, {
-                    name = o.name,
-                    minZ = o.minZ,
-                    maxZ = o.maxZ,
-                    debugPoly = o.debugPoly,
-                })
-            elseif o.type == 'comboZone' or o.type == 'combo' then
-                assert(ComboZone,
-                    "PolyZone ComboZone is not loaded. Uncomment '@PolyZone/ComboZone.lua' in fxmanifest.lua")
-                local zones = {}
-                for _, zoneData in ipairs(o.zones) do
-                    if zoneData.type ~= 'comboZone' then
-                        table.insert(zones, Util.addZone(zoneData))
-                    end
-                end
-                z = ComboZone:Create(zones, {
-                    name = o.name,
-                    debugPoly = o.debugPoly,
-                })
-            else
-                error("Unsupported zone type: " .. tostring(o.type))
-            end
-
-            if z then
-                z:onPlayerInOut(function(isPointInside)
-                    if isPointInside then
-                        onPlayerIn(o.name)
-                    else
-                        onPlayerOut(o.name)
-                    end
-                end)
-            end
-            return z
-        end,
-        none = function() return end
-    }
-
-    return zoneFunctions[Config.triggerZoneScript]
-end
-
-Util.addZone = InitAddZone()
-
 -- #endregion
 
 -- DEVMODE raycast hit marker
@@ -708,7 +546,7 @@ Util.addZone = InitAddZone()
 --             DrawMarker(28, sphereCenter.x, sphereCenter.y, sphereCenter.z, 0.0, 0.0, 0.0, 0.0, 180.0, 0.0, sphereRadius
 --                 , sphereRadius,
 --                 sphereRadius, 255, 128, 0, 50, false, true, 2, nil, nil, false)
---             Wait(10)
+--             Wait(0)
 --         else
 --             Wait(1000)
 --         end
@@ -755,323 +593,3 @@ Util.replaceExport = function(resourceName, exportName, func)
         setCB(cb)
     end)
 end
-
--- Standalone `BoundingBox` handler
-
-local grid_entitites = SpatialHashGrid:new('entities', 100)
-
-EntityDetector = {
-    hash = {},
-    zones = {},
-    lastClosestEntity = nil
-}
-
-local function rotatePoint(point, center, angle)
-    local x = point.x - center.x
-    local y = point.y - center.y
-    local cosAngle = math.cos(math.rad(angle))
-    local sinAngle = math.sin(math.rad(angle))
-    local rotatedX = x * cosAngle - y * sinAngle
-    local rotatedY = x * sinAngle + y * cosAngle
-    return vector3(rotatedX + center.x, rotatedY + center.y, point.z)
-end
-
-local function calculateMinAndMaxZ(entity, dimensions)
-    local min, max = dimensions[1], dimensions[2]
-
-    local entityPos = GetEntityCoords(entity)
-    local entityMinZ = entityPos.z + min.z
-    local entityMaxZ = entityPos.z + max.z
-
-    return entityMinZ, entityMaxZ
-end
-
-function EntityDetector.watch(entity, options)
-    assert(DoesEntityExist(entity), "Entity does not exist")
-
-    local id = #EntityDetector.zones + 1
-    local model = GetEntityModel(entity)
-    local min, max = GetModelDimensions(model)
-    local dimensions = options.dimensions or { vec3(min.x, min.y, min.z), vec3(max.x, max.y, max.z) }
-
-    local instance = {}
-    instance.entity = entity
-    instance.dimensions = dimensions
-    instance.useZ = options.useZ
-
-    if options.useZ then
-        instance.minZ, instance.maxZ = calculateMinAndMaxZ(entity, dimensions)
-    end
-
-    instance.id                 = id
-    EntityDetector.zones[id]    = instance
-    EntityDetector.hash[entity] = id
-    -- init spatial hash grid ref/item
-    local entityPos             = GetEntityCoords(entity)
-    instance.grid_ref           = {
-        id = id,
-        x = entityPos.x,
-        y = entityPos.y,
-        z = entityPos.z,
-    }
-    grid_entitites:insert(instance.grid_ref)
-    return instance
-end
-
-function EntityDetector.unwatch(entity)
-    local index = EntityDetector.hash[entity]
-    if not index then return false end
-    local instance = EntityDetector.zones[index]
-    EntityDetector.hash[entity] = nil
-    -- remove from grid
-    grid_entitites:remove(instance.grid_ref)
-    -- #TODO: it does use memory, we can deal with it later
-    table.wipe(EntityDetector.zones[instance.id])
-end
-
-local function isPointInBoundingBox(point, box, rotation)
-    local rotatedPoint = rotatePoint(point, box.min + (box.max - box.min) / 2, -rotation)
-
-    return rotatedPoint.x >= box.min.x and rotatedPoint.x <= box.max.x and
-        rotatedPoint.y >= box.min.y and rotatedPoint.y <= box.max.y and
-        rotatedPoint.z >= box.min.z and rotatedPoint.z <= box.max.z
-end
-
-local function detectorQueryRange(p)
-    p = p or GetEntityCoords(PlayerPedId(), false)
-    return grid_entitites:queryRange(p, 25)
-end
-
-local function detectorDetect(playerPos)
-    local closestEntity = nil
-    local closestDistance = math.huge
-
-    for _, grid_ref in ipairs(detectorQueryRange(playerPos)) do
-        local instance = EntityDetector.zones[grid_ref.id]
-        local entity = instance.entity
-        local entityHeading = instance.rotation
-        local entityPos = instance.position
-
-        if not instance.pause and entityHeading and entityPos then
-            local minCorner = instance.dimensions[1]
-            local maxCorner = instance.dimensions[2]
-            local entityBox = {
-                min = entityPos + minCorner,
-                max = entityPos + maxCorner
-            }
-
-            if isPointInBoundingBox(playerPos, entityBox, entityHeading) then
-                -- this way we can detect coliding zones
-                local distance = #(playerPos - entityPos)
-
-                if distance < closestDistance then
-                    closestDistance = distance
-                    closestEntity = {
-                        entity = entity,
-                        id = instance.id,
-                        dimensions = instance.dimensions
-                    }
-                end
-            end
-        end
-    end
-
-    -- Trigger events if the closest entity has changed
-    if closestEntity then
-        if EntityDetector.lastClosestEntity then
-            if closestEntity.entity ~= EntityDetector.lastClosestEntity.entity then
-                TriggerEvent('interactionMenu:client:entityZone:exited', EntityDetector.lastClosestEntity)
-                Wait(0)
-                TriggerEvent('interactionMenu:client:entityZone:entered', closestEntity)
-            end
-        else
-            TriggerEvent('interactionMenu:client:entityZone:entered', closestEntity)
-        end
-
-        EntityDetector.lastClosestEntity = closestEntity
-    elseif EntityDetector.lastClosestEntity then
-        TriggerEvent('interactionMenu:client:entityZone:exited', EntityDetector.lastClosestEntity)
-        EntityDetector.lastClosestEntity = nil
-    end
-end
-
-local function detectorUpdateEntityInfo(playerPos)
-    if EntityDetector.lastClosestEntity then
-        -- just update what is active
-        local instance = EntityDetector.zones[EntityDetector.lastClosestEntity.id]
-        if instance and instance.entity then
-            if DoesEntityExist(instance.entity) then
-                instance.position = GetEntityCoords(instance.entity)
-                instance.rotation = GetEntityHeading(instance.entity)
-                if instance.useZ then
-                    instance.minZ, instance.maxZ = calculateMinAndMaxZ(instance.entity, instance.dimensions)
-                end
-            end
-        end
-        return
-    end
-
-    for index, grid_ref in ipairs(detectorQueryRange(playerPos)) do
-        local instance = EntityDetector.zones[grid_ref.id]
-        if instance and instance.entity then
-            if DoesEntityExist(instance.entity) then
-                instance.position = GetEntityCoords(instance.entity)
-                instance.rotation = GetEntityHeading(instance.entity)
-                if instance.useZ then
-                    instance.minZ, instance.maxZ = calculateMinAndMaxZ(instance.entity, instance.dimensions)
-                end
-            end
-        end
-    end
-end
-
-CreateThread(function()
-    local playerPed = PlayerPedId()
-    local playerPos = GetEntityCoords(playerPed)
-
-    -- update information of entity
-    CreateThread(function()
-        while true do
-            local interval = EntityDetector.lastClosestEntity and 250 or 1000
-            playerPed = PlayerPedId()
-            detectorUpdateEntityInfo(playerPos)
-            Wait(interval)
-        end
-    end)
-
-    -- detection tread
-    CreateThread(function()
-        while true do
-            local interval = EntityDetector.lastClosestEntity and 250 or 1000
-
-            playerPos = GetEntityCoords(playerPed)
-            detectorDetect(playerPos)
-            Wait(interval)
-        end
-    end)
-
-    -- update position of entities in hash grid
-    CreateThread(function()
-        local size = #EntityDetector.zones
-        local chunkSize = 100
-        local startIndex = 1
-
-        while true do
-            while startIndex <= size do
-                local endIndex = math.min(startIndex + chunkSize - 1, size)
-                for index = startIndex, endIndex do
-                    local instance = EntityDetector.zones[index]
-                    if DoesEntityExist(instance.entity) then
-                        instance.pause = false
-                        local position = GetEntityCoords(instance.entity)
-                        grid_entitites:update(instance.grid_ref, position)
-                    else
-                        instance.pause = true
-                    end
-                end
-
-                Wait(1000)
-                startIndex = endIndex + 1
-            end
-
-            Wait(2000)
-            startIndex = 1
-            size = #EntityDetector.zones
-        end
-    end)
-
-    if Config.devMode and Config.debugPoly then
-        -- AddEventHandler('entityZone:client:exited', function(data)
-        --     print("Exit", data.entity)
-        -- end)
-
-        -- AddEventHandler('entityZone:client:entered', function(data)
-        --     print("Enter", data.entity)
-        -- end)
-
-        -- draw a line between two points
-        local function drawLineBetweenPoints(p1, p2, r, g, b, a)
-            DrawLine(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z, r, g, b, a)
-        end
-
-        -- draw a 3D box around an entity
-        local function drawBoundingBox(instance)
-            if instance and (instance.entity and not DoesEntityExist(instance.entity)) then return end
-            local entityPos = instance.position
-            local entityHeading = instance.rotation
-            if not entityPos or not entityHeading then return end
-            local dimensions = instance.dimensions
-            local min = dimensions[1]
-            local max = dimensions[2]
-
-            -- Calculate rotated corners
-            local corners = {
-                -- Bottom rectangle
-                entityPos + vector3(min.x, min.y, min.z),
-                entityPos + vector3(max.x, min.y, min.z),
-                entityPos + vector3(max.x, max.y, min.z),
-                entityPos + vector3(min.x, max.y, min.z),
-
-                -- Top rectangle
-                entityPos + vector3(min.x, min.y, max.z),
-                entityPos + vector3(max.x, min.y, max.z),
-                entityPos + vector3(max.x, max.y, max.z),
-                entityPos + vector3(min.x, max.y, max.z),
-            }
-
-            -- rotate corners
-            local cosHeading, sinHeading = math.cos(math.rad(entityHeading)), math.sin(math.rad(entityHeading))
-            for i, corner in ipairs(corners) do
-                local x, y = corner.x - entityPos.x, corner.y - entityPos.y
-                local rotatedX = x * cosHeading - y * sinHeading
-                local rotatedY = x * sinHeading + y * cosHeading
-                corners[i] = vector3(rotatedX + entityPos.x, rotatedY + entityPos.y, corner.z)
-            end
-
-            -- Bottom
-            drawLineBetweenPoints(corners[1], corners[2], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[2], corners[3], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[3], corners[4], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[4], corners[1], 255, 0, 0, 255)
-
-            -- Top
-            drawLineBetweenPoints(corners[5], corners[6], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[6], corners[7], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[7], corners[8], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[8], corners[5], 255, 0, 0, 255)
-
-            -- Vertical lines
-            drawLineBetweenPoints(corners[1], corners[5], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[2], corners[6], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[3], corners[7], 255, 0, 0, 255)
-            drawLineBetweenPoints(corners[4], corners[8], 255, 0, 0, 255)
-        end
-
-        CreateThread(function()
-            local size = 1.0
-            while true do
-                if EntityDetector.lastClosestEntity and EntityDetector.lastClosestEntity.entity then
-                    local instance = EntityDetector.zones[EntityDetector.lastClosestEntity.id]
-                    local entityCoords = GetEntityCoords(instance.entity)
-
-                    if entityCoords then
-                        DrawMarker(1, entityCoords.x, entityCoords.y, entityCoords.z - 0.5, 0.0, 0.0, 0.0, 0.0, 0.0,
-                            0.0,
-                            size
-                            , size,
-                            size, 255, 128, 0, 150, false, true, 2, nil, nil, false, false)
-                    end
-                end
-                Wait(0)
-            end
-        end)
-        CreateThread(function()
-            while true do
-                for _, instance in ipairs(EntityDetector.zones) do
-                    drawBoundingBox(instance)
-                end
-                Wait(0)
-            end
-        end)
-    end
-end)

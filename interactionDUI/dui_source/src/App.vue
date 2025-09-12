@@ -4,6 +4,7 @@ import { FocusTracker, FocusTrackerT, InteractionMenu } from './types/types';
 import { subscribe, dev_run } from './util';
 import ActionPromptIndicator from './views/ActionPromptIndicator.vue';
 import MenuContentRenderer from './views/MenuContentRenderer.vue';
+import eye from './views/Eye.vue';
 import DevTools from './components/DevTools.vue';
 
 // Reactive
@@ -48,8 +49,11 @@ subscribe('interactionMenu:menu:show', show_menu);
 <template>
     <div class="interact-container" :data-theme="currentTheme" :data-dev="isDevVisible" :data-dark="isDarkMode">
         <DevTools :theme="currentTheme" v-if="isDevVisible" />
+        <eye></eye>
 
-        <ActionPromptIndicator :focus-tracker="focusTracker" @set-visible="setVisible" />
-        <MenuContentRenderer :focus-tracker="focusTracker" @set-visible="setVisible" />
+        <div class="menu-wrapper">
+            <ActionPromptIndicator :focus-tracker="focusTracker" @set-visible="setVisible" />
+            <MenuContentRenderer :focus-tracker="focusTracker" @set-visible="setVisible" />
+        </div>
     </div>
 </template>

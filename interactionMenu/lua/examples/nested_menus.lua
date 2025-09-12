@@ -50,18 +50,6 @@ local function init()
             end,
             subMenu = {
                 {
-                    video = {
-                        url = 'https://cdn.swkeep.com/interaction_menu_internal_tests/test_video.mp4',
-                        volume = 0,
-                        currentTime = 100,
-                        progress = true,
-                        autoplay = true,
-                        loop = true,
-                        -- percent = true,
-                        timecycle = true,
-                    }
-                },
-                {
                     label = "SubOption 1 (Root/2/1)",
                     action = function()
                         print("SubOption 1 action (Root/2/1)")
@@ -73,11 +61,6 @@ local function init()
                         print("SubOption 2 action (Root/2/2)")
                     end,
                     subMenu = {
-                        {
-                            picture = {
-                                url = 'https://cdn.swkeep.com/interaction_menu/preview_1.jpg'
-                            }
-                        },
                         {
                             label = "SubSubOption 1 (Root/2/2/1)",
                             action = function()
@@ -172,7 +155,7 @@ end
 CreateThread(function()
     InternalRegisterTest(init, cleanup, "nested_menu", "Nested Menu System", "fa-solid fa-network-wired",
         "Validates nested menu functionality by spawning multiple submenus in a grid layout, tests menu navigation, parent-child relationships, and conflict between menus", {
-            type = "blue",
-            label = "UI"
+            type = "violet",
+            label = "Extends"
         })
 end)

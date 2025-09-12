@@ -27,6 +27,13 @@ body {
     display: none;
 }
 
+.menu-wrapper {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    justify-content: center;
+}
+
 .interact-container {
     width: 100%;
     align-items: center;

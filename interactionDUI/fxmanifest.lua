@@ -27,4 +27,6 @@ files {
      "dui/*.*",
 }
 
+ui_page "dui/index.html"
+
 lua54 'yes'

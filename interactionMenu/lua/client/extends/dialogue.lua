@@ -174,6 +174,7 @@ function DialogueSystem:create(data)
         rotation = data.rotation,
         indicator = data.indicator,
         theme = data.theme,
+        suppressGlobals = true,
         width = "100%",
         extra = {
             onSeen = local_onSeen,

@@ -800,7 +800,7 @@ local function init()
     for i, ped_data in ipairs(hunting_ped_data) do
         local slot = InternalGetTestSlot(ped_data.position, ped_data.index)
         if slot then
-            local entity = Util.spawnPed(GetHashKey(ped_data.model), vec3(slot.x, slot.y, slot.z - 0.58))
+            local entity = Util.spawnPed(GetHashKey(ped_data.model), vec3(slot.x, slot.y, slot.z))
             SetEntityHeading(entity, slot.w)
             entities[#entities + 1] = entity
 
@@ -832,5 +832,8 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "npc_dialogue", "NPC Dialogue System", "fa-solid fa-comments")
+    InternalRegisterTest(init, cleanup, "npc_dialogue", "NPC Dialogue System", "fa-solid fa-comments", nil, {
+        type = "violet",
+        label = "Extends"
+    })
 end)

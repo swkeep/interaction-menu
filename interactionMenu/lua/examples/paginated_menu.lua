@@ -86,5 +86,8 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "paginated_menu", "Paginated Menu", "fa-solid fa-list-ol")
+    InternalRegisterTest(init, cleanup, "npaginated_menu", "Paginated Menu", "fa-solid fa-list-ol", "", {
+        type = "violet",
+        label = "Extends"
+    })
 end)

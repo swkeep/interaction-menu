@@ -15,22 +15,18 @@ local global_status = ""
 local active_template = '<span class="test-badge-active">%s</span>'
 local inactive_template = '<span class="test-badge-inactive">%s</span>'
 
+local function generate_slots(base, step, count)
+    local slots = {}
+    for i = 0, count - 1 do
+        slots[#slots + 1] = base + vector4(0.0, step * i, 0.0, 0)
+    end
+    return slots
+end
+
 local test_slots = {
-    front = {
-        vector4(795.23, -3008.43, -69.41, 89.31),
-        vector4(795.2, -3002.94, -69.41, 89.9),
-        vector4(795.17, -2996.87, -69.41, 89.18)
-    },
-    middle = {
-        vector4(800.21, -3008.53, -69.41, 90.93),
-        vector4(800.93, -3003.08, -69.41, 89.2),
-        vector4(800.55, -2996.81, -69.41, 90.42)
-    },
-    back = {
-        vector4(806.36, -3008.67, -69.41, 90.76),
-        vector4(806.75, -3002.84, -69.41, 90.15),
-        vector4(806.96, -2997.04, -69.41, 89.18)
-    }
+    front = generate_slots(vector4(795.23, -3008.43, -70.0, 0.0), 5.5, 4),
+    middle = generate_slots(vector4(800.21, -3008.53, -70.0, 0.0), 5.5, 4),
+    back = generate_slots(vector4(806.36, -3008.67, -70.0, 90.76), 5.5, 4)
 }
 
 local function execute_in_thread(fn)
@@ -176,65 +172,69 @@ CreateThread(function()
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px 20px;
-  background: rgba(30,30,30,0.95);
-  border-radius: 12px;
-  border: 2px solid #666;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  padding: 18px 20px;
+  background: linear-gradient(145deg, rgba(20,20,20,0.95), rgba(45,45,45,0.95));
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.45);
+  transition: all 0.3s ease-in-out;
+}
+
+.menu-status:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.6);
 }
 
 .menu-status .menu-label {
-  font-weight: 700;
-  color: #fff;
-  font-size: 1.6rem;
-  margin-bottom: 12px;
-  text-shadow: 1px 1px 2px #000;
+  font-weight: 600;
+  color: #eaeaea;
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+  letter-spacing: 0.6px;
+  text-shadow: 0 0 6px rgba(0,0,0,0.7);
 }
 
 .menu-status .menu-value {
-  font-size: 2.4rem;
+  font-size: 2.1rem;
   font-weight: 700;
   text-align: center;
-  line-height: 2.4rem;
-  min-height: 3rem;
+  min-height: 2.6rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  justify-content: center;
 }
 
 .test-badge-active {
-  color: #00ff00;
-  background: rgba(0,255,0,0.15);
-  font-weight: bold;
-  padding: 4px 8px;
-  border-radius: 6px;
+  color: #00ff88;
+  background: rgba(0,255,150,0.15);
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
   display: inline-block;
-  transition: transform 0.2s ease;
-}
-
-.test-badge-active:hover {
-  transform: scale(1.2);
+  border: 1px solid rgba(0,255,150,0.25);
+  text-shadow: 0 0 6px rgba(0,255,150,0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .test-badge-inactive {
-  color: #ff5555;
-  background: rgba(255,0,0,0.1);
-  font-weight: bold;
-  padding: 4px 8px;
-  border-radius: 6px;
+  color: #ff6666;
+  background: rgba(255,50,50,0.12);
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
   display: inline-block;
-  opacity: 0.7;
-  transition: transform 0.2s ease;
-}
-
-.test-badge-inactive:hover {
-  transform: scale(1.1);
+  border: 1px solid rgba(255,80,80,0.2);
+  opacity: 0.8;
+  text-shadow: 0 0 6px rgba(255,60,60,0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 </style>
 <div class="menu-cell menu-span2 menu-status">
   <div class="menu-label">Global Test Status</div>
   <div class="menu-value">{{{status}}}</div>
 </div>
+
 ]],
             bind = function()
                 return { status = global_status }
@@ -266,13 +266,13 @@ CreateThread(function()
         itemsPerPage = 11,
         offset = vector3(0, 0, 0),
         rotation = vector3(-20, 0, -90),
-        position = vector4(785.6, -2999.2, -68.5, 271.65),
+        position = vector4(785.0, -2999.2, -68.5, 271.65),
         theme = 'theme-2',
-        width = "100%",
+        width = "90%",
         zone = {
             type = 'sphere',
             position = vector3(784.54, -2999.8, -69.0),
-            radius = 1.25,
+            radius = 2,
             useZ = true,
             debugPoly = Config.debugPoly
         },
@@ -286,7 +286,7 @@ CreateThread(function()
         rotation = vector3(-20, 0, -90),
         position = vector3(785.5, -2996.2, -69.0),
         theme = 'theme-2',
-        width = "100%",
+        width = "80%",
         zone = {
             type = 'sphere',
             position = vector3(784.54, -2996.85, -69.0),

@@ -92,16 +92,14 @@ collectors.zone = function(menuId, menu_instance)
         if type(zone.destroy) == 'function' then
             pcall(zone.destroy, zone)
         end
-        if Container.current.id == menuId then
-            TriggerEvent("interactionMenu:zoneTracker")
-        end
+        TriggerEvent("interactionMenu:client:gc:zone", menuId)
     end
     return _safe_remove(menuId)
 end
 
 collectors.entity = function(menuId, menu_instance)
     if menu_instance.entity and menu_instance.entity.handle and menu_instance.tracker == 'boundingBox' then
-        pcall(function() EntityDetector.unwatch(menu_instance.entity.handle) end)
+        pcall(function() BoundingBox.unwatch(menu_instance.entity.handle) end)
     end
     return _remove_by_index(menuId, menu_instance.entity, Container.indexes.entities, 'handle')
 end
@@ -158,12 +156,12 @@ function GC._collect(id)
         if globals and globals[t] then
             local list = globals[t]
             if _remove_from_list(list, id, false) then
-                CleanNearbyObjects()
+                -- CleanNearbyObjects()
             end
         elseif globals and t == 'bones' and menu_instance.bone then
             local boneList = globals['bones'] and globals['bones'][menu_instance.bone]
             if boneList and _remove_from_list(boneList, id, false) then
-                CleanNearbyObjects()
+                -- CleanNearbyObjects()
             end
         end
     end

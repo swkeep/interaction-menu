@@ -173,6 +173,30 @@ local function init()
         }
     end
 
+    exports['interactionMenu']:Create {
+        position = vector3(796.38, -2998.15, -69.0),
+        tracker = "hit",
+        zone = {
+            type = 'boxZone',
+            position = vector3(796.38, -2998.15, -69.0),
+            heading = 0,
+            width = 0.5,
+            length = 0.5,
+            debugPoly = Config.debugPoly,
+            minZ = vector3(796.38, -2998.15, -69.0).z - 1,
+            maxZ = vector3(796.38, -2998.15, -69.0).z + 0.3,
+        },
+        options = {
+            {
+                label = 'Zone Confilict test',
+                icon = 'fa fa-download',
+                action = function(data)
+                    print("Action 'Download Classified Files'")
+                end
+            }
+        }
+    }
+
     -- menus[#menus + 1] = exports['interactionMenu']:Create {
     --     rotation = vector3(0, 0, 180),
     --     position = vector4(808.0, -3011.99, -68.0, 2.82),
@@ -218,5 +242,8 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "on_zone", "On Zones Test", "fa-solid fa-table-cells")
+    InternalRegisterTest(init, cleanup, "on_zone", "On Zones Test", "fa-solid fa-table-cells", "", {
+        type = "dark-orange",
+        label = "Feature"
+    })
 end)

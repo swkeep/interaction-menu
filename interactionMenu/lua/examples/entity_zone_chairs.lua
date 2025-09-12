@@ -8,7 +8,7 @@
 --                             |_|
 -- https://github.com/swkeep
 if not DEVMODE then return end
-local positions      = {
+local positions     = {
     vector4(794.00, -2991.52, -70.0, 0),
     vector4(796.50, -2991.52, -70.0, 0),
     vector4(799.00, -2991.52, -70.0, 0),
@@ -41,11 +41,7 @@ local positions      = {
     vector4(809.00, -3008.70, -70.00, 180),
 }
 
-local chairs         = {
-    "prop_table_02_chr",
-    "prop_table_03_chr",
-    "prop_table_03b_chr",
-    "prop_table_04_chr",
+local chairs        = {
     "apa_mp_h_stn_chairarm_01",
     "apa_mp_h_stn_chairarm_02",
     "apa_mp_h_stn_chairarm_03",
@@ -91,17 +87,13 @@ local chairs         = {
     "prop_old_wood_chair",
     "prop_old_wood_chair_lod",
     "prop_rock_chair_01",
-    "prop_skid_chair_01",
-    "prop_skid_chair_02",
-    "prop_skid_chair_03",
     "prop_sol_chair",
     "prop_wheelchair_01",
 }
-local menus          = {}
-local spawned_models = {}
-local entities       = {}
-local sitting        = false
-local current_chair  = nil
+local menus         = {}
+local entities      = {}
+local sitting       = false
+local current_chair = nil
 
 local function stand_up()
     if not sitting then return end
@@ -128,26 +120,11 @@ local function sit(entity)
     TaskStartScenarioAtPosition(playerPed, "PROP_HUMAN_SEAT_BENCH", entityCoords.x, entityCoords.y, playerCoords.z - 0.5, heading, 0, true, true)
 end
 
-local function DrawText3D(x, y, z, text)
-    local onScreen, _x, _y = World3dToScreen2d(x, y, z)
-    if not onScreen then return end
-    local camCoords = GetGameplayCamCoord()
-    local scale = 150 / (GetGameplayCamFov() * #(camCoords - vec3(x, y, z)))
-    SetTextScale(scale or 0.35, scale or 0.35)
-    SetTextFont(4)
-    SetTextEntry("STRING")
-    SetTextCentre(true)
-
-    AddTextComponentString(text)
-    DrawText(_x, _y)
-end
-
 local function init()
     for _, value in ipairs(positions) do
         local index = #entities + 1
         local model = chairs[math.random(1, #chairs)]
         entities[index] = Util.spawnObject(joaat(model), value)
-        spawned_models[index] = { model, value }
 
         menus[#menus + 1] = exports['interactionMenu']:Create {
             tracker = 'boundingBox',
@@ -173,19 +150,16 @@ local function init()
                         return sitting
                     end
                 },
+                {
+                    label = 'Delete',
+                    action = function()
+                        DeleteEntity(entities[index])
+                    end,
+                },
             }
         }
-        Wait(30)
+        Wait(0)
     end
-
-    CreateThread(function()
-        while #spawned_models > 0 do
-            for _, value in ipairs(spawned_models) do
-                DrawText3D(value[2].x, value[2].y, value[2].z + 0.5, value[1])
-            end
-            Wait(0)
-        end
-    end)
 end
 
 local function cleanup()
@@ -202,11 +176,10 @@ local function cleanup()
 
     entities = {}
     menus = {}
-    spawned_models = {}
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "chair_test", "Chair Interaction", "fa-solid fa-chair",
+    InternalRegisterTest(init, cleanup, "chair_test", "Chair Interaction (entity zone)", "fa-solid fa-chair",
         "Spawns multiple chairs in a grid, use the menu to test sitting on chairs", {
             type = "orange",
             label = "Object"

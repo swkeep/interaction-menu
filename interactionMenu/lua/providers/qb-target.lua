@@ -1,14 +1,32 @@
-if GetResourceState('qb-core') ~= 'started' then return end
+if not Config.provide.qb_target then return end
+
+local state_manager = Util.StateManager()
 
 local function replaceExport(exportName, func)
     Util.replaceExport('qb-target', exportName, func)
 end
 
+-- finished
+-- [x] AddBoxZone
+-- [x] AddCircleZone
+-- [x] AddPolyZone
+-- [x] RemoveZone
+-- [x] AddTargetEntity
+-- [x] DisableTarget
+-- [x] AllowTargeting
+-- [x] IsTargetSuccess
+-- [x] IsTargetActive
+-- [x] DrawOutlineEntity
+
+-- [] AddTargetBone -- we still need to fix globals using new system
+-- [] RemoveTargetBone -- we still need to fix globals using new system (indicator)
+-- [x] AddTargetModel
+-- [x] RemoveTargetModel
+
 local function convertTargetOptions(targetOptions)
-    targetOptions = targetOptions.options
     local menuOptions = {}
 
-    for id, value in pairs(targetOptions) do
+    for id, value in pairs(targetOptions.options) do
         local payload
         local option = {
             icon = value.icon,
@@ -40,8 +58,6 @@ local function convertTargetOptions(targetOptions)
         menuOptions[#menuOptions + 1] = option
     end
 
-    -- #TODO: sort by order/num
-
     return menuOptions
 end
 
@@ -50,12 +66,20 @@ replaceExport('AddCircleZone', function(name, center, radius, options, targetopt
     local menu = {
         id = name,
         position = center,
+        tracker = "hit",
+        zone = {
+            type = 'circleZone',
+            position = center,
+            radius = radius,
+            useZ = options.useZ,
+            debugPoly = options.debugPoly
+        },
         options = convertTargetOptions(targetoptions),
         maxDistance = distance,
         schemaType = 'qbtarget'
     }
 
-    return exports['interactionMenu']:Create(menu)
+    return Container.create(menu)
 end)
 
 replaceExport('AddBoxZone', function(name, center, length, width, options, targetoptions)
@@ -63,12 +87,23 @@ replaceExport('AddBoxZone', function(name, center, length, width, options, targe
     local menu = {
         id = name,
         position = center,
+        tracker = "hit",
+        zone = {
+            type = 'boxZone',
+            position = center,
+            heading = options.heading or 0,
+            width = width,
+            length = length,
+            debugPoly = options.debugPoly,
+            minZ = options.minZ,
+            maxZ = options.maxZ,
+        },
         options = convertTargetOptions(targetoptions),
         maxDistance = distance,
         schemaType = 'qbtarget'
     }
 
-    return exports['interactionMenu']:Create(menu)
+    return Container.create(menu)
 end)
 
 local function getCentroid(polygon)
@@ -83,30 +118,38 @@ local function getCentroid(polygon)
 end
 
 replaceExport('AddPolyZone', function(name, points, options, targetoptions)
-    -- #TODO: fix: or just set it to not supported export
     local newPoints = table.create(#points, 0)
     local thickness = math.abs(options.maxZ - options.minZ)
     local distance = targetoptions.distance or 3
-
-    local menu = {
-        id = name,
-        position = vec3(0, 0, 0),
-        options = convertTargetOptions(targetoptions),
-        maxDistance = distance,
-        schemaType = 'qbtarget'
-    }
 
     for i = 1, #points do
         local point = points[i]
         newPoints[i] = vec3(point.x, point.y, options.maxZ - (thickness / 2))
     end
 
-    menu.center = getCentroid(newPoints)
-    return exports['interactionMenu']:Create(menu)
+    local center = getCentroid(newPoints)
+
+    local menu = {
+        id = name,
+        position = center,
+        tracker = "hit",
+        zone = {
+            type = 'polyZone',
+            points = points,
+            minZ = options.minZ,
+            maxZ = options.maxZ,
+            debugPoly = options.debugPoly,
+        },
+        options = convertTargetOptions(targetoptions),
+        maxDistance = distance,
+        schemaType = 'qbtarget'
+    }
+
+    return Container.create(menu)
 end)
 
 replaceExport('RemoveZone', function(id)
-    exports['interactionMenu']:remove(id)
+    GC.flag(id)
 end)
 
 replaceExport('AddTargetBone', function(bones, options)
@@ -136,7 +179,7 @@ replaceExport('RemoveTargetBone', function(bones, labels)
         local bone = bones[i]
         local id = invokingResource .. '_' .. bone
 
-        exports['interactionMenu']:remove(id)
+        GC.flag(id)
     end
 end)
 
@@ -149,14 +192,14 @@ replaceExport('AddTargetEntity', function(entities, options)
         if NetworkGetEntityIsNetworked(entity) then
             local netId = NetworkGetNetworkIdFromEntity(entity)
 
-            exports['interactionMenu']:Create {
+            Container.create {
                 id = entity,
                 netId = netId,
                 options = convertTargetOptions(options),
                 schemaType = 'qbtarget'
             }
         else
-            exports['interactionMenu']:Create {
+            Container.create {
                 id = entity,
                 entity = entity,
                 options = convertTargetOptions(options),
@@ -174,11 +217,27 @@ replaceExport('RemoveTargetEntity', function(entities, labels)
 
         if NetworkGetEntityIsNetworked(entity) then
             local netId = NetworkGetNetworkIdFromEntity(entity)
-            exports['interactionMenu']:remove(netId)
+            GC.flag(netId)
         else
-            exports['interactionMenu']:remove(entity)
+            GC.flag(entity)
         end
     end
+end)
+
+replaceExport('AddEntityZone', function(name, entity, options, target_options)
+    local distance = target_options.distance or 3
+
+    Container.create {
+        id = name,
+        entity = entity,
+        tracker = 'boundingBox',
+        dimensions = {
+            vec3(-2, -2, -1),
+            vec3(2, 2, 2)
+        },
+        options = convertTargetOptions(target_options),
+        maxDistance = distance
+    }
 end)
 
 replaceExport('AddTargetModel', function(models, options)
@@ -191,7 +250,7 @@ replaceExport('AddTargetModel', function(models, options)
         local id = invokingResource .. '|' .. model
         local modelHash = type(model) == "number" and model or joaat(model)
 
-        exports['interactionMenu']:Create {
+        Container.create {
             id = id,
             model = modelHash,
             maxDistance = distance,
@@ -208,7 +267,7 @@ replaceExport('RemoveTargetModel', function(models, labels)
     for i = 1, #models do
         local model = models[i]
         local id = invokingResource .. '|' .. model
-        exports['interactionMenu']:remove(id)
+        GC.flag(id)
     end
 end)
 
@@ -232,7 +291,7 @@ local function handleGlobalEntity(action, entityType, options)
                 schemaType = 'qbtarget'
             }
         elseif action == 'remove' then
-            exports['interactionMenu']:remove(id)
+            GC.flag(id)
         end
     end
 end
@@ -241,49 +300,67 @@ replaceExport('AddGlobalPed', function(options)
     handleGlobalEntity('add', 'peds', options)
 end)
 
-replaceExport('RemoveGlobalPed', function(labels)
-    handleGlobalEntity('remove', 'peds', Util.ensureTable(labels))
-end)
-
 replaceExport('AddGlobalVehicle', function(options)
     handleGlobalEntity('add', 'vehicles', options)
-end)
-
-replaceExport('RemoveGlobalVehicle', function(labels)
-    handleGlobalEntity('remove', 'vehicles', Util.ensureTable(labels))
 end)
 
 replaceExport('AddGlobalObject', function(options)
     handleGlobalEntity('add', 'entities', options)
 end)
 
-replaceExport('RemoveGlobalObject', function(labels)
-    handleGlobalEntity('remove', 'entities', Util.ensureTable(labels))
-end)
-
 replaceExport('AddGlobalPlayer', function(options)
     handleGlobalEntity('add', 'players', options)
+end)
+
+replaceExport('RemoveGlobalPed', function(labels)
+    handleGlobalEntity('remove', 'peds', Util.ensureTable(labels))
+end)
+
+replaceExport('RemoveGlobalVehicle', function(labels)
+    handleGlobalEntity('remove', 'vehicles', Util.ensureTable(labels))
+end)
+
+replaceExport('RemoveGlobalObject', function(labels)
+    handleGlobalEntity('remove', 'entities', Util.ensureTable(labels))
 end)
 
 replaceExport('RemoveGlobalPlayer', function(labels)
     handleGlobalEntity('remove', 'players', Util.ensureTable(labels))
 end)
 
--- might be possible!
-replaceExport('AddEntityZone')
-replaceExport('DisableTarget')
-replaceExport('CheckEntity')
-replaceExport('CheckBones')
--- mine is always active!?
-replaceExport('IsTargetActive')
-replaceExport('IsTargetSuccess')
+replaceExport('DisableTarget', function(value)
+    Interact.pause(not value)
+end)
+
+replaceExport('AllowTargeting', function(value)
+    Interact.pause(value)
+end)
+
+replaceExport('IsTargetSuccess', function(value)
+    return state_manager.get("id") ~= nil
+end)
+
+replaceExport('IsTargetActive', function(value)
+    return state_manager.get("active") ~= nil
+end)
+
+replaceExport('DrawOutlineEntity', function(entity, value)
+    exports['interactionMenu']:DrawOutlineEntity(entity, value)
+end)
+
+replaceExport('DisableNUI', function()
+    Interact.pause(true)
+end)
+
+replaceExport('EnableNUI', function()
+    Interact.pause(false)
+end)
 
 -- bruh
+replaceExport('CheckEntity')
+replaceExport('CheckBones')
 replaceExport('RaycastCamera')
-replaceExport('DisableNUI')
-replaceExport('EnableNUI')
 replaceExport('LeftTarget')
-replaceExport('DrawOutlineEntity')
 replaceExport('AddGlobalType')
 replaceExport('RemoveGlobalType')
 replaceExport('DeletePeds')
@@ -309,4 +386,3 @@ replaceExport('UpdateGlobalObjectData')
 replaceExport('UpdateGlobalPlayerData')
 replaceExport('GetPeds')
 replaceExport('UpdatePedsData')
-replaceExport('AllowTargeting')

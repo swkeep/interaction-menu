@@ -7,241 +7,252 @@
 --                             | |
 --                             |_|
 -- https://github.com/swkeep
+
 local menu_id = nil
 local p = vector4(794.48, -3002.87, -69.41, 90.68)
 local vehicle = nil
 local current_category = nil
+local selected_vehicle = nil
+
+-- VEHICLE DATA
 local vehicleCategories = {
     {
         category = "Sports",
         items = {
-            { name = "reaper",  desb = "A high-performance supercar" },
-            { name = "adder",   desb = "Luxury hypercar with immense speed" },
-            { name = "comet",   desb = "Classic sports car with style and speed" },
-            { name = "feltzer", desb = "Luxury sports car with great handling" },
+            { name = "reaper",  desc = "A high-performance supercar",             stats = { speed = 95, accel = 90, handling = 85 } },
+            { name = "adder",   desc = "Luxury hypercar with immense speed",      stats = { speed = 100, accel = 92, handling = 80 } },
+            { name = "comet",   desc = "Classic sports car with style and speed", stats = { speed = 88, accel = 85, handling = 83 } },
+            { name = "feltzer", desc = "Luxury sports car with great handling",   stats = { speed = 90, accel = 87, handling = 88 } },
+            { name = "ninef",   desc = "Agile German-engineered sports car",      stats = { speed = 89, accel = 86, handling = 87 } },
         }
     },
     {
         category = "Muscle",
         items = {
-            { name = "dominator", desb = "Classic American muscle car" },
-            { name = "gauntlet",  desb = "Powerful and stylish muscle car" },
-            { name = "dukes",     desb = "Old-school muscle with raw power" },
-            { name = "blade",     desb = "Compact and powerful muscle car" },
+            { name = "dominator", desc = "Classic American muscle car",        stats = { speed = 85, accel = 82, handling = 70 } },
+            { name = "gauntlet",  desc = "Powerful and stylish muscle car",    stats = { speed = 87, accel = 83, handling = 72 } },
+            { name = "dukes",     desc = "Old-school muscle with raw power",   stats = { speed = 84, accel = 80, handling = 68 } },
+            { name = "blade",     desc = "Compact and powerful muscle car",    stats = { speed = 82, accel = 78, handling = 65 } },
+            { name = "vigero",    desc = "Retro muscle with aggressive looks", stats = { speed = 83, accel = 79, handling = 69 } },
         }
     },
     {
         category = "SUVs",
         items = {
-            { name = "baller",      desb = "High-end luxury SUV" },
-            { name = "cavalcade",   desb = "Large and rugged SUV" },
-            { name = "granger",     desb = "Spacious SUV with off-road capabilities" },
-            { name = "landstalker", desb = "Classic SUV with ample room" },
+            { name = "baller",      desc = "High-end luxury SUV",                  stats = { speed = 80, accel = 75, handling = 72 } },
+            { name = "cavalcade",   desc = "Large and rugged SUV",                 stats = { speed = 77, accel = 70, handling = 68 } },
+            { name = "granger",     desc = "Spacious SUV with off-road abilities", stats = { speed = 76, accel = 72, handling = 69 } },
+            { name = "landstalker", desc = "Classic SUV with ample room",          stats = { speed = 75, accel = 71, handling = 67 } },
+            { name = "huntley",     desc = "Luxury SUV with strong presence",      stats = { speed = 78, accel = 74, handling = 70 } },
         }
     },
     {
         category = "Super",
         items = {
-            { name = "zentorno", desb = "Aggressive styling and extreme speed" },
-            { name = "osiris",   desb = "Stylish hypercar with incredible performance" },
-            { name = "t20",      desb = "One of the fastest cars in GTA V" },
-            { name = "entityxf", desb = "Swedish hypercar with great control" },
+            { name = "zentorno",  desc = "Aggressive styling and extreme speed",      stats = { speed = 99, accel = 94, handling = 88 } },
+            { name = "osiris",    desc = "Stylish hypercar with incredible speed",    stats = { speed = 98, accel = 93, handling = 87 } },
+            { name = "t20",       desc = "One of the fastest cars in GTA V",          stats = { speed = 100, accel = 95, handling = 89 } },
+            { name = "entityxf",  desc = "Swedish hypercar with great control",       stats = { speed = 96, accel = 91, handling = 86 } },
+            { name = "prototipo", desc = "Prototype hypercar with futuristic design", stats = { speed = 99, accel = 94, handling = 90 } },
         }
     },
     {
         category = "OffRoad",
         items = {
-            { name = "bifta",    desb = "Lightweight dune buggy for off-road fun" },
-            { name = "rebel",    desb = "Rugged off-road truck" },
-            { name = "sandking", desb = "Massive off-road truck" },
-            { name = "blazer",   desb = "Quad bike for off-road exploration" },
+            { name = "bifta",       desc = "Lightweight dune buggy for off-road fun", stats = { speed = 74, accel = 82, handling = 80 } },
+            { name = "rebel",       desc = "Rugged off-road truck",                   stats = { speed = 72, accel = 70, handling = 76 } },
+            { name = "sandking",    desc = "Massive off-road truck",                  stats = { speed = 70, accel = 68, handling = 74 } },
+            { name = "blazer",      desc = "Quad bike for exploration",               stats = { speed = 75, accel = 79, handling = 81 } },
+            { name = "trophytruck", desc = "Racing truck made for desert",            stats = { speed = 78, accel = 80, handling = 82 } },
         }
     },
     {
         category = "Motorcycles",
         items = {
-            { name = "bati801",  desb = "High-speed sports motorcycle" },
-            { name = "daemon",   desb = "Classic chopper-style motorcycle" },
-            { name = "hakuchou", desb = "Superb speed and control" },
-            { name = "sanchez",  desb = "Dirt bike for off-road action" },
+            { name = "bati801",  desc = "High-speed sports motorcycle",     stats = { speed = 96, accel = 92, handling = 86 } },
+            { name = "daemon",   desc = "Classic chopper-style motorcycle", stats = { speed = 82, accel = 75, handling = 70 } },
+            { name = "hakuchou", desc = "Superb speed and control",         stats = { speed = 97, accel = 93, handling = 88 } },
+            { name = "sanchez",  desc = "Dirt bike for off-road action",    stats = { speed = 84, accel = 87, handling = 85 } },
+            { name = "ruffian",  desc = "Sporty and reliable street bike",  stats = { speed = 90, accel = 88, handling = 82 } },
         }
     },
     {
         category = "Sedans",
         items = {
-            { name = "asterope", desb = "Reliable mid-size sedan" },
-            { name = "emperor",  desb = "Classic sedan with a spacious interior" },
-            { name = "fugitive", desb = "Four-door sedan with solid performance" },
-            { name = "intruder", desb = "Luxury sedan with a refined feel" },
+            { name = "asterope", desc = "Reliable mid-size sedan",                stats = { speed = 75, accel = 70, handling = 73 } },
+            { name = "emperor",  desc = "Classic sedan with a spacious interior", stats = { speed = 70, accel = 65, handling = 68 } },
+            { name = "fugitive", desc = "Four-door sedan with solid performance", stats = { speed = 78, accel = 72, handling = 74 } },
+            { name = "intruder", desc = "Luxury sedan with a refined feel",       stats = { speed = 74, accel = 70, handling = 72 } },
+            { name = "premier",  desc = "Budget sedan with decent handling",      stats = { speed = 73, accel = 68, handling = 71 } },
         }
     },
     {
         category = "Coupes",
         items = {
-            { name = "cogcabrio", desb = "Luxury convertible coupe" },
-            { name = "exemplar",  desb = "Sleek and stylish coupe" },
-            { name = "oracle",    desb = "High-performance luxury coupe" },
-            { name = "zion",      desb = "Sporty and compact coupe" },
+            { name = "cogcabrio", desc = "Luxury convertible coupe",         stats = { speed = 82, accel = 78, handling = 75 } },
+            { name = "exemplar",  desc = "Sleek and stylish coupe",          stats = { speed = 84, accel = 80, handling = 76 } },
+            { name = "oracle",    desc = "High-performance luxury coupe",    stats = { speed = 83, accel = 79, handling = 77 } },
+            { name = "zion",      desc = "Sporty and compact coupe",         stats = { speed = 81, accel = 77, handling = 74 } },
+            { name = "sentinel",  desc = "Reliable coupe with good balance", stats = { speed = 80, accel = 76, handling = 73 } },
         }
     },
     {
         category = "Compacts",
         items = {
-            { name = "blista", desb = "Compact car with decent performance" },
-            { name = "brioso", desb = "Small and nimble compact car" },
-            { name = "issi",   desb = "Compact hatchback with quirky design" },
-            { name = "panto",  desb = "Tiny city car that's easy to park" },
+            { name = "blista",     desc = "Compact car with decent performance",   stats = { speed = 72, accel = 70, handling = 75 } },
+            { name = "brioso",     desc = "Small and nimble compact car",          stats = { speed = 73, accel = 72, handling = 74 } },
+            { name = "issi",       desc = "Compact hatchback with quirky design",  stats = { speed = 71, accel = 70, handling = 73 } },
+            { name = "panto",      desc = "Tiny city car that's easy to park",     stats = { speed = 70, accel = 69, handling = 72 } },
+            { name = "dilettante", desc = "Hybrid compact with good fuel economy", stats = { speed = 69, accel = 67, handling = 71 } },
         }
     },
     {
         category = "Vans",
         items = {
-            { name = "burrito",  desb = "Spacious van for group travel" },
-            { name = "youga",    desb = "Classic van with a rugged look" },
-            { name = "moonbeam", desb = "Retro-style van" },
-            { name = "speedo",   desb = "Commercial van with good cargo space" },
-        }
-    },
-    {
-        category = "Industrial",
-        items = {
-            { name = "bulldozer", desb = "Powerful earthmoving vehicle" },
-            { name = "dump",      desb = "Massive dump truck" },
-            { name = "handler",   desb = "Heavy-duty forklift" },
-            { name = "tiptruck",  desb = "Small dump truck" },
-        }
-    },
-    {
-        category = "Service",
-        items = {
-            { name = "taxi",        desb = "Standard taxi cab" },
-            { name = "towtruck",    desb = "Vehicle for towing other cars" },
-            { name = "trashmaster", desb = "Garbage truck used for waste collection" },
-            { name = "ambulance",   desb = "Emergency medical vehicle" },
-        }
-    },
-    {
-        category = "Emergency",
-        items = {
-            { name = "police",    desb = "Standard police cruiser" },
-            { name = "firetruk",  desb = "Fire truck used for emergencies" },
-            { name = "ambulance", desb = "Medical emergency vehicle" },
-            { name = "fbi2",      desb = "Undercover FBI SUV" },
-        }
-    },
-    {
-        category = "Military",
-        items = {
-            { name = "barracks",  desb = "Large military transport truck" },
-            { name = "crusader",  desb = "All-terrain military vehicle" },
-            { name = "rhino",     desb = "Heavily armored tank" },
-            { name = "insurgent", desb = "Armored off-road vehicle" },
-        }
-    },
-    {
-        category = "Boats",
-        items = {
-            { name = "dinghy",  desb = "Lightweight boat with a motor" },
-            { name = "jetmax",  desb = "High-speed boat" },
-            { name = "marquis", desb = "Luxury yacht" },
-            { name = "speeder", desb = "Sport boat with excellent speed" },
-        }
-    },
-    {
-        category = "Planes",
-        items = {
-            { name = "dodo",     desb = "Amphibious plane for air and water" },
-            { name = "luxor",    desb = "Luxury private jet" },
-            { name = "mammatus", desb = "Small, single-engine plane" },
-            { name = "velum",    desb = "Light aircraft with good range" },
-        }
-    },
-    {
-        category = "Helicopters",
-        items = {
-            { name = "buzzard",  desb = "Light attack helicopter" },
-            { name = "frogger",  desb = "Compact civilian helicopter" },
-            { name = "maverick", desb = "Standard civilian helicopter" },
-            { name = "savage",   desb = "Heavy-duty military helicopter" },
-        }
-    },
-    {
-        category = "Cycles",
-        items = {
-            { name = "bmx",      desb = "Light and versatile BMX bike" },
-            { name = "cruiser",  desb = "Casual bicycle for city travel" },
-            { name = "fixter",   desb = "Fixed-gear bike for city rides" },
-            { name = "scorcher", desb = "Mountain bike for off-road" },
+            { name = "burrito",  desc = "Spacious van for group travel",        stats = { speed = 68, accel = 65, handling = 70 } },
+            { name = "youga",    desc = "Classic van with a rugged look",       stats = { speed = 67, accel = 64, handling = 69 } },
+            { name = "moonbeam", desc = "Retro-style van",                      stats = { speed = 66, accel = 63, handling = 68 } },
+            { name = "speedo",   desc = "Commercial van with good cargo space", stats = { speed = 65, accel = 62, handling = 67 } },
+            { name = "rumpo",    desc = "Utility van used for deliveries",      stats = { speed = 64, accel = 61, handling = 66 } },
         }
     }
 }
 
 local function spawnVehicle(model)
     if vehicle then
-        print("Vehicle already spawned!")
-        return
+        DeleteEntity(vehicle)
+        vehicle = nil
     end
-    local spawn_p = InternalGetTestSlot('middle', 2)
+    local spawn_p = InternalGetTestSlot("middle", 2)
     vehicle = Util.spawnVehicle(model, spawn_p)
     if vehicle then
-        SetVehicleNumberPlateText(vehicle, 'swkeep')
-    else
-        print("Failed to spawn vehicle.")
+        SetVehicleNumberPlateText(vehicle, "SWKEEP")
     end
 end
 
-local itemsPerPage = 6
-local currentPage = 1
-local pages = math.floor(#vehicleCategories / itemsPerPage)
-if #vehicleCategories % itemsPerPage > 0 then
-    pages = pages + 1
-end
-
-local options = {
-    {
-        label = "Page: #1 | Tottal: 6",
-        bind = function()
-            local text = "Page: #%s | Tottal: %s"
-            return text:format(currentPage, pages)
-        end
-    }
+local info_panel = {
+    template = [[
+<style>
+.vehicle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  width: 100%;
 }
 
-table.insert(options, {
-    label = "Back",
-    icon = 'fa fa-arrow-left',
-    action = function()
-        current_category = nil
-        exports['interactionMenu']:refresh()
-    end,
-    canInteract = function()
-        return current_category ~= nil
+.vehicle-info__preview-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.vehicle-info__preview-img {
+  width: 60%;
+}
+
+.vehicle-info__name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #00ffcc;
+  text-align: center;
+}
+
+.vehicle-info__desc {
+  font-size: 1.2rem;
+  color: #e0e0e0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.vehicle-info__stat {
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.vehicle-info__bar {
+  display: inline-block;
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  width: 100%;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.vehicle-info__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00ffcc, #00ffaa);
+  transition: width 0.4s ease;
+}
+</style>
+
+<div class="vehicle-info">
+  {{#if selected}}
+    <div class="vehicle-info__preview-wrapper">
+        <img class="vehicle-info__preview-img"
+             src="https://docs.fivem.net/vehicles/{{name}}.webp" />
+    </div>
+  {{/if}}
+
+  <div class="vehicle-info__name">{{name}}</div>
+  <div class="vehicle-info__desc">{{desc}}</div>
+
+  <div class="vehicle-info__stat">⚡ Speed
+    <div class="vehicle-info__bar">
+      <div class="vehicle-info__bar-fill" style="width: {{speed}}%;"></div>
+    </div>
+  </div>
+
+  <div class="vehicle-info__stat">🚀 Acceleration
+    <div class="vehicle-info__bar">
+      <div class="vehicle-info__bar-fill" style="width: {{accel}}%;"></div>
+    </div>
+  </div>
+
+  <div class="vehicle-info__stat">🚘 Handling
+    <div class="vehicle-info__bar">
+      <div class="vehicle-info__bar-fill" style="width: {{handling}}%;"></div>
+    </div>
+  </div>
+</div>
+]],
+    bind = function()
+        if not selected_vehicle then
+            return { name = "Select a vehicle", desc = "Choose a car from the menu.", speed = 0, accel = 0, handling = 0, selected = false }
+        end
+        return {
+            name = selected_vehicle.name,
+            desc = selected_vehicle.desc,
+            speed = selected_vehicle.stats.speed,
+            accel = selected_vehicle.stats.accel,
+            handling = selected_vehicle.stats.handling,
+            selected = true
+        }
     end
-})
+}
 
-for index, entry in pairs(vehicleCategories) do
-    local page = math.ceil(index / itemsPerPage)
+local options = { info_panel }
 
+for _, entry in ipairs(vehicleCategories) do
     table.insert(options, {
-        label = entry.category,
-        icon = 'fa fa-circle',
+        label = "📂 " .. entry.category,
         action = function()
             current_category = entry.category
-            exports['interactionMenu']:refresh()
+            exports["interactionMenu"]:refresh()
         end,
         canInteract = function()
-            return current_category == nil and currentPage == page
+            return current_category == nil
         end
     })
 
     for _, v in ipairs(entry.items) do
         table.insert(options, {
-            label = v.name,
-            icon = 'fa fa-circle',
-            description = v.desb,
+            label = "🚘 " .. v.name,
             action = function()
+                selected_vehicle = v
                 spawnVehicle(v.name)
-                exports['interactionMenu']:refresh()
+                exports["interactionMenu"]:refresh()
             end,
             canInteract = function()
                 return current_category == entry.category
@@ -251,46 +262,27 @@ for index, entry in pairs(vehicleCategories) do
 end
 
 table.insert(options, {
-    label = 'Perv Page',
-    icon = 'fa fa-arrow-left',
+    label = "Back",
+    icon = "fa fa-arrow-left",
     action = function()
-        currentPage = currentPage - 1
-        if currentPage <= 0 then
-            currentPage = 1
-        end
-        exports['interactionMenu']:refresh()
+        current_category = nil
+        exports["interactionMenu"]:refresh()
     end,
     canInteract = function()
-        return current_category == nil
+        return current_category ~= nil
     end
 })
 
 table.insert(options, {
-    label = 'Next Page',
-    icon = 'fa fa-arrow-right',
-    action = function()
-        currentPage = currentPage + 1
-        if currentPage >= pages then
-            currentPage = pages
-        end
-        exports['interactionMenu']:refresh()
-    end,
-    canInteract = function()
-        return current_category == nil
-    end
-})
-
-table.insert(options, {
-    label = 'Despawn',
-    icon = 'fa fa-x',
+    label = "Despawn Vehicle",
+    icon = "fa fa-times",
     action = function()
         if vehicle and DoesEntityExist(vehicle) then
             DeleteEntity(vehicle)
             vehicle = nil
-        else
-            print("No vehicle to despawn.")
         end
-        exports['interactionMenu']:refresh()
+        selected_vehicle = nil
+        exports["interactionMenu"]:refresh()
     end,
     canInteract = function()
         return vehicle ~= nil
@@ -298,14 +290,14 @@ table.insert(options, {
 })
 
 local function init()
-    menu_id = exports['interactionMenu']:Create {
+    menu_id = exports["interactionMenu"]:Create {
         rotation = vector3(-40, 0, 270),
         position = vector4(795.0, -3002.15, -69.41, 90.68),
-        scale = 1,
-        theme = 'box',
-        width = '80%',
+        theme = "theme-2",
+        width = "80%",
+        skip_animation = true,
         zone = {
-            type = 'boxZone',
+            type = "boxZone",
             position = p,
             heading = p.w,
             width = 4.0,
@@ -320,7 +312,7 @@ end
 
 local function cleanup()
     if menu_id then
-        exports['interactionMenu']:remove(menu_id)
+        exports["interactionMenu"]:remove(menu_id)
         menu_id = nil
     end
     if vehicle and DoesEntityExist(vehicle) then
@@ -330,5 +322,8 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "car_showroom", "Showroom", "fa-solid fa-car-side")
+    InternalRegisterTest(init, cleanup, "car_showroom", "Showroom", "fa-solid fa-car-side", "Preview each car's stats, speed, acceleration, and handling.", {
+        type = "green",
+        label = "Vehicle"
+    })
 end)

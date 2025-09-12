@@ -13,6 +13,21 @@ Config = {}
 Config.devMode = false
 Config.debugPoly = false
 
+Config.provide = {
+    ox_target = false,
+    ox_target_test = false,
+    qb_target = false,
+    qb_target_test = false
+}
+
+Config.indicator = {
+    enabled = true,
+    eye_enabled = false,
+
+    outline_enabled = false,
+    outline_color = { 255, 255, 255, 255 },
+}
+
 Config.interactionAudio = {
     mouseWheel = {
         audioName = 'NAV_UP_DOWN',
@@ -25,28 +40,14 @@ Config.interactionAudio = {
 }
 
 Config.intervals = {
-    detection = 500
-}
-
-Config.features = {
-    positionCorrection = true,
-    timeBasedTheme = true,
-    drawIndicator = {
-        active = true
-    }
+    detection = 400
 }
 
 Config.icons = {
-    'stove',
-    'stove2',
     'glowingball',
-    'box',
-    'wrench',
-    'vending'
 }
 
-Config.triggerZoneScript = 'PolyZone' -- ox_lib/PolyZone
-Config.screenBoundaryShape = 'none'   -- circle/rectangle/none
+Config.screenBoundaryShape = 'none' -- circle/rectangle/none
 Config.controls = {
     -- Note: Player have to to reset their key bindings to default for changes to take effect.
 

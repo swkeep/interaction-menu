@@ -8,6 +8,7 @@
 --                             |_|
 -- https://github.com/swkeep
 if not DEVMODE then return end
+
 local positions = {
     vector4(794.00, -2997.10, -70.00, 0),
     vector4(796.50, -2997.10, -70.00, 0),
@@ -34,8 +35,7 @@ local positions = {
     vector4(809.00, -3008.70, -70.00, 180),
 }
 
-local menus = {}
-local entities = {}
+local menus, entities = {}, {}
 
 local function init()
     local objects = {
@@ -57,46 +57,27 @@ local function init()
         maxDistance = 2.0,
         options = {
             {
-                label = "Open",
-                action = function(e)
-
-                end
+                label = "Open Crate",
+                icon = "fas fa-box-open",
+                action = function(e) print("Opened crate:", e) end
             },
             {
-                icon = "fas fa-spinner",
-                label = "Spinner",
-                action = function(e)
-
-                end
+                label = "Check Contents",
+                icon = "fas fa-search",
+                action = function(e) print("Checking contents of:", e) end
             },
             {
-                label = "rgb(50,100,50)",
-                style = {
-                    color = {
-                        label = 'rgb(50,255,50)',
-                    }
-                }
+                label = "Green Option",
+                style = { color = { label = 'rgb(50,255,50)' } }
             },
             {
-                label = "rgb(250,0,50)",
-                style = {
-                    color = {
-                        label = 'rgb(250,0,50)',
-                    }
-                }
+                label = "Red Option",
+                style = { color = { label = 'rgb(250,0,50)' } }
             },
             {
-                icon = "fas fa-spinner",
-                label = "rgb(0,0,250)",
-                style = {
-                    color = {
-                        background = 'wheat',
-                        label = 'rgb(0,0,250)',
-                    }
-                },
-                action = function(e)
-
-                end
+                label = "Blue Option",
+                icon = "fas fa-palette",
+                style = { color = { label = 'rgb(0,0,250)', background = 'wheat' } }
             }
         }
     }
@@ -104,20 +85,12 @@ local function init()
     menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_vend_snak_01`,
-        offset = vec3(0, 0, 0),
         maxDistance = 2.0,
-        extra = {
-            job = {
-                ['police'] = { 1, 3, 2 }
-            },
-        },
         options = {
             {
-                label = 'Job Access: Police',
-                icon = 'fa fa-handcuffs',
-                action = function()
-
-                end
+                label = 'Info Screen',
+                icon = 'fa fa-info-circle',
+                action = function(e) print("Viewing info on:", e) end
             }
         }
     }
@@ -125,29 +98,12 @@ local function init()
     menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_vend_snak_01`,
-        offset = vec3(0, 0, 0),
         maxDistance = 2.0,
         options = {
             {
-                label = 'First On Model',
-                icon = 'fa fa-book',
-                action = function(e)
-                end
-            }
-        }
-    }
-
-    menus[#menus + 1] = exports['interactionMenu']:Create {
-        type = 'model',
-        model = `prop_vend_snak_01`,
-        offset = vec3(0, 0, 0),
-        maxDistance = 2.0,
-        options = {
-            {
-                label = 'Second On Model',
-                icon = 'fa fa-book',
-                action = function(e)
-                end
+                label = 'Purchase Item',
+                icon = 'fa fa-shopping-cart',
+                action = function(e) print("Buying from:", e) end
             }
         }
     }
@@ -155,14 +111,12 @@ local function init()
     menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_paper_bag_01`,
-        offset = vec3(0, 0, 0),
         maxDistance = 3.0,
         options = {
             {
-                label = 'Second On Model',
-                icon = 'fa fa-book',
-                action = function(e)
-                end
+                label = 'Inspect Bag',
+                icon = 'fa fa-search',
+                action = function(e) print("Inspecting bag:", e) end
             }
         }
     }
@@ -170,15 +124,12 @@ local function init()
     menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `prop_paper_bag_01`,
-        offset = vec3(0, 0, 0),
         maxDistance = 3.0,
         options = {
             {
-                label = 'Pick',
-                icon = 'fa fa-book',
-                action = function(e)
-                    DeleteEntity(e)
-                end
+                label = 'Pick Up',
+                icon = 'fa fa-hand-paper',
+                action = function(e) DeleteEntity(e) end
             }
         }
     }
@@ -186,36 +137,31 @@ local function init()
     menus[#menus + 1] = exports['interactionMenu']:Create {
         type = 'model',
         model = `adder`,
-        offset = vec3(0, 0, 0),
         maxDistance = 2.0,
-        indicator = {
-            prompt = 'E',
-        },
+        indicator = { prompt = 'E' },
         options = {
             {
-                label = "[Debug] On adder",
+                label = "Enter Vehicle [Debug]",
                 icon = 'fa fa-car',
-                action = function(e)
-                    print(e)
-                end
+                action = function(e) print("Interacted with vehicle:", e) end
             }
         }
     }
 end
 
 local function cleanup()
-    for index, menu_id in ipairs(menus) do
+    for _, menu_id in ipairs(menus) do
         exports['interactionMenu']:remove(menu_id)
     end
-    for index, entity in ipairs(entities) do
-        if DoesEntityExist(entity) then
-            DeleteEntity(entity)
-        end
+    for _, entity in ipairs(entities) do
+        if DoesEntityExist(entity) then DeleteEntity(entity) end
     end
-    menus = {}
-    entities = {}
+    menus, entities = {}, {}
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "on_model", "On Models", "fa-solid fa-tent-arrows-down")
+    InternalRegisterTest(init, cleanup, "on_model", "On Models", "fa-solid fa-tent-arrows-down",
+        "Example menus bound to models. Shows different features: styled options, entity deletion, and vehicle interaction.",
+        { type = "dark-orange", label = "Feature" }
+    )
 end)

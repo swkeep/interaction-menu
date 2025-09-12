@@ -150,6 +150,10 @@ local function send(event, data)
     SendDuiMessage(DUI.scaleform.duiObject, json.encode({ action = event, data = data }))
 end
 
+local function send_nui(event, data)
+    SendNUIMessage({ action = event, data = data })
+end
+
 local function setPosition(position)
     if DUI.scaleform.position == position then return end
     DUI.scaleform.position = vec3(position.x, position.y, position.z)
@@ -260,6 +264,7 @@ function DUI:Create()
     scaleform.set3d = set3d
     scaleform.setScale = setScale
     scaleform.send = send
+    scaleform.send_nui = send_nui
     scaleform.setStatus = setStatus
     scaleform.attach = attach
     scaleform.dettach = dettach

@@ -35,11 +35,13 @@ client_script {
 
      -- core
      'lua/client/util.lua',
-     'lua/client/3dDuiMaker.lua',
      'lua/client/menuContainer.lua',
-     'lua/client/userInputManager.lua',
-     'lua/client/interact.lua',
-     'lua/client/drawIndicator.lua',
+     'lua/client/input_manager.lua',
+
+     'lua/client/client.core.lua',
+     'lua/client/features/*.lua',
+
+     'lua/client/sprite_renderer.lua',
      'lua/client/GC.lua',
      'lua/client/example_manager.lua',
      'lua/client/extends/*.lua',
@@ -47,6 +49,8 @@ client_script {
      -- providers
      'lua/providers/qb-target.lua',
      'lua/providers/qb-target_test.lua',
+     'lua/providers/ox_target.lua',
+     'lua/providers/ox_target_test.lua',
 
      -- examples / tests
      'lua/examples/*.lua',
@@ -62,5 +66,6 @@ files {
 }
 
 provide 'qb-target'
+provide 'ox_target'
 
 lua54 'yes'

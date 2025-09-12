@@ -246,5 +246,8 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "on_bones", "On Vehicle Boens", "fa-solid fa-border-none")
+    InternalRegisterTest(init, cleanup, "on_bones", "On Vehicle Boens", "fa-solid fa-border-none", "", {
+        type = "dark-orange",
+        label = "Feature"
+    })
 end)

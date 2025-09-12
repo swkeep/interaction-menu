@@ -1,46 +1,61 @@
 # Interaction Menu
 
 <center>
+    <img src=".github/images/interaction-menu-v2.jpg" />
+</center>
 
-![](https://img.shields.io/github/v/release/swkeep/interaction-menu?logo=github)
-![](https://img.shields.io/github/downloads/swkeep/interaction-menu/total?logo=github)
-![](https://img.shields.io/github/downloads/swkeep/interaction-menu/latest/total?logo=github)
+<center>
+
+![](https://img.shields.io/github/v/release/swkeep/interaction-menu?logo=github&style=for-the-badge)
+![](https://img.shields.io/github/downloads/swkeep/interaction-menu/total?logo=github&style=for-the-badge)
+![](https://img.shields.io/github/downloads/swkeep/interaction-menu/latest/total?logo=github&style=for-the-badge)
+![](https://img.shields.io/github/stars/swkeep/interaction-menu?logo=github&style=for-the-badge)
+![Discord](https://img.shields.io/discord/988158464276693012?logo=discord&style=for-the-badge)
 
 </center>
 
-A standalone DUI-based interaction menu for FiveM, designed to enhance player interactions with the environment on your server.
 
-This menu isn't designed to replace target scripts (though you could, but it would take quite a bit of effort on your end). Instead, it's meant to work alongside them, adding an extra layer of interactions to players. That said, keep in mind that the script uses sprites and DUI, which can be more resource-intensive compared to NUI-based scripts (nothing to worry about if you have some experience with scripting).
+Interaction menu is a modular, raycast, zone and entitiy based interaction system for FiveM. It leverages sprites and DUI to render rich, in-game menus, allowing players to interact with entities, world positions, zones, vehicles, and more. Menus are tracked in a centralized container structure and automatically cleaned up via a dedicated garbage collector.
+
+## Features
+
+The script offer a wide range of features, including:
+
+* A dedicated `HTML template engine` for creating custom options
+* Dedicated media components, picture, music, and video players
+* Multiple triggers for events, commands, exports and more
+* A variety of pre-made beautiful themes
+* Full customization of existing themes and the ability to add new ones with ease
+* Bridges for compatibility with target scripts like `ox_target` and `qb-target`
+* `3D Menus` to maintain player immersion in the game world
+* User Friendly Syntax, clear, straightforward, and easy to pick up
+
+…and many more features waiting to be discovered and brought to life with your creativity!
 
 ## Preview
 
 <center>
-    <table>
-    <tr>
-        <td align="center">
-            <img src=".github/images/preview_1.jpg" />
-        </td>
-        <td align="center">
-            <img src=".github/images/preview_2.jpg" />
-        </td>
-        <td align="center">
-            <img src=".github/images/preview_3.jpg" />
-        </td>
-    </tr>
-    </table>
-</center>
 
-<center>
-    <table>
-    <tr>
-        <td align="center">
-            <img src=".github/images/preview_4.jpg" />
-        </td>
-        <td align="center">
-            <img src=".github/images/preview_5.jpg" />
-        </td>
-    </tr>
-    </table>
+<table>
+<tr>
+    <td align="center">
+        <img src=".github/images/preview_1.jpg" alt="Preview 1" />
+    </td>
+    <td align="center">
+        <img src=".github/images/preview_2.jpg" alt="Preview 2" />
+    </td>
+    <td align="center">
+        <img src=".github/images/preview_4.jpg" alt="Preview 4" />
+    </td>
+    <td align="center">
+        <img src=".github/images/preview_5.jpg" alt="Preview 5" />
+    </td>
+    <td align="center">
+        <img src=".github/images/preview_3.jpg" alt="Preview 3" />
+    </td>
+</tr>
+</table>
+
 </center>
 
 **[Watch on YouTube](https://www.youtube.com/watch?v=7ylxnj4HC5A)**
@@ -51,7 +66,8 @@ This menu isn't designed to replace target scripts (though you could, but it wou
 
 ## Documentation
 
-**[Click Here](https://swkeep.com)**
+Documentation is still a work in progress.  
+In the meantime, check out the examples in [`/lua/examples`](./lua/examples) for guidance.
 
 ## Developer Tools and Examples
 
@@ -62,10 +78,6 @@ To explore these examples live within your server:
 2. This enables developer mode, allowing you to see and interact with the examples in real time.
 
 **Important:** Remember to disable developer mode when you're done testing for optimal performance.
-
-<center>
-    <img src=".github/images/dev_mode.jpg" alt="Developer Mode Example"/>
-</center>
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -82,6 +94,6 @@ Don't forget to give the project a star! Thanks again!
 See `LICENSE` for more information.
 
 <!-- CONTACT -->
-## Contact
+## Contact & Support
 
-Swkeep - [@Discord](https://discord.gg/ccMArCwrPV)
+For questions, support, or community discussions, join **Swkeep** on [Discord](https://discord.gg/ccMArCwrPV) 

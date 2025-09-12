@@ -9,14 +9,6 @@
 -- https://github.com/swkeep
 if not DEVMODE then return end
 local positions = {
-    -- vector4(794.00, -2991.52, -70.0, 0),
-    -- vector4(796.50, -2991.52, -70.0, 0),
-    -- vector4(799.00, -2991.52, -70.0, 0),
-    -- vector4(801.50, -2991.52, -70.0, 0),
-    -- vector4(804.00, -2991.52, -70.0, 0),
-    -- vector4(806.50, -2991.52, -70.0, 0),
-    -- vector4(809.00, -2991.52, -70.0, 0),
-
     vector4(794.00, -2997.10, -70.00, 0),
     vector4(796.50, -2997.10, -70.00, 0),
     vector4(799.00, -2997.10, -70.00, 0),
@@ -47,18 +39,14 @@ local positions = {
 
 local menu_ids = {}
 local entities = {}
-
--- variables
 local carryingBox = false
 local isDigging = false
---
 
 local menus = {
     {
         model = "prop_vend_snak_01",
         offset = vec3(0, 0, 0),
         maxDistance = 2.0,
-        icon = 'vending',
         extra = {
             onSeen = function()
                 print('entity on seen')
@@ -98,7 +86,6 @@ local menus = {
     {
         model = "h4_prop_h4_board_01a",
         suppressGlobals = true,
-        icon = 'vending',
         offset = vec3(0, 0, 1),
         options = {
             {
@@ -122,40 +109,6 @@ local menus = {
                     payload = {
                         jobID = 12345
                     }
-                }
-            },
-            {
-                label = 'Report Issue',
-                event = {
-                    name = 'reportIssue',
-                    payload = {
-                        issueType = 'bug',
-                        description = 'I encountered a problem during the job.'
-                    }
-                }
-            },
-            {
-                label = 'Job Completed',
-                event = {
-                    name = 'jobCompleted',
-                    payload = {
-                        reward = '$10,000',
-                        experience = 150
-                    }
-                }
-            },
-            {
-                label = 'Request Support',
-                event = {
-                    name = 'requestSupport',
-                    payload = 'I need assistance with my current job.'
-                }
-            },
-            {
-                label = 'Pause/Resume Job',
-                event = {
-                    name = 'pauseResumeJob',
-                    payload = 'pause'
                 }
             },
             {
@@ -210,7 +163,6 @@ local menus = {
     {
         model = "prop_vend_snak_01",
         suppressGlobals = true,
-        icon = 'vending',
         indicator = {
             prompt = 'Press E',
             glow = true
@@ -294,7 +246,6 @@ local menus = {
     },
     {
         model = 'v_ret_fh_kitchtable',
-        icon = 'stove',
         options = {
             {
                 video = {
@@ -488,7 +439,6 @@ local menus = {
     {
         model = "prop_cs_cardbox_01",
         offset = vec3(0, 0, 0),
-        icon = 'box',
         options = {
             {
                 label = 'Pickup',
@@ -530,7 +480,6 @@ local menus = {
         model = "prop_hobo_stove_01",
         offset = vec3(0, 0, 0),
         static = true,
-        icon = "stove2",
         options = {
             {
                 label = 'Cook',
@@ -560,7 +509,7 @@ local menus = {
     },
     {
         model = "m24_1_prop_m41_camera_01a",
-        offset = vec3(0, 0, 1.2),
+        offset = vec3(0, 0, 0.5),
         options = {
             {
                 label = 'Activate Camera',
@@ -695,7 +644,7 @@ local function init()
         },
         options = {
             {
-                label = 'Disabled After 4 Seconds',
+                label = 'Test',
                 action = function(data)
 
                 end
@@ -719,7 +668,10 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "on_entities", "On Entities", "fa-solid fa-diagram-project")
+    InternalRegisterTest(init, cleanup, "on_entities", "On Entities", "fa-solid fa-diagram-project", "", {
+        type = "dark-orange",
+        label = "Feature"
+    })
 end)
 
 AddEventHandler('testEvent:client', function(e)

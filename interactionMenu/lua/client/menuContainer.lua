@@ -7,6 +7,7 @@
 --                             | |
 --                             |_|
 -- https://github.com/swkeep
+
 local interactionAudio = Config.interactionAudio or {
     mouseWheel = {
         audioName = 'NAV_UP_DOWN',
@@ -21,9 +22,6 @@ local interactionAudio = Config.interactionAudio or {
 local IsPedAPlayer = IsPedAPlayer
 local GetPlayerServerId = GetPlayerServerId
 local NetworkGetPlayerIndexFromPed = NetworkGetPlayerIndexFromPed
-local SpatialHashGrid = Util.SpatialHashGrid
-local grid = SpatialHashGrid:new('position', 100)
-local zone_grid = SpatialHashGrid:new('zone', 100)
 local StateManager = Util.StateManager()
 
 -- enum: used in difference between OBJECTs, PEDs, VEHICLEs
@@ -57,10 +55,6 @@ Container = {
     },
     runningInteractions = {},
 }
-
-local function canCreateZone()
-    return GetResourceState('PolyZone') == 'started'
-end
 
 --- Build interaction table for named interactions (canInteract, onSeen, onExit)
 ---@param data table 'raw menu data'
@@ -164,6 +158,35 @@ end
 ---@field event? string "Event name to trigger when the option is selected"
 ---@field hide boolean "Indicates whether the option should be hidden"
 
+---@class MenuInstance
+---@field id string|number
+---@field type string|nil
+---@field theme string
+---@field glow boolean
+---@field width number|string
+---@field extra table<string, any>
+---@field indicator string|boolean
+---@field icon string
+---@field interactions table
+---@field options InteractionOption[]
+---@field metadata MenuInstanceMetadata
+---@field tracker '"raycast"'|'"proximity"'|string
+---@field schemaType '"normal"'|'"qbtarget"'|string
+---@field flags MenuInstanceFlags
+
+---@class MenuInstanceMetadata
+---@field invokingResource string
+---@field offset vector3
+---@field maxDistance number
+
+---@class MenuInstanceFlags
+---@field disable boolean
+---@field hide boolean
+---@field suppressGlobals boolean
+---@field static boolean
+---@field skip_animation boolean
+---@field alternativeMetadata boolean
+
 local function transformRestrictions(t)
     if not Bridge.active then return end
     if not t then return end
@@ -198,6 +221,8 @@ local function buildOption(data, instance)
             progress = option.progress,
             icon = option.icon,
             item = option.item,
+            items = option.items,
+            has_any = option.has_any,
             job = option.job and transformRestrictions(option.job),
             gang = option.gang and transformRestrictions(option.gang),
 
@@ -219,54 +244,89 @@ local function buildOption(data, instance)
     end
 end
 
---- now that's a name to love,
---- organize menu instances for efficient access
----@param instance any
-local function classifyMenuInstance(instance)
-    local entity = instance.entity and instance.entity.handle
-    local model = instance.model or instance.entity and instance.entity.model
-    local bone = instance.bone
-    local indexes = Container.indexes
+---@alias GTAVBoneName
+---| '"SKEL_Head"'
+---| '"SKEL_Neck_1"'
+---| '"SKEL_Spine3"'                    -- Upper Spine
+---| '"SKEL_Spine2"'                    -- Middle Spine
+---| '"SKEL_Spine1"'                    -- Lower Spine
+---| '"SKEL_Spine0"'                    -- Root Spine
+---| '"SKEL_L_Clavicle"'
+---| '"SKEL_R_Clavicle"'
+---| '"SKEL_L_UpperArm"'
+---| '"SKEL_R_UpperArm"'
+---| '"SKEL_L_Forearm"'
+---| '"SKEL_R_Forearm"'
+---| '"SKEL_L_Hand"'
+---| '"SKEL_R_Hand"'
+---| '"SKEL_L_Thigh"'
+---| '"SKEL_R_Thigh"'
+---| '"SKEL_L_Calf"'
+---| '"SKEL_R_Calf"'
+---| '"SKEL_L_Foot"'
+---| '"SKEL_R_Foot"'
+---| '"SKEL_L_Toe0"'
+---| '"SKEL_R_Toe0"'
+---| '"SKEL_Pelvis"'
+---| '"SKEL_Spine_Root"'
+-- Vehicle bones
+---| '"chassis"'
+---| '"windscreen"'
+---| '"bonnet"'
+---| '"boot"'
+---| '"door_dside_f"'
+---| '"door_dside_r"'
+---| '"door_pside_f"'
+---| '"door_pside_r"'
+---| '"wheel_lf"'
+---| '"wheel_rf"'
+---| '"wheel_lr"'
+---| '"wheel_rr"'
+---| string
 
-    if bone and instance.vehicle then
-        local bones = indexes.bones
-        entity = instance.vehicle and instance.vehicle.handle
-        model = instance.model or instance.vehicle and instance.vehicle.model
+---@class ManualTriggers
+---@field open string
+---@field close string
 
-        bones[entity] = bones[entity] or {}
-        bones[entity][bone] = bones[entity][bone] or {}
+---@class UserCreateData
+---@field id? number|string
+---@field vehicle? number
+---@field entity? number
+---@field zone? number
+---@field position? number
+---@field options? table
+---@field bone? GTAVBoneName
+---@field tracker? string
+---@field dimensions? table
+---@field offset? table
+---@field rotation? table
+---@field triggers? ManualTriggers
+---@field scale? number
+---@field theme? string
+---@field type? string
+---@field glow? boolean
+---@field maxDistance? number
+---@field indicator? table
+---@field extra? table
+---@field player? number
+---@field model? number
+---@field netId? number
+---@field width? number|string
+---@field icon? string
+---@field schemaType? string
+---@field suppressGlobals? boolean
+---@field static? boolean
+---@field skip_animation? boolean
+---@field alternativeMetadata? boolean
 
-        table.insert(bones[entity][bone], instance.id)
-    elseif model and entity then
-        local entities = indexes.entities
-        entities[entity] = entities[entity] or {}
-
-        table.insert(entities[entity], instance.id)
-    elseif model and not entity then
-        local models = indexes.models
-        models[model] = models[model] or {}
-
-        table.insert(models[model], instance.id)
-    elseif instance.type == 'netId' then
-        local netIds = indexes.netIds
-        local netId = instance.netId
-        netIds[netId] = netIds[netId] or {}
-
-        table.insert(netIds[netId], instance.id)
-    elseif instance.player then
-        local players = indexes.players
-        players[instance.player] = players[instance.player] or {}
-
-        table.insert(players[instance.player], instance.id)
-    end
-end
-
+---@param t UserCreateData
+---@return string|number?
 function Container.create(t)
     local invokingResource = GetInvokingResource() or 'interactionMenu'
     local id = t.id or Util.createUniqueId(Container.data)
     if Container.data[id] then
         warn(dupe_menu:format(invokingResource, id))
-        Container.remove(id)
+        GC.flag(id)
     end
 
     local instance = {
@@ -298,47 +358,9 @@ function Container.create(t)
     }
 
     if t.type == "manual" then
-        instance.type = 'manual'
-        instance.entity = {
-            handle = t.entity,
-            networked = NetworkGetEntityIsNetworked(t.entity) == 1,
-            type = EntityTypes[GetEntityType(t.entity)],
-            model = t.model or GetEntityModel(t.entity)
-        }
-        instance.rotation = t.rotation
-        instance.scale = t.scale
-        instance.manual_events = {
-            [1] = AddEventHandler(t.triggers.open, function()
-                Container.current_manual_menu = id
-                StateManager.set('id', id)
-                StateManager.set('menuType', MenuTypes['MANUAL'])
-                StateManager.set('entityModel', GetEntityModel(t.entity))
-                StateManager.set('entityHandle', t.entity)
-                StateManager.set('playerDistance', 1.0)
-            end),
-            [2] = AddEventHandler(t.triggers.close, function()
-                Container.current_manual_menu = nil
-                StateManager.reset()
-            end)
-        }
+        Features.resolve("Create", "OPENED_MANUALLY", t, instance)
     elseif t.position and not t.zone then
-        instance.type = 'position'
-        instance.position = { x = t.position.x, y = t.position.y, z = t.position.z, id = id, maxDistance = t.maxDistance }
-        instance.rotation = t.rotation
-
-        local isOccupied, foundItem = grid:isPositionOccupied({ x = t.position.x, y = t.position.y })
-        if isOccupied then
-            if not foundItem.ids then
-                local current_id = foundItem.id
-                foundItem.id = nil
-                foundItem.ids = {
-                    [1] = current_id,
-                }
-            end
-            foundItem.ids[#foundItem.ids + 1] = id
-        else
-            grid:insert(instance.position)
-        end
+        Features.resolve("Create", "AT_POSITION", t, instance)
     elseif t.player then
         if type(t.player) ~= 'number' then
             warn('Player id must a integer value')
@@ -346,86 +368,12 @@ function Container.create(t)
         end
         instance.type = 'player'
         instance.player = t.player
-    elseif t.entity then
-        if not DoesEntityExist(t.entity) then
-            local message = (
-                "Menu creation failed:\n - Entity does not exist: %s\n - Invoking resource: %s"
-            ):format(t.entity, instance.metadata.invokingResource)
-
-            warn(message)
-            return
-        end
-
-        instance.type = 'entity'
-        instance.entity = {
-            handle = t.entity,
-            networked = NetworkGetEntityIsNetworked(t.entity) == 1,
-            type = EntityTypes[GetEntityType(t.entity)],
-            model = t.model or GetEntityModel(t.entity)
-        }
-
-        if instance.entity.networked then
-            instance.entity.netId = NetworkGetNetworkIdFromEntity(t.entity)
-        end
-
-        if instance.tracker == 'boundingBox' then
-            EntityDetector.watch(t.entity, {
-                name = t.entity,
-                useZ = true,
-                dimensions = t.dimensions or { vec3(-1, -1, -1), vec3(1, 1, 1) }
-            })
-        end
-    elseif t.model then
-        instance.type = 'model'
-        instance.model = t.model
-    elseif t.netId then
-        instance.type = 'netId'
-        instance.netId = t.netId
+    elseif t.entity or t.model or t.netId then
+        Features.resolve("Create", "TARGETING_ENTITY", t, instance)
     elseif t.bone then
-        instance.type = 'bone'
-        instance.bone = t.bone
-
-        if t.vehicle then
-            instance.vehicle = {
-                handle = t.vehicle,
-                networked = NetworkGetEntityIsNetworked(t.vehicle) == 1,
-                type = EntityTypes[GetEntityType(t.vehicle)],
-                model = t.model or GetEntityModel(t.vehicle)
-            }
-
-            if instance.vehicle.networked then
-                instance.vehicle.netId = NetworkGetNetworkIdFromEntity(t.vehicle)
-            end
-        end
+        Features.resolve("Create", "ON_VEHICLE_BONE", t, instance)
     elseif t.zone and t.position then
-        if canCreateZone() then
-            instance.type = 'zone'
-            instance.position = {
-                x = t.position.x,
-                y = t.position.y,
-                z = t.position.z,
-                id = id
-            }
-            instance.rotation = t.rotation
-            instance.zone = t.zone
-            instance.scale = t.scale
-            instance.tracker = t.tracker or "collision" -- (presence or collision), hit
-
-            if instance.zone then
-                t.zone.name = id
-                t.zone.tracker = instance.tracker
-                Container.zones[id] = Util.addZone(t.zone)
-                if instance.tracker == "hit" then
-                    Container.zones[id].tracker = instance.tracker
-                end
-                if not Container.zones[id] then
-                    return
-                end
-            end
-            zone_grid:insert(instance.position)
-        else
-            warn('Could not find `PolyZone`. Make sure it is started before interactionMenu.')
-        end
+        Features.resolve("Create", "TRIGGER_ZONE", t, instance)
     else
         warn('Could not determine menu type (failed to create interaction)')
         return
@@ -435,7 +383,6 @@ function Container.create(t)
     buildInteraction(t, instance.interactions, "onTrigger")
     buildInteraction(t, instance.interactions, "onSeen")
     buildInteraction(t, instance.interactions, "onExit")
-    classifyMenuInstance(instance)
 
     Container.total = Container.total + 1
     Container.data[id] = instance
@@ -511,21 +458,21 @@ exports('createGlobal', Container.createGlobal)
 ---@return number "closestVehicleBone"
 ---@return unknown "closestBoneName"
 ---@return number "boneDistance"
-function Container.boneCheck(entity)
+function Container.boneCheck(ray_hit_position, entity)
     -- it's safer to use it only in vehicles
+    if not ray_hit_position then return nil, nil, nil end
     if GetEntityType(entity) ~= 2 then return nil, nil, nil end
 
     local bones = Container.indexes.bones[entity] or Container.indexes.globals.bones
-    local hitPosition = StateManager.get('hitPosition')
-
-    if bones and hitPosition then
+    if bones then
         local closestVehicleBone, closestBoneName, boneDistance = 0, false, 0
-        closestVehicleBone, closestBoneName, boneDistance = Util.getClosestVehicleBone(hitPosition, entity, bones)
+        closestVehicleBone, closestBoneName, boneDistance = Util.getClosestVehicleBone(ray_hit_position, entity, bones)
 
         if boneDistance <= 1 then
             return closestVehicleBone, closestBoneName, boneDistance
         end
     end
+
     return nil, nil, nil
 end
 
@@ -643,10 +590,6 @@ local function IdentifyPlayerServerId(entityType, entity)
     return entityType == 1 and IsPedAPlayer(entity) and GetPlayerServerId(NetworkGetPlayerIndexFromPed(entity))
 end
 
-local function isPedAPlayer(entityType, entity)
-    return entityType == 1 and IsPedAPlayer(entity)
-end
-
 function Container.getMenu(model, entity, menuId, list_of_id)
     if menuId then
         local menuRef = Container.get(menuId)
@@ -668,7 +611,8 @@ function Container.getMenu(model, entity, menuId, list_of_id)
         combinedIds = list_of_id
     end
 
-    local closestBoneId, closestBoneName = Container.boneCheck(entity)
+    local ray_hit_position = StateManager.get("hitPosition")
+    local closestBoneId, closestBoneName = Container.boneCheck(ray_hit_position, entity)
 
     -- global priority
     if entity then
@@ -715,103 +659,6 @@ function Container.getMenu(model, entity, menuId, list_of_id)
     return container, { model, entity, closestBoneId }
 end
 
-local function globalsExistsCheck(entity, entityType)
-    if not entityType or entityType == 0 then return false end
-    local globals = Container.indexes.globals
-    local specificGlobals = globals[set[entityType]]
-    local isPlayer = isPedAPlayer(entityType, entity)
-
-    if isPlayer and globals['players'] and next(globals['players']) then
-        return true
-    end
-
-    if globals.entities and next(globals.entities) then
-        return true
-    end
-
-    if entityType == 2 and (globals.bones and next(globals.bones)) then
-        return true
-    end
-
-    if specificGlobals and next(specificGlobals) then
-        return true
-    end
-
-    return false
-end
-
-local entitiesIndex = Container.indexes.entities
-local modelsIndex = Container.indexes.models
-local playersIndex = Container.indexes.players
-local netIdsIndex = Container.indexes.netIds
-local globalsIndex = Container.indexes.globals
-local bonesIndex = Container.indexes.bones
-
-function Container.getMenuType(t)
-    local model = t.model
-    local entity = t.entity
-    local entityType = t.entityType
-
-    local playerId = IdentifyPlayerServerId(entityType, entity)
-    local isNetworked = NetworkGetEntityIsNetworked(entity)
-    local netId = isNetworked and NetworkGetNetworkIdFromEntity(entity) or nil
-
-    -- MANUAL
-    if Container.current_manual_menu then
-        return MenuTypes['MANUAL']
-    end
-
-    -- ON_ZONE
-    if t.zone then
-        return MenuTypes['ON_ZONE']
-    end
-
-    -- ON_POSITION
-    if t.closestPoint and next(t.closestPoint) then
-        return MenuTypes['ON_POSITION']
-    end
-
-    -- ON_ENTITY
-    local isEntityIndexed = false
-    local hasGlobalEntry = globalsExistsCheck(entity, entityType)
-
-    if entityType == 1 then
-        -- PED
-        -- ON_ENTITY -> ON_PED -> normal
-        -- ON_ENTITY -> ON_PED -> player
-        -- ON_ENTITY -> ON_PED -> netId
-        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or playersIndex[playerId] or netIdsIndex[netId]
-        if isEntityIndexed or hasGlobalEntry then
-            return MenuTypes['ON_ENTITY']
-        end
-    elseif entityType == 2 then
-        -- VEHICLE
-        -- ON_ENTITY -> ON_VEHICLE -> normal
-        -- ON_ENTITY -> ON_VEHICLE -> bone
-        -- ON_ENTITY -> ON_VEHICLE -> netId
-        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or netIdsIndex[netId]
-        if isEntityIndexed or hasGlobalEntry then
-            return MenuTypes['ON_ENTITY']
-        else
-            local _, closestBoneName = Container.boneCheck(entity)
-
-            if bonesIndex[entity] and bonesIndex[entity][closestBoneName] then
-                return MenuTypes['ON_ENTITY']
-            end
-        end
-    elseif entityType == 3 then
-        -- OBJECT
-        -- ON_ENTITY -> ON_OBJECT -> normal
-        -- ON_ENTITY -> ON_OBJECT -> netId
-        isEntityIndexed = modelsIndex[model] or entitiesIndex[entity] or netIdsIndex[netId]
-        if isEntityIndexed or hasGlobalEntry then
-            return MenuTypes['ON_ENTITY']
-        end
-    end
-
-    return MenuTypes['DISABLED']
-end
-
 function Container.get(id)
     return Container.data[id]
 end
@@ -825,7 +672,7 @@ function Container.triggerInteraction(menuId, optionId, ...)
     local func = Container.data[menuId].interactions[optionId].func
 
     if not func and func["__cfx_functionReference"] then return end
-    return func(...)
+    return pcall(func, ...)
 end
 
 local function isOptionValid(option)
@@ -1000,6 +847,15 @@ local function processData(params)
             }
             try_unpack = true
         end
+    elseif schemaType == "ox_target" then
+        data = {
+            entity = menuData.entity,
+            coords = menuData.coords,
+            distance = menuData.distance,
+            zone = menuData.name,
+            bone = menuData.bone
+        }
+        try_unpack = false
     elseif schemaType == "qbtarget" then
         if triggerType == 'action' then
             data = menuData.entity
@@ -1042,68 +898,64 @@ function Container.keyPress(menuData)
     local interaction = menuOriginalData.interactions[selectedOption]
     local schemaType = menuOriginalData.schemaType
 
+    local function processInteraction(triggerType, cb)
+        PlaySoundFrontend(-1, 'Highlight_Cancel', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', true)
+
+        processData {
+            schemaType = schemaType,
+            triggerType = triggerType,
+            interaction = interaction,
+            menuData = menuData,
+            metadata = metadata,
+            cb = cb
+        }
+    end
+
+    local function actionCallback(...)
+        local success, result = pcall(interaction.func, ...)
+    end
+
+    local function eventCallback(...)
+        if not interaction.name then
+            warn("event property doesn't have name attached to it")
+            return
+        end
+
+        if interaction.type == 'client' then
+            TriggerEvent(interaction.name, ...)
+        elseif interaction.type == 'server' then
+            TriggerServerEvent(interaction.name, ...)
+        elseif interaction.type == 'command' then
+            ExecuteCommand(interaction.name)
+        end
+    end
+
     if interaction.action then
         if not Container.runningInteractions[interaction.func] then
             Container.runningInteractions[interaction.func] = true
             PlaySoundFrontend(-1, 'Highlight_Cancel', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', true)
 
             CreateThread(function()
-                if menuData.type == 'zone' then
-                    processData {
-                        schemaType = schemaType,
-                        triggerType = 'zone',
-                        interaction = interaction,
-                        menuData = menuData,
-                        metadata = metadata,
-                        cb = function(...)
-                            local success, result
-                            success, result = pcall(interaction.func, ...)
-                        end
-                    }
-                else
-                    processData {
-                        schemaType = schemaType,
-                        triggerType = 'action',
-                        interaction = interaction,
-                        menuData = menuData,
-                        metadata = metadata,
-                        cb = function(...)
-                            local success, result
-                            success, result = pcall(interaction.func, ...)
-                        end
-                    }
-                end
-
+                local triggerType = menuData.type == 'zone' and 'zone' or 'action'
+                processInteraction(triggerType, actionCallback)
                 Container.runningInteractions[interaction.func] = nil
             end)
         else
             Util.print_debug("Function is already running, ignoring additional calls to prevent spam.")
         end
     elseif interaction.event or interaction.command then
-        PlaySoundFrontend(-1, 'Highlight_Cancel', 'DLC_HEIST_PLANNING_BOARD_SOUNDS', true)
-
-        processData {
-            schemaType = schemaType,
-            triggerType = 'event',
-            interaction = interaction,
-            menuData = menuData,
-            metadata = metadata,
-            cb = function(...)
-                if not interaction.name then
-                    warn("event property doesn't have name attached to it")
-                    return
-                end
-                if interaction.type == 'client' then
-                    TriggerEvent(interaction.name, ...)
-                elseif interaction.type == 'server' then
-                    TriggerServerEvent(interaction.name, ...)
-                elseif interaction.type == 'command' then
-                    ExecuteCommand(interaction.name)
-                end
-            end
-        }
+        processInteraction('event', eventCallback)
     end
 end
+
+function Container.refresh()
+    if not Container.current then return end
+    local scaleform = Interact.getScaleform()
+    Container.syncData(scaleform, Container.current, true)
+end
+
+exports("Refresh", Container.refresh)
+exports("refresh", Container.refresh)
 
 local function is_daytime()
     local hour = GetClockHours()
@@ -1216,12 +1068,34 @@ end
 
 local function apply_framework_restrictions(updatedElements, menuId, option, optionIndex, menuOriginalData, pt, changes)
     if not Bridge.active then return false end
-    if not (option.item or option.job or option.gang) then return false end
+    if not (option.item or option.items or option.job or option.gang) then return false end
 
     local shouldHide = false
     if option.item then
         local ok = Bridge.hasItem(option.item)
         shouldHide = type(ok) == "boolean" and not ok or false
+    end
+
+    if option.items then
+        if option.has_any then
+            -- only needs one of the items
+            shouldHide = true
+            for _, item in pairs(option.items) do
+                if Bridge.hasItem(item) then
+                    shouldHide = false
+                    break
+                end
+            end
+        else
+            -- must have all items
+            shouldHide = false
+            for _, item in pairs(option.items) do
+                if not Bridge.hasItem(item) then
+                    shouldHide = true
+                    break
+                end
+            end
+        end
     end
 
     if option.job or option.gang then
@@ -1291,12 +1165,10 @@ function Container.syncData(scaleform, menuData, refreshUI)
         Container.validateAndSyncSelected(scaleform, menuData)
     end
 
-    if Config.features.timeBasedTheme then
-        local now = is_daytime()
-        if now ~= StateManager.get("daytime") then
-            StateManager.set("daytime", now)
-            Interact:setDarkMode(now)
-        end
+    local now = is_daytime()
+    if now ~= StateManager.get("daytime") then
+        StateManager.set("daytime", now)
+        Interact:setDarkMode(now)
     end
 end
 
@@ -1324,15 +1196,9 @@ end
 ---@param menuData table
 function Container.validateAndSyncSelected(scaleform, menuData)
     if not menuData then return end
-
     local selected = menuData.selected
+    if not hasValidMenuOption(menuData) then return end
 
-    -- Early exit if no valid menu options are present
-    if not hasValidMenuOption(menuData) then
-        return
-    end
-
-    -- Find the current selected option
     local currentSelectedVid = nil
     for vid, isSelected in pairs(selected) do
         if isSelected then
@@ -1411,21 +1277,6 @@ local function setProgressProperty(menuRef, option, value)
     menuRef.options[option].progress.value = value
 end
 
-local function setMenuPosition(menuRef, nPos)
-    if not menuRef.position then
-        warn("Menu is not position-based and its position cannot be updated")
-        return
-    end
-
-    if type(nPos) ~= "vector3" and type(nPos) ~= "vector4" then
-        warn("Position value must be a vector3 or vector4")
-        return
-    end
-
-    nPos = vec2(nPos.x, nPos.y)
-    grid:update(menuRef.position, nPos)
-end
-
 local function setMenuProperty(t)
     local menuId = t.menuId
     local menuRef = Container.get(menuId)
@@ -1439,7 +1290,7 @@ local function setMenuProperty(t)
     if t.type == 'hide' then
         setHideProperty(menuRef, t.option, t.value)
     elseif t.type == 'position' then
-        setMenuPosition(menuRef, t.value)
+        Features.resolve("Set", menuRef.type, menuRef, t)
     elseif t.option then
         if not menuRef.options[t.option] then
             warn("Option doesn't exists!")

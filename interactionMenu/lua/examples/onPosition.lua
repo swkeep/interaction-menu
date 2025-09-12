@@ -104,5 +104,8 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "on_position", "On Locations", "fa-solid fa-location-dot")
+    InternalRegisterTest(init, cleanup, "on_position", "On Locations", "fa-solid fa-location-dot", "", {
+        type = "dark-orange",
+        label = "Feature"
+    })
 end)

@@ -29,7 +29,7 @@ local LIGHT_STATUS = {
 
 local FOB_CONFIG = {
     defaultVehicle = `elegy`,
-    fobOffset = vector3(0, 1.5, 0),
+    fobOffset = vector3(0, 1.5, 0.5),
     fobRotation = vector3(0, 40, 330)
 }
 
@@ -228,6 +228,7 @@ local function init()
         entity = PlayerPedId(),
         offset = FOB_CONFIG.fobOffset,
         rotation = FOB_CONFIG.fobRotation,
+        scale = 1.5,
         triggers = {
             open = "vehicle:open_fob",
             close = "vehicle:close_fob"
@@ -288,7 +289,7 @@ local function cleanup()
 end
 
 CreateThread(function()
-    InternalRegisterTest(init, cleanup, "manual_menu", "Manual Menu Toggle", "fa-solid fa-cube",
+    InternalRegisterTest(init, cleanup, "manual_menu", "Manually Triggered Menu", "fa-solid fa-cube",
         "Press 'F5' to open/close, press the key out side of green zones (polyzones)", {
             type = "dark-red",
             label = "F5"
