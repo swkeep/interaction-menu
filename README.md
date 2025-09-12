@@ -6,14 +6,13 @@
 
 <center>
 
-![](https://img.shields.io/github/v/release/swkeep/interaction-menu?logo=github&style=for-the-badge)
-![](https://img.shields.io/github/downloads/swkeep/interaction-menu/total?logo=github&style=for-the-badge)
-![](https://img.shields.io/github/downloads/swkeep/interaction-menu/latest/total?logo=github&style=for-the-badge)
-![](https://img.shields.io/github/stars/swkeep/interaction-menu?logo=github&style=for-the-badge)
-![Discord](https://img.shields.io/discord/988158464276693012?logo=discord&style=for-the-badge)
+![](https://img.shields.io/github/v/release/swkeep/interaction-menu?logo=github)
+![](https://img.shields.io/github/downloads/swkeep/interaction-menu/total?logo=github)
+![](https://img.shields.io/github/downloads/swkeep/interaction-menu/latest/total?logo=github)
+![](https://img.shields.io/github/stars/swkeep/interaction-menu?logo=github)
+![Discord](https://img.shields.io/discord/988158464276693012?logo=discord)
 
 </center>
-
 
 Interaction menu is a modular, raycast, zone and entitiy based interaction system for FiveM. It leverages sprites and DUI to render rich, in-game menus, allowing players to interact with entities, world positions, zones, vehicles, and more. Menus are tracked in a centralized container structure and automatically cleaned up via a dedicated garbage collector.
 
