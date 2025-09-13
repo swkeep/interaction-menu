@@ -14,7 +14,7 @@
 
 </center>
 
-Interaction menu is a modular, raycast, zone and entitiy based interaction system for FiveM. It leverages sprites and DUI to render rich, in-game menus, allowing players to interact with entities, world positions, zones, vehicles, and more. Menus are tracked in a centralized container structure and automatically cleaned up via a dedicated garbage collector.
+Interaction menu is a modular, raycast, zone and entity based interaction system for FiveM. It leverages sprites and DUI to render rich, in-game menus, allowing players to interact with entities, world positions, zones, vehicles, and more. Menus are tracked in a centralized container structure and automatically cleaned up via a dedicated garbage collector.
 
 ## Features
 
